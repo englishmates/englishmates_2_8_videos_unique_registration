@@ -1,0 +1,38 @@
+ENGLISHMATES 2.7 — REAL BACKGROUND NOTIFICATIONS
+
+I received the public Web Push/VAPID key and have inserted it into the website.
+The website now:
+- registers the admin device with Firebase Cloud Messaging after owner login;
+- stores the FCM device token in Firestore adminDevices;
+- has a firebase-messaging-sw.js service worker for background notifications;
+- calls a secure Netlify serverless function after a new student record is created;
+- sends the admission message to registered admin devices.
+
+ONE-TIME NETLIFY SETUP (YOU MUST DO THIS)
+------------------------------------------
+A server must hold the Firebase Admin SDK service account credentials.
+Do NOT put these credentials in index.html or send them to ChatGPT.
+
+1. Firebase Console → Project Settings → Service accounts.
+2. Generate a new private key.
+3. In Netlify → Site configuration → Environment variables, create:
+
+FIREBASE_SERVICE_ACCOUNT_JSON = the COMPLETE JSON contents of that private-key file
+FIREBASE_PROJECT_ID = englishmates-ratangarh-933f1
+
+4. Deploy the site with the included netlify.toml, package.json and netlify/functions/new-admission-notify.js.
+
+5. Open the live website → Owner / Admin Login → sign in.
+6. Click/allow Enable Alerts.
+7. Use the Test Alert button. You should receive a browser notification.
+8. Register a test student from another browser/device.
+
+RESULT
+------
+Student registration → Firestore → Netlify function → Firebase Cloud Messaging →
+admin phone/browser notification, including when the Englishmates website is in the background.
+
+IMPORTANT SECURITY
+------------------
+The FCM VAPID public key is safe to include in client code. The Firebase service-account
+private key is NOT safe for client code. Keep it only as a Netlify environment variable.
