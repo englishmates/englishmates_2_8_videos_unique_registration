@@ -652,10 +652,23 @@
         }
         if(!response.ok || !result.ok) throw new Error(result.error || 'Registration failed');
 
-        msg.textContent=data.course==='Online Spoken English' ? '✓ Registration successful. Your Google Meet link will be shared with you shortly. Class time will be coordinated with enrolled students.' : '✓ Registration successful. Englishmates will contact you shortly.';
+        msg.textContent=data.course==='Online Spoken English' ? '✓ Registration successful. Your class time will be coordinated with enrolled students.' : '✓ Registration successful. Englishmates will contact you shortly.';
         msg.className='text-sm text-center text-emerald-400 font-bold';
+        if(data.course==='Online Spoken English' && result.meetLink){
+          const link=document.createElement('a');
+          link.href=result.meetLink;
+          link.target='_blank';
+          link.rel='noopener noreferrer';
+          link.textContent='Join your Google Meet class';
+          link.className='block mt-2 underline text-emerald-300';
+          msg.appendChild(document.createElement('br'));
+          msg.appendChild(link);
+        } else if(data.course==='Online Spoken English'){
+          msg.textContent += ' The joining link will be provided by the institute.';
+        }
         form.reset();
-        setTimeout(closeAll,1500);
+        updateSelectedCourseFee();
+        if(data.course!=='Online Spoken English') setTimeout(closeAll,1500);
       }catch(err){
         console.error(err);
         msg.textContent=err.message==='Please enter a valid 10-digit mobile number.' ? err.message : 'Could not complete registration online. Please contact Englishmates on WhatsApp.';
