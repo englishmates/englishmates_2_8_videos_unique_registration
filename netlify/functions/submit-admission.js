@@ -149,7 +149,7 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true, duplicate: false, message: 'Registration successful.', notificationSent: push.sent || 0 })
+      body: JSON.stringify({ ok: true, duplicate: false, message: 'Registration successful.', notificationSent: push.sent || 0, meetLink: course === 'Online Spoken English' ? (process.env.GOOGLE_MEET_LINK || '') : '' })
     };
   } catch (err) {
     console.error('Admission submission failed:', err);
