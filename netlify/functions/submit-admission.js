@@ -82,6 +82,21 @@ exports.handler = async (event) => {
     const email = String(body.email || '').trim();
     const course = String(body.course || body.interest || '').trim();
 
+    // Fees are authoritative on the server; never trust a fee sent by the browser.
+    const COURSE_FEES = {
+      'Spoken English': '₹4,500',
+      'Art of Communication': '₹4,500',
+      'Complete AI & ChatGPT': '₹999',
+      'Sunday AI Workshop': '₹99',
+      'Online Spoken English': '₹699',
+      'English + AI (Both)': 'Contact for combined fee'
+    };
+    const allowedCourses = new Set(Object.keys(COURSE_FEES));
+    if (!allowedCourses.has(course)) {
+      return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Please select a valid course.' }) };
+    }
+    const officialFee = COURSE_FEES[course];
+
     if (!name || !/^\d{10}$/.test(phone) || !course) {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Name, valid 10-digit phone and course are required.' }) };
     }
@@ -115,7 +130,7 @@ exports.handler = async (event) => {
       goal: String(body.goal || '').trim(),
       txnId: String(body.txnId || '').trim(),
       profileUrl: String(body.profileUrl || ''),
-      fee: String(body.fee || ''),
+      fee: officialFee,
       admissionDate: now,
       paymentStatus: body.txnId ? 'Paid / Registered' : 'Pending',
       status: body.txnId ? 'Enrolled' : 'Enquiry',
