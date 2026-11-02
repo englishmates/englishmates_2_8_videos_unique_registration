@@ -500,6 +500,15 @@
     const closeAll = () => { $$('#enrollModal,#reviewModal,#adminLoginModal').forEach(el=>{el.classList.add('hidden');el.classList.remove('flex')});document.body.style.overflow=''; };
     $$('.closeModal').forEach(b=>b.addEventListener('click',closeAll));
     $$('.closeAdmin').forEach(b=>b.addEventListener('click',closeAll));
+    const COURSE_FEES={
+      "Spoken English":"₹4,500",
+      "Art of Communication":"₹4,500",
+      "Complete AI & ChatGPT":"₹999",
+      "Sunday AI Workshop":"₹99",
+      "Online Spoken English":"₹699",
+      "English + AI (Both)":"Contact for combined fee"
+    };
+
     function updateSelectedCourseFee(){
       const course=$('#courseSelect').value;
       $('#selectedCourseFee').textContent=COURSE_FEES[course] || 'Contact us';
@@ -512,14 +521,6 @@
     window.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 
     // Course pricing map — restored from the original Englishmates site.
-    const COURSE_FEES={
-      "Spoken English":"₹4,500",
-      "Art of Communication":"₹4,500",
-      "Complete AI & ChatGPT":"₹999",
-      "Sunday AI Workshop":"₹99",
-      "Online Spoken English":"₹699",
-      "English + AI (Both)":"Contact for combined fee"
-    };
 
     // Notifications: browser + Firebase Cloud Messaging (FCM)
     let messaging=null;
