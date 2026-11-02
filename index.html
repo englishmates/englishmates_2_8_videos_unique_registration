@@ -790,7 +790,7 @@
         await auth.signInWithEmailAndPassword($('#adminEmail').value.trim(),$('#adminPassword').value);
         if((auth.currentUser.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await auth.signOut();throw new Error('not-admin');}
         closeAll(); showAdmin(); setTimeout(async()=>{ if(Notification.permission==='default') await enableNotifications(); else if(Notification.permission==='granted') await setupFCM(); },400);
-      }catch(err){m.textContent=err.message==='not-admin'?'This account is not the Englishmates owner account.':'Login failed. Check your Firebase email/password.';m.className='text-sm text-center text-rose-400'}
+      }catch(err){console.error('Englishmates admin login error:',err.code,err.message);m.textContent=err.message==='not-admin'?'This account is not the Englishmates owner account.':`Login failed (${err.code||'unknown'}). ${err.message||'Check Firebase Authentication.'}`;m.className='text-sm text-center text-rose-400'}
     });
     $('#logoutBtn').addEventListener('click',async()=>{if(adminUnsubscribe)adminUnsubscribe();knownStudentIds.clear();adminFirstLoad=true;$('#adminArea').classList.add('hidden');await auth.signOut()});
     if(auth) auth.onAuthStateChanged(u=>{ if(u && !$('#adminArea').classList.contains('hidden')) subscribeAdmin(); });
