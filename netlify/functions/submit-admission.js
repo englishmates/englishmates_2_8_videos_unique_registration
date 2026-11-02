@@ -82,20 +82,25 @@ exports.handler = async (event) => {
     const email = String(body.email || '').trim();
     const course = String(body.course || body.interest || '').trim();
 
-    // Fees are authoritative on the server; never trust a fee sent by the browser.
-    const COURSE_FEES = {
-      'Spoken English': '₹4,500',
-      'Art of Communication': '₹4,500',
-      'Complete AI & ChatGPT': '₹999',
-      'Sunday AI Workshop': '₹99',
-      'Online Spoken English': '₹699',
-      'English + AI (Both)': 'Contact for combined fee'
-    };
-    const allowedCourses = new Set(Object.keys(COURSE_FEES));
-    if (!allowedCourses.has(course)) {
-      return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Please select a valid course.' }) };
+    // The Firestore catalog is the single source of truth for active courses and fees.
+    const courseId = String(body.courseId || '').trim();
+    let courseDoc = null;
+    if (courseId) {
+      const courseSnap = await db.collection('courses').doc(courseId).get();
+      if (courseSnap.exists) courseDoc = { id: courseSnap.id, ...courseSnap.data() };
     }
-    const officialFee = COURSE_FEES[course];
+    if (!courseDoc) {
+      const matches = await db.collection('courses').where('name', '==', course).limit(1).get();
+      if (!matches.empty) courseDoc = { id: matches.docs[0].id, ...matches.docs[0].data() };
+    }
+    // Backward-compatible fallback until the owner initializes the catalog in the dashboard.
+    const legacyFees = { 'Spoken English':'₹4,500','Art of Communication':'₹4,500','Complete AI & ChatGPT':'₹999','Sunday AI Workshop':'₹99','Online Spoken English':'₹699','English + AI (Both)':'Contact for combined fee' };
+    if (!courseDoc && legacyFees[course]) courseDoc = { name: course, fee: legacyFees[course], active: true, archived: false, requiresMeetLink: course === 'Online Spoken English' };
+    if (!courseDoc || courseDoc.active !== true || courseDoc.archived === true) {
+      return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'This course is currently unavailable. Please select an active course.' }) };
+    }
+    const officialFee = String(courseDoc.fee || 'Contact us');
+    const canonicalCourse = String(courseDoc.name || course);
 
     if (!name || !/^\d{10}$/.test(phone) || !course) {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Name, valid 10-digit phone and course are required.' }) };
@@ -117,7 +122,8 @@ exports.handler = async (event) => {
     await lockRef.create({
       phone,
       name,
-      course,
+      course: canonicalCourse,
+      courseId: courseDoc.id || courseId || '',
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
@@ -126,7 +132,8 @@ exports.handler = async (event) => {
       name,
       phone,
       email,
-      course,
+      course: canonicalCourse,
+      courseId: courseDoc.id || courseId || '',
       goal: String(body.goal || '').trim(),
       txnId: String(body.txnId || '').trim(),
       profileUrl: String(body.profileUrl || ''),
@@ -149,7 +156,7 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true, duplicate: false, message: 'Registration successful.', notificationSent: push.sent || 0, meetLink: course === 'Online Spoken English' ? (process.env.GOOGLE_MEET_LINK || '') : '' })
+      body: JSON.stringify({ ok: true, duplicate: false, message: 'Registration successful.', notificationSent: push.sent || 0, meetLink: courseDoc.requiresMeetLink ? (process.env.GOOGLE_MEET_LINK || '') : '' })
     };
   } catch (err) {
     console.error('Admission submission failed:', err);
