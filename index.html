@@ -139,7 +139,7 @@
           <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Programs built for <span class="gradient-text">real growth.</span></h2>
           <p class="text-slate-400 mt-5 leading-7">Choose one skill or combine them. Every program is designed to turn knowledge into confidence and action.</p>
         </div>
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-10">
           <div class="card transition-card rounded-3xl p-7 reveal">
             <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center"><i data-lucide="mic-2"></i></div>
             <h3 class="text-xl font-bold text-white mt-6">Spoken English</h3>
@@ -171,6 +171,14 @@
             <p class="text-slate-400 text-sm leading-6 mt-3">A low-cost way to discover useful AI tools and start applying them immediately.</p>
             <div class="mt-5 text-xs text-slate-300 space-y-2"><div>✓ Hands-on demos</div><div>✓ Beginner friendly</div><div>✓ Practical AI tools</div></div>
             <button data-course="Sunday AI Workshop" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button>
+          </div>
+          <div class="card transition-card rounded-3xl p-7 reveal border border-emerald-400/30">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center"><i data-lucide="video"></i></div>
+            <h3 class="text-xl font-bold text-white mt-6">Online Spoken English</h3>
+            <div class="text-3xl font-extrabold text-white mt-4">₹699</div><div class="text-xs text-emerald-300 font-bold mt-1">1 Month • Live Google Meet</div>
+            <p class="text-slate-400 text-sm leading-6 mt-3">Build speaking confidence from home with short, live, guided classes.</p>
+            <div class="mt-5 text-xs text-slate-300 space-y-2"><div>✓ Monday to Saturday</div><div>✓ 30 minutes per class</div><div>✓ Sunday holiday</div><div>✓ Google Meet sessions</div></div>
+            <button data-course="Online Spoken English" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button>
           </div>
         </div>
       </div>
@@ -416,8 +424,10 @@
         <input name="email" type="email" placeholder="Email (optional)" class="w-full p-3.5 rounded-xl bg-black/20 border border-white/10 text-white outline-none focus:border-violet-400">
         <div class="rounded-xl border border-white/10 bg-white/[.03] p-4"><label class="text-xs text-slate-400 font-bold">Student profile photo (optional)</label><input id="studentPhoto" type="file" accept="image/*" class="w-full mt-2 text-xs text-slate-400"></div>
         <select name="interest" id="courseSelect" class="w-full p-3.5 rounded-xl bg-[#10192b] border border-white/10 text-white outline-none">
-          <option>Spoken English</option><option>Art of Communication</option><option>Complete AI & ChatGPT</option><option>Sunday AI Workshop</option><option>English + AI (Both)</option>
+          <option>Spoken English</option><option>Art of Communication</option><option>Complete AI & ChatGPT</option><option>Sunday AI Workshop</option><option>Online Spoken English</option><option>English + AI (Both)</option>
         </select>
+        <div class="rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-3 flex items-center justify-between gap-3"><span class="text-sm text-slate-300">Course fee</span><strong id="selectedCourseFee" class="text-lg text-white">₹4,500</strong></div>
+        <p id="onlineCourseNote" class="hidden text-xs leading-5 text-emerald-300">Online classes: Monday to Saturday, 30 minutes daily. Sunday holiday. Google Meet link and class timing will be shared after registration.</p>
         <textarea name="goal" placeholder="What do you want to improve? (optional)" class="w-full h-24 p-3.5 rounded-xl bg-black/20 border border-white/10 text-white outline-none resize-none"></textarea>
         <div class="rounded-2xl border border-white/10 bg-white/[.03] p-4 text-center">
           <div class="text-xs font-bold uppercase tracking-widest text-blue-400">Payment for paid enrollment</div>
@@ -490,7 +500,14 @@
     const closeAll = () => { $$('#enrollModal,#reviewModal,#adminLoginModal').forEach(el=>{el.classList.add('hidden');el.classList.remove('flex')});document.body.style.overflow=''; };
     $$('.closeModal').forEach(b=>b.addEventListener('click',closeAll));
     $$('.closeAdmin').forEach(b=>b.addEventListener('click',closeAll));
-    $$('#enrollBtn,.courseBtn').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.course) $('#courseSelect').value=b.dataset.course; openModal('#enrollModal'); }));
+    function updateSelectedCourseFee(){
+      const course=$('#courseSelect').value;
+      $('#selectedCourseFee').textContent=COURSE_FEES[course] || 'Contact us';
+      $('#onlineCourseNote').classList.toggle('hidden',course!=='Online Spoken English');
+    }
+    $('#courseSelect').addEventListener('change',updateSelectedCourseFee);
+    $('#enrollBtn,.courseBtn').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.course) $('#courseSelect').value=b.dataset.course; updateSelectedCourseFee(); openModal('#enrollModal'); }));
+    updateSelectedCourseFee();
     $('#reviewBtn').addEventListener('click',()=>openModal('#reviewModal'));
     window.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 
@@ -500,6 +517,7 @@
       "Art of Communication":"₹4,500",
       "Complete AI & ChatGPT":"₹999",
       "Sunday AI Workshop":"₹99",
+      "Online Spoken English":"₹699",
       "English + AI (Both)":"Contact for combined fee"
     };
 
@@ -634,7 +652,7 @@
         }
         if(!response.ok || !result.ok) throw new Error(result.error || 'Registration failed');
 
-        msg.textContent='✓ Registration successful. Englishmates will contact you shortly.';
+        msg.textContent=data.course==='Online Spoken English' ? '✓ Registration successful. Your Google Meet link and class timing will be shared with you shortly.' : '✓ Registration successful. Englishmates will contact you shortly.';
         msg.className='text-sm text-center text-emerald-400 font-bold';
         form.reset();
         setTimeout(closeAll,1500);
@@ -703,7 +721,7 @@
 
     // ADMIN DASHBOARD — protected by Firebase Email/Password + Firestore rules.
     let adminUnsubscribe=null, knownStudentIds=new Set(), adminFirstLoad=true;
-    const COURSES=["Spoken English","Art of Communication","Complete AI & ChatGPT","Sunday AI Workshop","English + AI (Both)"];
+    const COURSES=["Spoken English","Art of Communication","Complete AI & ChatGPT","Sunday AI Workshop","Online Spoken English","English + AI (Both)"];
     function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
     function formatDate(v){
       if(!v)return '—';
