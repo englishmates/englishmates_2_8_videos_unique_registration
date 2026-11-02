@@ -342,6 +342,33 @@
       <div id="adminStats" class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-8"></div>
       <div class="card rounded-3xl p-5 md:p-7 mt-8"><div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-2xl font-extrabold text-white">Course Management</h3><p class="text-sm text-slate-400 mt-1">Add, edit, archive, restore, activate, deactivate, delete or merge courses.</p></div><button id="addCourseBtn" class="btn-primary px-5 py-3 rounded-xl text-white font-bold">+ Add New Course</button></div><div id="courseManagerMsg" class="text-sm mt-3 text-slate-400"></div><div id="courseManagerList" class="grid md:grid-cols-2 gap-4 mt-5"></div><div class="border-t border-white/10 mt-7 pt-6"><h4 class="text-lg font-bold text-white">Merge courses</h4><p class="text-xs text-slate-400 mt-1">Selected courses will be archived and a new combined course will be created. Existing student records will not be changed.</p><div id="mergeCourseChoices" class="grid sm:grid-cols-2 gap-2 mt-4"></div><div class="grid md:grid-cols-3 gap-3 mt-4"><input id="mergeName" placeholder="New combined course name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="mergeFee" placeholder="Combined fee (e.g. ₹5,000)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="mergeDuration" placeholder="Duration" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"></div><textarea id="mergeDescription" placeholder="Combined course description" class="w-full mt-3 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea><button id="mergeCoursesBtn" class="mt-3 px-5 py-3 rounded-xl bg-violet-500/20 text-violet-200 font-bold">Merge Selected Courses</button></div></div>
       <div id="courseEditor" class="hidden card rounded-3xl p-5 md:p-7 mt-5"><div class="flex justify-between"><h3 id="courseEditorTitle" class="text-xl font-extrabold text-white">Add course</h3><button id="cancelCourseEdit" class="text-slate-400">Close</button></div><form id="courseEditorForm" class="grid md:grid-cols-2 gap-3 mt-5"><input type="hidden" id="editCourseId"><input id="editCourseName" required placeholder="Course name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="editCourseFee" required placeholder="Fee (e.g. ₹4,500)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="editCourseDuration" placeholder="Duration" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="editCourseTag" placeholder="Short tag (e.g. Beginner to Pro)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><textarea id="editCourseDescription" required placeholder="Course description" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea><textarea id="editCourseFeatures" placeholder="Features (one per line)" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea><label class="text-sm text-slate-300 flex items-center gap-2"><input id="editCourseActive" type="checkbox" checked> Active and visible for registration</label><label class="text-sm text-slate-300 flex items-center gap-2"><input id="editCourseMeet" type="checkbox"> Share Google Meet link after registration</label><div class="md:col-span-2 flex gap-2"><button class="btn-primary px-6 py-3 rounded-xl text-white font-bold">Save Course</button><button type="button" id="cancelCourseEdit2" class="px-6 py-3 rounded-xl bg-white/5 text-white">Cancel</button></div></form></div>
+      <div class="card rounded-3xl p-5 md:p-7 mt-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div><h3 class="text-2xl font-extrabold text-white">Student Management</h3><p class="text-sm text-slate-400 mt-1">Add, search, edit and remove student records.</p></div>
+          <button id="addStudentBtn" class="btn-primary px-5 py-3 rounded-xl text-white font-bold">+ Add Student</button>
+        </div>
+        <div class="grid md:grid-cols-3 gap-3 mt-5">
+          <input id="studentSearch" type="search" placeholder="Search name, phone or email…" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <select id="studentCourseFilter" class="p-3 rounded-xl bg-[#10192b] border border-white/10 text-white"><option value="">All courses</option></select>
+        </div>
+        <div id="studentManagerMsg" class="text-sm mt-3 text-slate-400" role="status"></div>
+        <div id="studentManagerList" class="overflow-x-auto mt-4"></div>
+      </div>
+      <div id="studentEditor" class="hidden card rounded-3xl p-5 md:p-7 mt-5">
+        <div class="flex items-center justify-between gap-3"><h3 id="studentEditorTitle" class="text-xl font-extrabold text-white">Add student</h3><button type="button" id="cancelStudentEdit" class="text-slate-400">Close</button></div>
+        <form id="studentEditorForm" class="grid md:grid-cols-2 gap-3 mt-5">
+          <input type="hidden" id="editStudentId">
+          <input id="editStudentName" required maxlength="100" placeholder="Student full name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <input id="editStudentPhone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <input id="editStudentEmail" type="email" placeholder="Email (optional)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <select id="editStudentCourse" required class="p-3 rounded-xl bg-[#10192b] border border-white/10 text-white"></select>
+          <input id="editStudentFee" placeholder="Fee (e.g. ₹4,500)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <select id="editStudentPayment" class="p-3 rounded-xl bg-[#10192b] border border-white/10 text-white"><option>Pending</option><option>Paid / Registered</option><option>Partially Paid</option><option>Waived</option></select>
+          <input id="editStudentAdmissionDate" type="date" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <input id="editStudentGoal" placeholder="Goal / Notes" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <div class="md:col-span-2 flex flex-wrap gap-2"><button class="btn-primary px-6 py-3 rounded-xl text-white font-bold">Save Student</button><button type="button" id="cancelStudentEdit2" class="px-6 py-3 rounded-xl bg-white/5 text-white">Cancel</button></div>
+        </form>
+      </div>
       <div id="courseRoster" class="mt-8 space-y-8"></div>
     </div>
   </section>
@@ -735,7 +762,88 @@
     }
     function initials(name){return (name||'S').trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
     function safePhoto(s){return s.profileUrl || `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#334155"/><text x="32" y="39" text-anchor="middle" font-size="22" fill="white">${initials(s.name)}</text></svg>`)}`}
+    let latestAdminStudents=[];
+    function refreshStudentFilters(){
+      const filter=$('#studentCourseFilter'), current=filter.value;
+      filter.innerHTML='<option value="">All courses</option>'+courseCatalog.filter(c=>!c.archived).map(c=>'<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>').join('');
+      if([...filter.options].some(o=>o.value===current))filter.value=current;
+      $('#editStudentCourse').innerHTML=courseCatalog.filter(c=>!c.archived).map(c=>'<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>').join('');
+    }
+    function renderStudentManager(students){
+      latestAdminStudents=students;
+      refreshStudentFilters();
+      const q=$('#studentSearch').value.trim().toLowerCase(), course=$('#studentCourseFilter').value;
+      const rows=students.filter(s=>(!course||s.course===course)&&(!q||[s.name,s.phone,s.email,s.course].some(v=>String(v||'').toLowerCase().includes(q))));
+      $('#studentManagerList').innerHTML=rows.length?'<table class="w-full text-left text-sm min-w-[760px]"><thead><tr class="border-b border-white/10 text-slate-500"><th class="p-3">Student</th><th class="p-3">Phone</th><th class="p-3">Course</th><th class="p-3">Fee</th><th class="p-3">Payment</th><th class="p-3">Actions</th></tr></thead><tbody>'+rows.map(s=>'<tr class="border-b border-white/5"><td class="p-3"><div class="font-bold text-white">'+esc(s.name||'—')+'</div><div class="text-xs text-slate-500">'+esc(s.email||'No email')+'</div></td><td class="p-3 text-slate-300">'+esc(s.phone||'—')+'</td><td class="p-3 text-slate-300">'+esc(s.course||'Unassigned')+'</td><td class="p-3 text-slate-300">'+esc(s.fee||'—')+'</td><td class="p-3 text-slate-300">'+esc(s.paymentStatus||'Pending')+'</td><td class="p-3"><div class="flex gap-2"><button data-student-edit="'+esc(s.id)+'" class="px-3 py-2 rounded-lg bg-blue-500/10 text-blue-300">Edit</button><button data-student-delete="'+esc(s.id)+'" class="px-3 py-2 rounded-lg bg-rose-500/10 text-rose-300">Delete</button></div></td></tr>').join('')+'</tbody></table>':'<p class="text-slate-500 p-5 text-center">No matching students found.</p>';
+      $('[data-student-edit]').forEach(b=>b.onclick=()=>openStudentEditor(b.dataset.studentEdit));
+      $('[data-student-delete]').forEach(b=>b.onclick=()=>deleteStudentRecord(b.dataset.studentDelete));
+    }
+    function dateInputValue(v){
+      if(!v)return '';
+      const d=v.toDate?v.toDate():new Date(v);
+      if(Number.isNaN(d.getTime()))return '';
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }
+    function openStudentEditor(id=''){
+      const s=id?latestAdminStudents.find(x=>x.id===id):{};
+      if(id&&!s)return;
+      refreshStudentFilters();
+      $('#studentEditorTitle').textContent=id?'Edit student':'Add student';
+      $('#editStudentId').value=id;
+      $('#editStudentName').value=s?.name||'';
+      $('#editStudentPhone').value=s?.phone||'';
+      $('#editStudentPhone').readOnly=!!id;
+      $('#editStudentEmail').value=s?.email||'';
+      $('#editStudentCourse').value=s?.course||($('#editStudentCourse').options[0]?.value||'');
+      $('#editStudentFee').value=s?.fee||COURSE_FEES[s?.course]||'';
+      $('#editStudentPayment').value=s?.paymentStatus||'Pending';
+      $('#editStudentAdmissionDate').value=dateInputValue(s?.admissionDate||s?.createdAt)||new Date().toISOString().slice(0,10);
+      $('#editStudentGoal').value=s?.goal||'';
+      $('#studentEditor').classList.remove('hidden');
+      $('#studentEditor').scrollIntoView({behavior:'smooth',block:'center'});
+    }
+    async function deleteStudentRecord(id){
+      const s=latestAdminStudents.find(x=>x.id===id);
+      if(!s||!confirm('Delete '+(s.name||'this student')+' from the student roster? This removes the student record only; the original enquiry/lead history is retained.'))return;
+      try{
+        await db.collection('students').doc(id).delete();
+        $('#studentManagerMsg').textContent='Student record deleted. Original enquiry history was retained.';
+      }catch(err){console.error(err);$('#studentManagerMsg').textContent='Delete failed. Check your owner access and try again.';}
+    }
+    $('#addStudentBtn').addEventListener('click',()=>openStudentEditor());
+    ['cancelStudentEdit','cancelStudentEdit2'].forEach(id=>document.getElementById(id).addEventListener('click',()=>$('#studentEditor').classList.add('hidden')));
+    $('#studentSearch').addEventListener('input',()=>renderStudentManager(latestAdminStudents));
+    $('#studentCourseFilter').addEventListener('change',()=>renderStudentManager(latestAdminStudents));
+    $('#studentEditorForm').addEventListener('submit',async e=>{
+      e.preventDefault();
+      const id=$('#editStudentId').value, phone=$('#editStudentPhone').value.replace(/\D/g,'');
+      const name=$('#editStudentName').value.trim(), course=$('#editStudentCourse').value;
+      const msg=$('#studentManagerMsg');
+      if(!/^\d{10}$/.test(phone)){msg.textContent='Enter a valid 10-digit mobile number.';return;}
+      if(!course){msg.textContent='Please add a course before adding a student.';return;}
+      try{
+        if(!id){
+          const duplicate=await db.collection('students').where('phone','==',phone).limit(1).get();
+          if(!duplicate.empty){msg.textContent='A student with this mobile number already exists.';return;}
+        }
+        const admissionDate=new Date($('#editStudentAdmissionDate').value+'T12:00:00').toISOString();
+        const data={name,phone,email:$('#editStudentEmail').value.trim(),course,courseId:courseCatalog.find(c=>c.name===course)?.id||'',fee:$('#editStudentFee').value.trim()||COURSE_FEES[course]||'Contact us',paymentStatus:$('#editStudentPayment').value,goal:$('#editStudentGoal').value.trim(),admissionDate,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        if(id){
+          const old=latestAdminStudents.find(x=>x.id===id);
+          await db.collection('students').doc(id).update(data);
+          if(old?.leadId)await db.collection('leads').doc(old.leadId).update(data);
+        }else{
+          data.status=data.paymentStatus==='Paid / Registered'?'Enrolled':'Enquiry';
+          data.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+          data.timestamp=firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('students').add(data);
+        }
+        $('#studentEditor').classList.add('hidden');
+        msg.textContent=id?'Student details updated.':'Student added successfully.';
+      }catch(err){console.error(err);msg.textContent='Could not save student. Check Firestore rules and try again.';}
+    });
     function renderRoster(students){
+      renderStudentManager(students);
       const counts={}; COURSES.forEach(c=>counts[c]=0);
       students.forEach(s=>{const c=s.course||'Unassigned';counts[c]=(counts[c]||0)+1});
       $('#adminStats').innerHTML=`<div class="card rounded-2xl p-4"><div class="text-xs text-slate-500">Total students</div><div class="text-3xl font-extrabold text-white mt-1">${students.length}</div><div class="text-[10px] text-slate-600 mt-1">All courses</div></div>`+
