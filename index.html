@@ -50,12 +50,8 @@
   <!-- NAVBAR -->
   <header class="fixed top-0 left-0 right-0 z-50 glass">
     <nav class="max-w-7xl mx-auto h-[74px] px-4 lg:px-8 flex items-center justify-between">
-      <a href="#home" class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-xl text-white bg-gradient-to-br from-blue-500 to-violet-500 shadow-lg">E</div>
-        <div>
-          <div class="text-white font-extrabold text-lg leading-none">English<span class="text-violet-400">mates</span></div>
-          <div class="text-[9px] text-slate-400 tracking-[.25em] uppercase mt-1">Ratangarh</div>
-        </div>
+      <a href="#home" class="flex items-center gap-3" aria-label="Englishmates home">
+        <img src="assets/englishmates-logo.jpg" alt="Englishmates logo" class="w-[190px] sm:w-[220px] h-auto object-contain">
       </a>
       <div class="hidden md:flex items-center gap-7 text-sm font-semibold">
         <a class="nav-link" href="#programs">Programs</a>
@@ -139,48 +135,7 @@
           <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Programs built for <span class="gradient-text">real growth.</span></h2>
           <p class="text-slate-400 mt-5 leading-7">Choose one skill or combine them. Every program is designed to turn knowledge into confidence and action.</p>
         </div>
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-10">
-          <div class="card transition-card rounded-3xl p-7 reveal">
-            <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center"><i data-lucide="mic-2"></i></div>
-            <h3 class="text-xl font-bold text-white mt-6">Spoken English</h3>
-            <div class="text-3xl font-extrabold text-white mt-4">₹4,500</div><div class="text-xs text-blue-300 font-bold mt-1">Beginner to Pro</div>
-            <p class="text-slate-400 text-sm leading-6 mt-3">From hesitation to everyday fluency through guided speaking, vocabulary and conversation.</p>
-            <div class="mt-5 text-xs text-slate-300 space-y-2"><div>✓ Daily speaking practice</div><div>✓ Interview preparation</div><div>✓ Confidence building</div></div>            <div class="mt-3 inline-flex items-center gap-2 text-xs font-bold text-rose-300"><i data-lucide="briefcase" class="w-4 h-4"></i> Interview Practice</div>
-            <button data-course="Spoken English" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button>
-          </div>
-          <div class="card transition-card rounded-3xl p-7 reveal">
-            <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center"><i data-lucide="megaphone"></i></div>
-            <h3 class="text-xl font-bold text-white mt-6">Art of Communication</h3>
-            <div class="text-3xl font-extrabold text-white mt-4">₹4,500</div><div class="text-xs text-cyan-300 font-bold mt-1">Public Speaking</div>
-            <p class="text-slate-400 text-sm leading-6 mt-3">Public speaking, presentation, body language and the confidence to express ideas clearly.</p>
-            <div class="mt-5 text-xs text-slate-300 space-y-2"><div>✓ Public speaking</div><div>✓ Presentation skills</div><div>✓ Personality development</div></div>
-            <button data-course="Art of Communication" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button>
-          </div>
-          <div class="card transition-card rounded-3xl p-7 reveal">
-            <div class="w-12 h-12 rounded-2xl bg-violet-500/10 text-violet-400 flex items-center justify-center"><i data-lucide="bot"></i></div>
-            <h3 class="text-xl font-bold text-white mt-6">Complete AI & ChatGPT</h3>
-            <div class="text-3xl font-extrabold text-white mt-4">₹999</div><div class="text-xs text-violet-300 font-bold mt-1">3 Months • 12 Sundays</div>
-            <p class="text-slate-400 text-sm leading-6 mt-3">Learn prompts, research, content creation, productivity and practical AI workflows.</p>
-            <div class="mt-5 text-xs text-slate-300 space-y-2"><div>✓ Prompt engineering</div><div>✓ AI productivity</div><div>✓ Practical projects</div></div>
-            <button data-course="Complete AI & ChatGPT" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button>
-          </div>
-          <div class="card transition-card rounded-3xl p-7 reveal">
-            <div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center"><i data-lucide="zap"></i></div>
-            <h3 class="text-xl font-bold text-white mt-6">Sunday AI Workshop</h3>
-            <div class="text-3xl font-extrabold text-white mt-4">₹99</div><div class="text-xs text-rose-300 font-bold mt-1">Every Sunday</div>
-            <p class="text-slate-400 text-sm leading-6 mt-3">A low-cost way to discover useful AI tools and start applying them immediately.</p>
-            <div class="mt-5 text-xs text-slate-300 space-y-2"><div>✓ Hands-on demos</div><div>✓ Beginner friendly</div><div>✓ Practical AI tools</div></div>
-            <button data-course="Sunday AI Workshop" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button>
-          </div>
-          <div class="card transition-card rounded-3xl p-7 reveal border border-emerald-400/30">
-            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center"><i data-lucide="video"></i></div>
-            <h3 class="text-xl font-bold text-white mt-6">Online Spoken English</h3>
-            <div class="text-3xl font-extrabold text-white mt-4">₹699</div><div class="text-xs text-emerald-300 font-bold mt-1">1 Month • Live Google Meet</div>
-            <p class="text-slate-400 text-sm leading-6 mt-3">Build speaking confidence from home with short, live, guided classes.</p>
-            <div class="mt-5 text-xs text-slate-300 space-y-2"><div>✓ Monday to Saturday</div><div>✓ 30 minutes per class</div><div>✓ Sunday holiday</div><div>✓ Flexible class timing</div><div>✓ Google Meet sessions</div></div>
-            <button data-course="Online Spoken English" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button>
-          </div>
-        </div>
+        <div id="publicCourseGrid" class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-10"><div class="text-slate-400">Loading courses…</div></div>
       </div>
     </section>
 
@@ -381,6 +336,35 @@
         <div class="flex gap-2"><button id="notifyBtn" class="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold">Enable Notifications</button><button id="logoutBtn" class="px-4 py-3 rounded-xl bg-rose-500/10 text-rose-300 text-sm font-bold">Logout</button></div>
       </div>
       <div id="adminStats" class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-8"></div>
+      <div class="card rounded-3xl p-5 md:p-7 mt-8"><div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-2xl font-extrabold text-white">Course Management</h3><p class="text-sm text-slate-400 mt-1">Add, edit, archive, restore, activate, deactivate, delete or merge courses.</p></div><button id="addCourseBtn" class="btn-primary px-5 py-3 rounded-xl text-white font-bold">+ Add New Course</button></div><div id="courseManagerMsg" class="text-sm mt-3 text-slate-400"></div><div id="courseManagerList" class="grid md:grid-cols-2 gap-4 mt-5"></div><div class="border-t border-white/10 mt-7 pt-6"><h4 class="text-lg font-bold text-white">Merge courses</h4><p class="text-xs text-slate-400 mt-1">Selected courses will be archived and a new combined course will be created. Existing student records will not be changed.</p><div id="mergeCourseChoices" class="grid sm:grid-cols-2 gap-2 mt-4"></div><div class="grid md:grid-cols-3 gap-3 mt-4"><input id="mergeName" placeholder="New combined course name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="mergeFee" placeholder="Combined fee (e.g. ₹5,000)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="mergeDuration" placeholder="Duration" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"></div><textarea id="mergeDescription" placeholder="Combined course description" class="w-full mt-3 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea><button id="mergeCoursesBtn" class="mt-3 px-5 py-3 rounded-xl bg-violet-500/20 text-violet-200 font-bold">Merge Selected Courses</button></div></div>
+      <div id="courseEditor" class="hidden card rounded-3xl p-5 md:p-7 mt-5"><div class="flex justify-between"><h3 id="courseEditorTitle" class="text-xl font-extrabold text-white">Add course</h3><button id="cancelCourseEdit" class="text-slate-400">Close</button></div><form id="courseEditorForm" class="grid md:grid-cols-2 gap-3 mt-5"><input type="hidden" id="editCourseId"><input id="editCourseName" required placeholder="Course name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="editCourseFee" required placeholder="Fee (e.g. ₹4,500)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="editCourseDuration" placeholder="Duration" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="editCourseTag" placeholder="Short tag (e.g. Beginner to Pro)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><textarea id="editCourseDescription" required placeholder="Course description" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea><textarea id="editCourseFeatures" placeholder="Features (one per line)" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea><label class="text-sm text-slate-300 flex items-center gap-2"><input id="editCourseActive" type="checkbox" checked> Active and visible for registration</label><label class="text-sm text-slate-300 flex items-center gap-2"><input id="editCourseMeet" type="checkbox"> Share Google Meet link after registration</label><div class="md:col-span-2 flex gap-2"><button class="btn-primary px-6 py-3 rounded-xl text-white font-bold">Save Course</button><button type="button" id="cancelCourseEdit2" class="px-6 py-3 rounded-xl bg-white/5 text-white">Cancel</button></div></form></div>
+      <div class="card rounded-3xl p-5 md:p-7 mt-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div><h3 class="text-2xl font-extrabold text-white">Student Management</h3><p class="text-sm text-slate-400 mt-1">Add, search, edit and remove student records.</p></div>
+          <button id="addStudentBtn" class="btn-primary px-5 py-3 rounded-xl text-white font-bold">+ Add Student</button>
+        </div>
+        <div class="grid md:grid-cols-3 gap-3 mt-5">
+          <input id="studentSearch" type="search" placeholder="Search name, phone or email…" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <select id="studentCourseFilter" class="p-3 rounded-xl bg-[#10192b] border border-white/10 text-white"><option value="">All courses</option></select>
+        </div>
+        <div id="studentManagerMsg" class="text-sm mt-3 text-slate-400" role="status"></div>
+        <div id="studentManagerList" class="overflow-x-auto mt-4"></div>
+      </div>
+      <div id="studentEditor" class="hidden card rounded-3xl p-5 md:p-7 mt-5">
+        <div class="flex items-center justify-between gap-3"><h3 id="studentEditorTitle" class="text-xl font-extrabold text-white">Add student</h3><button type="button" id="cancelStudentEdit" class="text-slate-400">Close</button></div>
+        <form id="studentEditorForm" class="grid md:grid-cols-2 gap-3 mt-5">
+          <input type="hidden" id="editStudentId">
+          <input id="editStudentName" required maxlength="100" placeholder="Student full name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <input id="editStudentPhone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <input id="editStudentEmail" type="email" placeholder="Email (optional)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <select id="editStudentCourse" required class="p-3 rounded-xl bg-[#10192b] border border-white/10 text-white"></select>
+          <input id="editStudentFee" placeholder="Fee (e.g. ₹4,500)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <select id="editStudentPayment" class="p-3 rounded-xl bg-[#10192b] border border-white/10 text-white"><option>Pending</option><option>Paid / Registered</option><option>Partially Paid</option><option>Waived</option></select>
+          <input id="editStudentAdmissionDate" type="date" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <input id="editStudentGoal" placeholder="Goal / Notes" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <div class="md:col-span-2 flex flex-wrap gap-2"><button class="btn-primary px-6 py-3 rounded-xl text-white font-bold">Save Student</button><button type="button" id="cancelStudentEdit2" class="px-6 py-3 rounded-xl bg-white/5 text-white">Cancel</button></div>
+        </form>
+      </div>
       <div id="courseRoster" class="mt-8 space-y-8"></div>
     </div>
   </section>
@@ -404,7 +388,7 @@
   <!-- FOOTER -->
   <footer class="border-t border-white/5 bg-[#030611] px-4 lg:px-8 py-12">
     <div class="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
-      <div><div class="text-2xl font-extrabold text-white">English<span class="text-violet-400">mates</span></div><p class="text-slate-500 text-sm mt-3 max-w-sm">Communication & AI Academy, Ratangarh.</p></div>
+      <div><img src="assets/englishmates-logo.jpg" alt="Englishmates logo" class="w-[230px] max-w-full h-auto object-contain"><p class="text-slate-500 text-sm mt-3 max-w-sm">Communication & AI Academy, Ratangarh.</p></div>
       <div><div class="text-white font-bold">Visit / Contact</div><p class="text-slate-500 text-sm mt-3">Pooja Market, Ratangarh<br>Phone: 9351031200</p></div>
       <div class="md:text-right"><div class="text-white font-bold">Quick actions</div><div class="flex md:justify-end gap-3 mt-3"><a href="tel:+919351031200" class="px-4 py-2 rounded-lg bg-white/5 text-sm text-slate-300">Call</a><a href="https://wa.me/919351031200?text=Hello%20Englishmates%2C%20I%20want%20to%20know%20about%20your%20courses." target="_blank" rel="noopener" class="px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-300 text-sm">WhatsApp</a></div></div>
     </div>
@@ -424,7 +408,7 @@
         <input name="email" type="email" placeholder="Email (optional)" class="w-full p-3.5 rounded-xl bg-black/20 border border-white/10 text-white outline-none focus:border-violet-400">
         <div class="rounded-xl border border-white/10 bg-white/[.03] p-4"><label class="text-xs text-slate-400 font-bold">Student profile photo (optional)</label><input id="studentPhoto" type="file" accept="image/*" class="w-full mt-2 text-xs text-slate-400"></div>
         <select name="interest" id="courseSelect" class="w-full p-3.5 rounded-xl bg-[#10192b] border border-white/10 text-white outline-none">
-          <option>Spoken English</option><option>Art of Communication</option><option>Complete AI & ChatGPT</option><option>Sunday AI Workshop</option><option>Online Spoken English</option><option>English + AI (Both)</option>
+          
         </select>
         <div class="rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-3 flex items-center justify-between gap-3"><span class="text-sm text-slate-300">Course fee</span><strong id="selectedCourseFee" class="text-lg text-white">₹4,500</strong></div>
         <p id="onlineCourseNote" class="hidden text-xs leading-5 text-emerald-300">Online classes: Monday to Saturday, 30 minutes daily. Sunday holiday. Google Meet link will be shared after registration. Class time will be coordinated with enrolled students.</p>
@@ -500,11 +484,9 @@
     const closeAll = () => { $$('#enrollModal,#reviewModal,#adminLoginModal').forEach(el=>{el.classList.add('hidden');el.classList.remove('flex')});document.body.style.overflow=''; };
     $$('.closeModal').forEach(b=>b.addEventListener('click',closeAll));
     $$('.closeAdmin').forEach(b=>b.addEventListener('click',closeAll));
-    function updateSelectedCourseFee(){
-      const course=$('#courseSelect').value;
-      $('#selectedCourseFee').textContent=COURSE_FEES[course] || 'Contact us';
-      $('#onlineCourseNote').classList.toggle('hidden',course!=='Online Spoken English');
-    }
+    let courseCatalog=[];
+    let COURSE_FEES={"Spoken English":"₹4,500","Art of Communication":"₹4,500","Complete AI & ChatGPT":"₹999","Sunday AI Workshop":"₹99","Online Spoken English":"₹699","English + AI (Both)":"Contact for combined fee"};
+    function updateSelectedCourseFee(){ const course=$('#courseSelect').value; const item=courseCatalog.find(c=>c.name===course); $('#selectedCourseFee').textContent=(item&&item.fee)||COURSE_FEES[course]||'Contact us'; $('#onlineCourseNote').classList.toggle('hidden',!(item&&item.requiresMeetLink)); }
     $('#courseSelect').addEventListener('change',updateSelectedCourseFee);
     $$('#enrollBtn,.courseBtn').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.course) $('#courseSelect').value=b.dataset.course; updateSelectedCourseFee(); openModal('#enrollModal'); }));
     updateSelectedCourseFee();
@@ -512,14 +494,7 @@
     window.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 
     // Course pricing map — restored from the original Englishmates site.
-    const COURSE_FEES={
-      "Spoken English":"₹4,500",
-      "Art of Communication":"₹4,500",
-      "Complete AI & ChatGPT":"₹999",
-      "Sunday AI Workshop":"₹99",
-      "Online Spoken English":"₹699",
-      "English + AI (Both)":"Contact for combined fee"
-    };
+
 
     // Notifications: browser + Firebase Cloud Messaging (FCM)
     let messaging=null;
@@ -631,6 +606,8 @@
         if(!/^\d{10}$/.test(phone)) throw new Error('Please enter a valid 10-digit mobile number.');
         data.phone=phone;
         data.course=data.interest;
+        const selectedCourse=courseCatalog.find(c=>c.name===data.course);
+        data.courseId=selectedCourse?.id||'';
         data.fee=COURSE_FEES[data.course] || '';
         const photo=$('#studentPhoto').files[0];
         if(photo) data.profileUrl=await compressImage(photo); else data.profileUrl='';
@@ -734,7 +711,45 @@
 
     // ADMIN DASHBOARD — protected by Firebase Email/Password + Firestore rules.
     let adminUnsubscribe=null, knownStudentIds=new Set(), adminFirstLoad=true;
-    const COURSES=["Spoken English","Art of Communication","Complete AI & ChatGPT","Sunday AI Workshop","Online Spoken English","English + AI (Both)"];
+    let COURSES=[];
+    const DEFAULT_COURSES=[
+      {id:'spoken-english',name:'Spoken English',fee:'₹4,500',duration:'3 Months',tag:'Beginner to Pro',description:'From hesitation to everyday fluency through guided speaking, vocabulary and conversation.',features:['Daily speaking practice','Interview preparation','Confidence building'],active:true,archived:false,order:1},
+      {id:'art-of-communication',name:'Art of Communication',fee:'₹4,500',duration:'3 Months',tag:'Public Speaking',description:'Public speaking, presentation, body language and the confidence to express ideas clearly.',features:['Public speaking','Presentation skills','Personality development'],active:true,archived:false,order:2},
+      {id:'complete-ai-chatgpt',name:'Complete AI & ChatGPT',fee:'₹999',duration:'3 Months • 12 Sundays',tag:'AI Skills',description:'Learn prompts, research, content creation, productivity and practical AI workflows.',features:['Prompt engineering','AI productivity','Practical projects'],active:true,archived:false,order:3},
+      {id:'sunday-ai-workshop',name:'Sunday AI Workshop',fee:'₹99',duration:'Every Sunday',tag:'Hands-on Workshop',description:'A low-cost way to discover useful AI tools and start applying them immediately.',features:['Hands-on demos','Beginner friendly','Practical AI tools'],active:true,archived:false,order:4},
+      {id:'online-spoken-english',name:'Online Spoken English',fee:'₹699',duration:'1 Month • Live Google Meet',tag:'Online Classes',description:'Build speaking confidence from home with short, live, guided classes.',features:['Monday to Saturday','30 minutes per class','Sunday holiday','Flexible class timing','Google Meet sessions'],active:true,archived:false,order:5,requiresMeetLink:true},
+      {id:'english-ai-both',name:'English + AI (Both)',fee:'Contact for combined fee',duration:'Contact for details',tag:'Combined Program',description:'Combine communication skills with practical AI learning.',features:['English communication','Practical AI tools'],active:true,archived:false,order:6}
+    ];
+    function slugCourse(name){return String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||('course-'+Date.now());}
+    function renderPublicCourses(){
+      const visible=courseCatalog.filter(c=>c.active&&!c.archived).sort((a,b)=>(a.order||999)-(b.order||999));
+      $('#publicCourseGrid').innerHTML=visible.length?visible.map((c,i)=>`<div class="card transition-card rounded-3xl p-7 reveal show"><div class="w-12 h-12 rounded-2xl bg-violet-500/10 text-violet-300 flex items-center justify-center"><i data-lucide="graduation-cap"></i></div><h3 class="text-xl font-bold text-white mt-6">${esc(c.name)}</h3><div class="text-3xl font-extrabold text-white mt-4">${esc(c.fee||'Contact us')}</div><div class="text-xs text-violet-300 font-bold mt-1">${esc(c.duration||c.tag||'Course')}</div><p class="text-slate-400 text-sm leading-6 mt-3">${esc(c.description||'')}</p><div class="mt-5 text-xs text-slate-300 space-y-2">${(c.features||[]).map(f=>`<div>✓ ${esc(f)}</div>`).join('')}</div><button data-course="${esc(c.name)}" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button></div>`).join(''):'<p class="text-slate-400">New courses will be announced soon.</p>';
+      $('#courseSelect').innerHTML=visible.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+      COURSE_FEES={}; visible.forEach(c=>COURSE_FEES[c.name]=c.fee||'Contact us'); COURSES=courseCatalog.filter(c=>!c.archived).map(c=>c.name);
+      $$('.courseBtn').forEach(b=>b.addEventListener('click',()=>{$('#courseSelect').value=b.dataset.course;updateSelectedCourseFee();openModal('#enrollModal')}));
+      if(!visible.some(c=>c.name===$('#courseSelect').value)&&visible.length)$('#courseSelect').value=visible[0].name;
+      updateSelectedCourseFee(); lucide.createIcons();
+    }
+    async function loadCourses(){
+      if(!db){courseCatalog=DEFAULT_COURSES;renderPublicCourses();return;}
+      try{const snap=await db.collection('courses').get();courseCatalog=snap.docs.map(d=>({id:d.id,...d.data()}));if(!courseCatalog.length)courseCatalog=DEFAULT_COURSES;renderPublicCourses();}
+      catch(err){console.warn('Course catalog read failed; using display fallback',err);courseCatalog=DEFAULT_COURSES;renderPublicCourses();}
+    }
+    async function seedDefaultCourses(){const ref=db.collection('courses');const snap=await ref.limit(1).get();if(snap.empty){const batch=db.batch();DEFAULT_COURSES.forEach(c=>{const {id,...data}=c;batch.set(ref.doc(id),{...data,createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()})});await batch.commit();}await loadCourses();}
+    function renderCourseManager(){
+      const active=courseCatalog.filter(c=>!c.archived);$('#courseManagerList').innerHTML=courseCatalog.slice().sort((a,b)=>(a.order||999)-(b.order||999)).map(c=>`<div class="rounded-2xl border border-white/10 bg-white/[.03] p-4"><div class="flex justify-between gap-3"><div><h4 class="font-bold text-white">${esc(c.name)}</h4><p class="text-xs text-slate-400 mt-1">${esc(c.fee||'')} • ${esc(c.duration||'')}</p><p class="text-xs mt-2 ${c.archived?'text-slate-500':c.active?'text-emerald-300':'text-amber-300'}">${c.archived?'Archived':c.active?'Active':'Inactive'}</p></div><button data-edit="${esc(c.id)}" class="text-blue-300 text-sm">Edit</button></div><div class="flex flex-wrap gap-2 mt-4"><button data-toggle="${esc(c.id)}" class="px-3 py-2 rounded-lg bg-white/5 text-xs text-white">${c.active?'Deactivate':'Activate'}</button><button data-archive="${esc(c.id)}" class="px-3 py-2 rounded-lg bg-white/5 text-xs text-white">${c.archived?'Restore':'Archive'}</button><button data-delete="${esc(c.id)}" class="px-3 py-2 rounded-lg bg-rose-500/10 text-xs text-rose-300">Delete</button></div></div>`).join('');
+      $('#mergeCourseChoices').innerHTML=active.map(c=>`<label class="flex gap-2 items-center text-sm text-slate-300"><input type="checkbox" value="${esc(c.id)}" class="mergeChoice">${esc(c.name)}</label>`).join('');
+      $$('[data-edit]').forEach(b=>b.onclick=()=>editCourse(b.dataset.edit));$$('[data-toggle]').forEach(b=>b.onclick=()=>changeCourse(b.dataset.toggle,{active:!courseCatalog.find(c=>c.id===b.dataset.toggle).active}));$$('[data-archive]').forEach(b=>b.onclick=()=>changeCourse(b.dataset.archive,{archived:!courseCatalog.find(c=>c.id===b.dataset.archive).archived}));$$('[data-delete]').forEach(b=>b.onclick=()=>deleteCourse(b.dataset.delete));
+    }
+    function openCourseEditor(c={}){$('#courseEditor').classList.remove('hidden');$('#courseEditorTitle').textContent=c.id?'Edit course':'Add new course';$('#editCourseId').value=c.id||'';$('#editCourseName').value=c.name||'';$('#editCourseFee').value=c.fee||'';$('#editCourseDuration').value=c.duration||'';$('#editCourseTag').value=c.tag||'';$('#editCourseDescription').value=c.description||'';$('#editCourseFeatures').value=(c.features||[]).join('\n');$('#editCourseActive').checked=c.active!==false;$('#editCourseMeet').checked=!!c.requiresMeetLink;$('#courseEditor').scrollIntoView({behavior:'smooth'});}
+    function editCourse(id){openCourseEditor(courseCatalog.find(c=>c.id===id)||{});}
+    async function changeCourse(id,patch){try{await db.collection('courses').doc(id).update({...patch,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await loadCourses();renderCourseManager();$('#courseManagerMsg').textContent='Course updated.';}catch(e){$('#courseManagerMsg').textContent='Could not update course. Check Firestore rules.';}}
+    async function deleteCourse(id){const c=courseCatalog.find(x=>x.id===id);if(!c||!confirm(`Permanently delete “${c.name}” from the course catalog? Existing student records will remain unchanged.`))return;try{await db.collection('courses').doc(id).delete();await loadCourses();renderCourseManager();$('#courseManagerMsg').textContent='Course deleted from catalog. Student history was not changed.';}catch(e){$('#courseManagerMsg').textContent='Delete failed. Check Firestore rules.';}}
+    $('#addCourseBtn').addEventListener('click',()=>openCourseEditor());
+    ['cancelCourseEdit','cancelCourseEdit2'].forEach(id=>document.getElementById(id).addEventListener('click',()=>$('#courseEditor').classList.add('hidden')));
+    $('#courseEditorForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#editCourseId').value;const name=$('#editCourseName').value.trim();const data={name,fee:$('#editCourseFee').value.trim(),duration:$('#editCourseDuration').value.trim(),tag:$('#editCourseTag').value.trim(),description:$('#editCourseDescription').value.trim(),features:$('#editCourseFeatures').value.split('\n').map(x=>x.trim()).filter(Boolean),active:$('#editCourseActive').checked,archived:false,requiresMeetLink:$('#editCourseMeet').checked,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};const docId=id||slugCourse(name);try{if(id)await db.collection('courses').doc(id).update(data);else await db.collection('courses').doc(docId).set({...data,order:courseCatalog.length+1,createdAt:firebase.firestore.FieldValue.serverTimestamp()});$('#courseEditor').classList.add('hidden');await loadCourses();renderCourseManager();$('#courseManagerMsg').textContent='Course saved successfully.';}catch(err){$('#courseManagerMsg').textContent='Save failed. Check Firestore rules and ensure the course name is unique.';}});
+    $('#mergeCoursesBtn').addEventListener('click',async()=>{const ids=$$('.mergeChoice:checked').map(x=>x.value);const name=$('#mergeName').value.trim();if(ids.length<2||!name){$('#courseManagerMsg').textContent='Select at least two courses and enter a new course name.';return;}if(!confirm('Merge selected courses? Source courses will be archived. Existing student records will remain unchanged.'))return;try{const batch=db.batch();ids.forEach(id=>batch.update(db.collection('courses').doc(id),{archived:true,active:false,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),mergedInto:slugCourse(name)}));const id=slugCourse(name);batch.set(db.collection('courses').doc(id),{name,fee:$('#mergeFee').value.trim()||'Contact us',duration:$('#mergeDuration').value.trim(),description:$('#mergeDescription').value.trim(),features:[],active:true,archived:false,order:courseCatalog.length+1,createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await batch.commit();await loadCourses();renderCourseManager();$('#courseManagerMsg').textContent='Merge complete. Original student records were preserved.';}catch(err){$('#courseManagerMsg').textContent='Merge failed. Check Firestore rules.';}});
+    loadCourses();
     function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
     function formatDate(v){
       if(!v)return '—';
@@ -743,7 +758,92 @@
     }
     function initials(name){return (name||'S').trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
     function safePhoto(s){return s.profileUrl || `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#334155"/><text x="32" y="39" text-anchor="middle" font-size="22" fill="white">${initials(s.name)}</text></svg>`)}`}
+    let latestAdminStudents=[];
+    function refreshStudentFilters(){
+      const filter=$('#studentCourseFilter'), current=filter.value;
+      filter.innerHTML='<option value="">All courses</option>'+courseCatalog.filter(c=>!c.archived).map(c=>'<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>').join('');
+      if([...filter.options].some(o=>o.value===current))filter.value=current;
+      $('#editStudentCourse').innerHTML=courseCatalog.filter(c=>!c.archived).map(c=>'<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>').join('');
+    }
+    function renderStudentManager(students){
+      latestAdminStudents=students;
+      refreshStudentFilters();
+      const q=$('#studentSearch').value.trim().toLowerCase(), course=$('#studentCourseFilter').value;
+      const rows=students.filter(s=>(!course||s.course===course)&&(!q||[s.name,s.phone,s.email,s.course].some(v=>String(v||'').toLowerCase().includes(q))));
+      $('#studentManagerList').innerHTML=rows.length?'<table class="w-full text-left text-sm min-w-[760px]"><thead><tr class="border-b border-white/10 text-slate-500"><th class="p-3">Student</th><th class="p-3">Phone</th><th class="p-3">Course</th><th class="p-3">Fee</th><th class="p-3">Payment</th><th class="p-3">Actions</th></tr></thead><tbody>'+rows.map(s=>'<tr class="border-b border-white/5"><td class="p-3"><div class="font-bold text-white">'+esc(s.name||'—')+'</div><div class="text-xs text-slate-500">'+esc(s.email||'No email')+'</div></td><td class="p-3 text-slate-300">'+esc(s.phone||'—')+'</td><td class="p-3 text-slate-300">'+esc(s.course||'Unassigned')+'</td><td class="p-3 text-slate-300">'+esc(s.fee||'—')+'</td><td class="p-3 text-slate-300">'+esc(s.paymentStatus||'Pending')+'</td><td class="p-3"><div class="flex gap-2"><button type="button" data-student-edit="'+esc(s.id)+'" class="px-3 py-2 rounded-lg bg-blue-500/10 text-blue-300">Edit</button><button type="button" data-student-delete="'+esc(s.id)+'" class="px-3 py-2 rounded-lg bg-rose-500/10 text-rose-300">Delete</button></div></td></tr>').join('')+'</tbody></table>':'<p class="text-slate-500 p-5 text-center">No matching students found.</p>';
+    }
+    $('#studentManagerList').addEventListener('click',e=>{
+      const edit=e.target.closest('button[data-student-edit]');
+      if(edit){e.preventDefault();openStudentEditor(edit.dataset.studentEdit);return;}
+      const del=e.target.closest('button[data-student-delete]');
+      if(del){e.preventDefault();deleteStudentRecord(del.dataset.studentDelete);}
+    });
+    function dateInputValue(v){
+      if(!v)return '';
+      const d=v.toDate?v.toDate():new Date(v);
+      if(Number.isNaN(d.getTime()))return '';
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }
+    function openStudentEditor(id=''){
+      const s=id?latestAdminStudents.find(x=>x.id===id):{};
+      if(id&&!s)return;
+      refreshStudentFilters();
+      $('#studentEditorTitle').textContent=id?'Edit student':'Add student';
+      $('#editStudentId').value=id;
+      $('#editStudentName').value=s?.name||'';
+      $('#editStudentPhone').value=s?.phone||'';
+      $('#editStudentPhone').readOnly=!!id;
+      $('#editStudentEmail').value=s?.email||'';
+      $('#editStudentCourse').value=s?.course||($('#editStudentCourse').options[0]?.value||'');
+      $('#editStudentFee').value=s?.fee||COURSE_FEES[s?.course]||'';
+      $('#editStudentPayment').value=s?.paymentStatus||'Pending';
+      $('#editStudentAdmissionDate').value=dateInputValue(s?.admissionDate||s?.createdAt)||new Date().toISOString().slice(0,10);
+      $('#editStudentGoal').value=s?.goal||'';
+      $('#studentEditor').classList.remove('hidden');
+      $('#studentEditor').scrollIntoView({behavior:'smooth',block:'center'});
+    }
+    async function deleteStudentRecord(id){
+      const s=latestAdminStudents.find(x=>x.id===id);
+      if(!s||!confirm('Delete '+(s.name||'this student')+' from the student roster? This removes the student record only; the original enquiry/lead history is retained.'))return;
+      try{
+        await db.collection('students').doc(id).delete();
+        $('#studentManagerMsg').textContent='Student record deleted. Original enquiry history was retained.';
+      }catch(err){console.error(err);$('#studentManagerMsg').textContent='Delete failed. Check your owner access and try again.';}
+    }
+    $('#addStudentBtn').addEventListener('click',()=>openStudentEditor());
+    ['cancelStudentEdit','cancelStudentEdit2'].forEach(id=>document.getElementById(id).addEventListener('click',()=>$('#studentEditor').classList.add('hidden')));
+    $('#studentSearch').addEventListener('input',()=>renderStudentManager(latestAdminStudents));
+    $('#studentCourseFilter').addEventListener('change',()=>renderStudentManager(latestAdminStudents));
+    $('#studentEditorForm').addEventListener('submit',async e=>{
+      e.preventDefault();
+      const id=$('#editStudentId').value, phone=$('#editStudentPhone').value.replace(/\D/g,'');
+      const name=$('#editStudentName').value.trim(), course=$('#editStudentCourse').value;
+      const msg=$('#studentManagerMsg');
+      if(!/^\d{10}$/.test(phone)){msg.textContent='Enter a valid 10-digit mobile number.';return;}
+      if(!course){msg.textContent='Please add a course before adding a student.';return;}
+      try{
+        if(!id){
+          const duplicate=await db.collection('students').where('phone','==',phone).limit(1).get();
+          if(!duplicate.empty){msg.textContent='A student with this mobile number already exists.';return;}
+        }
+        const admissionDate=new Date($('#editStudentAdmissionDate').value+'T12:00:00').toISOString();
+        const data={name,phone,email:$('#editStudentEmail').value.trim(),course,courseId:courseCatalog.find(c=>c.name===course)?.id||'',fee:$('#editStudentFee').value.trim()||COURSE_FEES[course]||'Contact us',paymentStatus:$('#editStudentPayment').value,goal:$('#editStudentGoal').value.trim(),admissionDate,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        if(id){
+          const old=latestAdminStudents.find(x=>x.id===id);
+          await db.collection('students').doc(id).update(data);
+          if(old?.leadId)await db.collection('leads').doc(old.leadId).update(data);
+        }else{
+          data.status=data.paymentStatus==='Paid / Registered'?'Enrolled':'Enquiry';
+          data.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+          data.timestamp=firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('students').add(data);
+        }
+        $('#studentEditor').classList.add('hidden');
+        msg.textContent=id?'Student details updated.':'Student added successfully.';
+      }catch(err){console.error(err);msg.textContent='Could not save student. Check Firestore rules and try again.';}
+    });
     function renderRoster(students){
+      renderStudentManager(students);
       const counts={}; COURSES.forEach(c=>counts[c]=0);
       students.forEach(s=>{const c=s.course||'Unassigned';counts[c]=(counts[c]||0)+1});
       $('#adminStats').innerHTML=`<div class="card rounded-2xl p-4"><div class="text-xs text-slate-500">Total students</div><div class="text-3xl font-extrabold text-white mt-1">${students.length}</div><div class="text-[10px] text-slate-600 mt-1">All courses</div></div>`+
@@ -785,8 +885,10 @@
         $('#courseRoster').innerHTML='<div class="p-6 rounded-2xl border border-rose-500/20 bg-rose-500/5 text-rose-300">Could not load admissions. Check Firebase Firestore Rules and your admin email configuration.</div>';
       });
     }
-    function showAdmin(){
-      $('#adminArea').classList.remove('hidden'); $('#adminArea').scrollIntoView({behavior:'smooth'}); subscribeAdmin();
+    async function showAdmin(){
+      $('#adminArea').classList.remove('hidden'); $('#adminArea').scrollIntoView({behavior:'smooth'});
+      try{await seedDefaultCourses();renderCourseManager();}catch(err){$('#courseManagerMsg').textContent='Course controls need Firestore rules allowing owner access to the courses collection.';}
+      subscribeAdmin();
     }
     $('#adminLink').addEventListener('click',()=>auth&&auth.currentUser?showAdmin():openModal('#adminLoginModal'));
     $('#adminLoginForm').addEventListener('submit',async e=>{
@@ -796,7 +898,7 @@
         await auth.signInWithEmailAndPassword($('#adminEmail').value.trim(),$('#adminPassword').value);
         if((auth.currentUser.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await auth.signOut();throw new Error('not-admin');}
         closeAll(); showAdmin(); setTimeout(async()=>{ if(Notification.permission==='default') await enableNotifications(); else if(Notification.permission==='granted') await setupFCM(); },400);
-      }catch(err){m.textContent=err.message==='not-admin'?'This account is not the Englishmates owner account.':'Login failed. Check your Firebase email/password.';m.className='text-sm text-center text-rose-400'}
+      }catch(err){console.error('Englishmates admin login error:',err.code,err.message);m.textContent=err.message==='not-admin'?'This account is not the Englishmates owner account.':`Login failed (${err.code||'unknown'}). ${err.message||'Check Firebase Authentication.'}`;m.className='text-sm text-center text-rose-400'}
     });
     $('#logoutBtn').addEventListener('click',async()=>{if(adminUnsubscribe)adminUnsubscribe();knownStudentIds.clear();adminFirstLoad=true;$('#adminArea').classList.add('hidden');await auth.signOut()});
     if(auth) auth.onAuthStateChanged(u=>{ if(u && !$('#adminArea').classList.contains('hidden')) subscribeAdmin(); });
