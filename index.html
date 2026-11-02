@@ -506,7 +506,7 @@
       $('#onlineCourseNote').classList.toggle('hidden',course!=='Online Spoken English');
     }
     $('#courseSelect').addEventListener('change',updateSelectedCourseFee);
-    $('#enrollBtn,.courseBtn').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.course) $('#courseSelect').value=b.dataset.course; updateSelectedCourseFee(); openModal('#enrollModal'); }));
+    $$('#enrollBtn,.courseBtn').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.course) $('#courseSelect').value=b.dataset.course; updateSelectedCourseFee(); openModal('#enrollModal'); }));
     updateSelectedCourseFee();
     $('#reviewBtn').addEventListener('click',()=>openModal('#reviewModal'));
     window.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
