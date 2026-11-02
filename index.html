@@ -774,10 +774,13 @@
       refreshStudentFilters();
       const q=$('#studentSearch').value.trim().toLowerCase(), course=$('#studentCourseFilter').value;
       const rows=students.filter(s=>(!course||s.course===course)&&(!q||[s.name,s.phone,s.email,s.course].some(v=>String(v||'').toLowerCase().includes(q))));
-      $('#studentManagerList').innerHTML=rows.length?'<table class="w-full text-left text-sm min-w-[760px]"><thead><tr class="border-b border-white/10 text-slate-500"><th class="p-3">Student</th><th class="p-3">Phone</th><th class="p-3">Course</th><th class="p-3">Fee</th><th class="p-3">Payment</th><th class="p-3">Actions</th></tr></thead><tbody>'+rows.map(s=>'<tr class="border-b border-white/5"><td class="p-3"><div class="font-bold text-white">'+esc(s.name||'—')+'</div><div class="text-xs text-slate-500">'+esc(s.email||'No email')+'</div></td><td class="p-3 text-slate-300">'+esc(s.phone||'—')+'</td><td class="p-3 text-slate-300">'+esc(s.course||'Unassigned')+'</td><td class="p-3 text-slate-300">'+esc(s.fee||'—')+'</td><td class="p-3 text-slate-300">'+esc(s.paymentStatus||'Pending')+'</td><td class="p-3"><div class="flex gap-2"><button data-student-edit="'+esc(s.id)+'" class="px-3 py-2 rounded-lg bg-blue-500/10 text-blue-300">Edit</button><button data-student-delete="'+esc(s.id)+'" class="px-3 py-2 rounded-lg bg-rose-500/10 text-rose-300">Delete</button></div></td></tr>').join('')+'</tbody></table>':'<p class="text-slate-500 p-5 text-center">No matching students found.</p>';
-      $('[data-student-edit]').forEach(b=>b.onclick=()=>openStudentEditor(b.dataset.studentEdit));
-      $('[data-student-delete]').forEach(b=>b.onclick=()=>deleteStudentRecord(b.dataset.studentDelete));
-    }
+      $('#studentManagerList').innerHTML=rows.length?'<table class="w-full text-left text-sm min-w-[760px]"><thead><tr class="border-b border-white/10 text-slate-500"><th class="p-3">Student</th><th class="p-3">Phone</th><th class="p-3">Course</th><th class="p-3">Fee</th><th class="p-3">Payment</th><th class="p-3">Actions</th></tr></thead><tbody>'+rows.map(s=>'<tr class="border-b border-white/5"><td class="p-3"><div class="font-bold text-white">'+esc(s.name||'—')+'</div><div class="text-xs text-slate-500">'+esc(s.email||'No email')+'</div></td><td class="p-3 text-slate-300">'+esc(s.phone||'—')+'</td><td class="p-3 text-slate-300">'+esc(s.course||'Unassigned')+'</td><td class="p-3 text-slate-300">'+esc(s.fee||'—')+'</td><td class="p-3 text-slate-300">'+esc(s.paymentStatus||'Pending')+'</td><td class="p-3"><div class="flex gap-2"><button type="button" data-student-edit="'+esc(s.id)+'" class="px-3 py-2 rounded-lg bg-blue-500/10 text-blue-300">Edit</button><button type="button" data-student-delete="'+esc(s.id)+'" class="px-3 py-2 rounded-lg bg-rose-500/10 text-rose-300">Delete</button></div></td></tr>').join('')+'</tbody></table>':'<p class="text-slate-500 p-5 text-center">No matching students found.</p>';
+    $('#studentManagerList').addEventListener('click',e=>{
+      const edit=e.target.closest('button[data-student-edit]');
+      if(edit){e.preventDefault();openStudentEditor(edit.dataset.studentEdit);return;}
+      const del=e.target.closest('button[data-student-delete]');
+      if(del){e.preventDefault();deleteStudentRecord(del.dataset.studentDelete);}
+    });
     function dateInputValue(v){
       if(!v)return '';
       const d=v.toDate?v.toDate():new Date(v);
