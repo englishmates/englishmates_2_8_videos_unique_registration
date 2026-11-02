@@ -93,9 +93,12 @@ exports.handler = async (event) => {
       const matches = await db.collection('courses').where('name', '==', course).limit(1).get();
       if (!matches.empty) courseDoc = { id: matches.docs[0].id, ...matches.docs[0].data() };
     }
-    // Backward-compatible fallback until the owner initializes the catalog in the dashboard.
-    const legacyFees = { 'Spoken English':'₹4,500','Art of Communication':'₹4,500','Complete AI & ChatGPT':'₹999','Sunday AI Workshop':'₹99','Online Spoken English':'₹699','English + AI (Both)':'Contact for combined fee' };
-    if (!courseDoc && legacyFees[course]) courseDoc = { name: course, fee: legacyFees[course], active: true, archived: false, requiresMeetLink: course === 'Online Spoken English' };
+    // Legacy fallback is permitted only before the owner has initialized the catalog.
+    if (!courseDoc) {
+      const catalogState = await db.collection('courses').limit(1).get();
+      const legacyFees = { 'Spoken English':'₹4,500','Art of Communication':'₹4,500','Complete AI & ChatGPT':'₹999','Sunday AI Workshop':'₹99','Online Spoken English':'₹699','English + AI (Both)':'Contact for combined fee' };
+      if (catalogState.empty && legacyFees[course]) courseDoc = { name: course, fee: legacyFees[course], active: true, archived: false, requiresMeetLink: course === 'Online Spoken English' };
+    }
     if (!courseDoc || courseDoc.active !== true || courseDoc.archived === true) {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'This course is currently unavailable. Please select an active course.' }) };
     }
