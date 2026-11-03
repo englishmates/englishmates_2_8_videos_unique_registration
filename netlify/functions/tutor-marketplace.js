@@ -18,6 +18,7 @@ const reply = (statusCode, payload) => ({
 });
 const clean = (v, max) => String(v || '').trim().slice(0, max);
 // Keep preview submissions separate from the live tutor directory.
+const IS_PREVIEW_DEPLOY = process.env.CONTEXT === 'deploy-preview';
 const COLLECTION = process.env.CONTEXT === 'production' ? 'tutorApplications' : 'tutorApplicationsPreview';
 
 exports.handler = async event => {
@@ -42,7 +43,7 @@ exports.handler = async event => {
           city: d.city || '', photoData: d.photoData || '', bio: d.bio || ''
         };
       });
-      return reply(200, { ok: true, tutors });
+      return reply(200, { ok: true, tutors, autoApprovePreview: IS_PREVIEW_DEPLOY });
     }
     if (event.httpMethod !== 'POST') return reply(405, { ok: false, error: 'Method not allowed' });
 
@@ -83,12 +84,19 @@ exports.handler = async event => {
     const existing = await db.collection(COLLECTION).where('phone', '==', data.phone).limit(1).get();
     if (!existing.empty) return reply(409, { ok: false, error: 'An application with this mobile number already exists. Please contact Englishmates.' });
 
+    const status = IS_PREVIEW_DEPLOY ? 'approved' : 'pending';
     await db.collection(COLLECTION).add({
-      ...data, status: 'pending',
+      ...data, status,
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
-      reviewedAt: null
+      reviewedAt: IS_PREVIEW_DEPLOY ? admin.firestore.FieldValue.serverTimestamp() : null,
+      reviewedBy: IS_PREVIEW_DEPLOY ? 'preview-auto-approval' : null
     });
-    return reply(200, { ok: true, message: 'Application received for review.' });
+    return reply(200, {
+      ok: true,
+      status,
+      autoApproved: IS_PREVIEW_DEPLOY,
+      message: IS_PREVIEW_DEPLOY ? 'Preview tutor profile is approved and publicly visible.' : 'Application received for review.'
+    });
   } catch (error) {
     console.error('Tutor marketplace endpoint:', error);
     return reply(500, { ok: false, error: 'Could not process the application right now. Please try again later.' });
