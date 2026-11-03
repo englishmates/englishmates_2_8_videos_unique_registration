@@ -46,7 +46,7 @@ exports.handler = async event => {
   const stateSecret = process.env.OAUTH_STATE_SECRET;
   const encryptionKeyHex = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY || '';
   if (!clientId || !clientSecret || !redirectUri || !stateSecret || !/^[a-f0-9]{64}$/i.test(encryptionKeyHex)) {
-    return reply(500, page('OAuth setup is incomplete. Please check the required Netlify environment variables.'));
+    return reply(500, page('OAuth setup is incomplete. Please check the required Netlify environment variables, including the 64-character GOOGLE_TOKEN_ENCRYPTION_KEY.'));
   }
   const params = event.queryStringParameters || {};
   if (params.error) return reply(400, page('Google authorization was not completed: ' + String(params.error).replace(/[<>]/g, '')));
