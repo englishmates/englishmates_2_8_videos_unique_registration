@@ -35,12 +35,15 @@ exports.handler = async event => {
       }
       if (IS_PREVIEW_DEPLOY) {
         const pendingPreview = await db.collection(COLLECTION).where('status', '==', 'pending').limit(100).get();
-        if (!pendingPreview.empty) {
+        const matching = pendingPreview.docs.filter(doc =>
+          clean(doc.data().name, 90).toLowerCase() === 'bhagirath dayma'
+        );
+        if (matching.length) {
           const batch = db.batch();
-          pendingPreview.docs.forEach(doc => batch.update(doc.ref, {
+          matching.forEach(doc => batch.update(doc.ref, {
             status: 'approved',
             reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
-            reviewedBy: 'preview-auto-approval'
+            reviewedBy: 'preview-specific-approval'
           }));
           await batch.commit();
         }
