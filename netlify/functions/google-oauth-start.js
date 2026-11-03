@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const admin = require('firebase-admin');
 
 const reply = (statusCode, body, headers = {}) => ({
   statusCode,
@@ -6,13 +7,26 @@ const reply = (statusCode, body, headers = {}) => ({
   body
 });
 
+function getDb() {
+  if (!admin.apps.length) {
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    if (!raw) throw new Error('Firebase service account is not configured');
+    admin.initializeApp({
+      credential: admin.credential.cert(JSON.parse(raw)),
+      projectId: process.env.FIREBASE_PROJECT_ID || 'englishmates-ratangarh-933f1'
+    });
+  }
+  return admin.firestore();
+}
+
 function makeState(secret) {
+  const nonce = crypto.randomBytes(24).toString('hex');
   const payload = Buffer.from(JSON.stringify({
     issuedAt: Date.now(),
-    nonce: crypto.randomBytes(18).toString('hex')
+    nonce
   })).toString('base64url');
   const signature = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
-  return payload + '.' + signature;
+  return { state: payload + '.' + signature, nonce };
 }
 
 exports.handler = async event => {
@@ -26,7 +40,13 @@ exports.handler = async event => {
     return reply(500, 'OAuth setup is incomplete. Configure GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_REDIRECT_URI and OAUTH_STATE_SECRET in Netlify.');
   }
   try {
-    const state = makeState(stateSecret);
+    const { state, nonce } = makeState(stateSecret);
+    await getDb().collection('oauthStates').doc(nonce).create({
+      purpose: 'google-calendar-preview',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      used: false
+    });
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -35,6 +55,7 @@ exports.handler = async event => {
       access_type: 'offline',
       prompt: 'consent',
       include_granted_scopes: 'true',
+      nonce,
       state
     });
     return {
@@ -43,7 +64,7 @@ exports.handler = async event => {
       body: ''
     };
   } catch (error) {
-    console.error('Google OAuth start error:', error);
-    return reply(500, 'Could not start Google authorization.');
+    console.error('Google OAuth start error:', error.message);
+    return reply(500, 'Could not start Google authorization. Check preview Firebase configuration.');
   }
 };
