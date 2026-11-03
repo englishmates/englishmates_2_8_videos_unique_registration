@@ -172,7 +172,7 @@
             <p class="text-sm text-slate-400 leading-6 mt-4">Browse approved tutors, compare their profiles, and later book a free demo, one-to-one class, or complete course.</p>
           </article>
         </div>
-        <div id="tutor-apply" class="mt-8 card rounded-3xl p-6 md:p-8">
+        <div id="tutor-portal" class="mt-8 card rounded-3xl p-6 md:p-8"><h3 class="text-xl font-extrabold text-white">Tutor Login & Dashboard</h3><p class="text-sm text-slate-400 mt-2">Approved tutors can sign in to manage teaching availability and booking requests.</p><form id="tutorLoginForm" class="grid sm:grid-cols-2 gap-3 mt-4"><input name="email" type="email" required placeholder="Tutor email" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input name="password" type="password" required placeholder="Password" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><button class="sm:col-span-2 btn-primary rounded-xl py-3 font-bold text-white">Sign in</button></form><p id="tutorLoginMsg" class="text-sm mt-3"></p><div id="tutorDashboard" class="hidden mt-6 border-t border-white/10 pt-6"><div class="flex justify-between items-center"><h4 class="font-bold text-white">Availability calendar</h4><button id="tutorLogoutBtn" type="button" class="text-rose-300 text-sm">Sign out</button></div><form id="availabilityForm" class="grid sm:grid-cols-3 gap-3 mt-4"><input name="date" type="date" required class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input name="startTime" type="time" required class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input name="endTime" type="time" required class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><button class="sm:col-span-3 btn-primary rounded-xl py-3 font-bold text-white">Add available slot</button></form><p id="availabilityMsg" class="text-sm mt-2"></p><div class="grid md:grid-cols-2 gap-5 mt-5"><div><h5 class="font-bold text-white mb-2">Your slots</h5><div id="tutorSlotsList" class="space-y-2 text-sm"></div></div><div><h5 class="font-bold text-white mb-2">Booking requests</h5><div id="tutorBookingsList" class="space-y-3 text-sm"></div></div></div></div></div><div id="student-booking" class="mt-8 card rounded-3xl p-6 md:p-8"><h3 class="text-xl font-extrabold text-white">Book a one-to-one class</h3><p class="text-sm text-slate-400 mt-2">Choose an approved tutor and request an available 30-minute slot. The tutor must confirm your request.</p><form id="studentBookingForm" class="grid sm:grid-cols-2 gap-3 mt-4"><input name="studentName" required placeholder="Your full name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input name="phone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input name="email" type="email" required placeholder="Email address" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><select name="tutorId" id="bookingTutorSelect" required class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><option value="">Choose a tutor</option></select><input name="from" type="date" required class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input name="to" type="date" required class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><button class="sm:col-span-2 btn-primary rounded-xl py-3 font-bold text-white">Find available times</button></form><div id="studentSlotResults" class="mt-4 space-y-2"></div><p id="studentBookingMsg" class="text-sm mt-3"></p></div><div id="tutor-apply" class="mt-8 card rounded-3xl p-6 md:p-8">
           <h3 class="text-xl font-extrabold text-white">Apply to become an Englishmates Tutor</h3>
           <p class="text-sm text-slate-400 mt-2">Submit your details. Your profile stays private until Englishmates reviews and approves it.</p>
           <div class="mt-5 mb-5 rounded-2xl border border-emerald-400/30 bg-emerald-400/[.07] p-5">
@@ -189,6 +189,7 @@
             <input name="name" required maxlength="90" placeholder="Full name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
             <input name="phone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
             <input name="email" type="email" required placeholder="Email address" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+            <input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="Create password (minimum 8 characters)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white md:col-span-2">
             <input name="qualification" required maxlength="160" placeholder="Highest qualification" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
             <input name="experience" required maxlength="100" placeholder="Teaching experience (e.g. 2 years)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
             <input name="subjects" required maxlength="180" placeholder="Subjects / skills you teach" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
@@ -769,8 +770,16 @@
       try{
         const data=Object.fromEntries(new FormData(tutorForm).entries());
         if(data.consent!=='on') throw new Error('Please confirm the declaration before submitting.');
-        // Keep an explicit consent flag: the server validates this field.
+        if(String(data.password||'').length<8) throw new Error('Create a password with at least 8 characters.');
+        if(!auth) throw new Error('Account service is unavailable. Please try again later.');
+        const tutorEmail=String(data.email||'').trim().toLowerCase();
+        if(auth.currentUser && auth.currentUser.email.toLowerCase()!==tutorEmail) await auth.signOut();
+        if(!auth.currentUser) {
+          const account=await auth.createUserWithEmailAndPassword(tutorEmail,String(data.password));
+          await account.user.sendEmailVerification();
+        }
         data.consent=true;
+        delete data.password;
         delete data.photoFile;
         data.photoData=await compressTutorPhoto(tutorPhotoFile.files?.[0]);
         const res=await fetch('/.netlify/functions/tutor-marketplace',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
@@ -1080,6 +1089,83 @@
     });
     $('#logoutBtn').addEventListener('click',async()=>{if(adminUnsubscribe)adminUnsubscribe();knownStudentIds.clear();adminFirstLoad=true;$('#adminArea').classList.add('hidden');await auth.signOut()});
     if(auth) auth.onAuthStateChanged(u=>{ if(u && !$('#adminArea').classList.contains('hidden')) subscribeAdmin(); });
+
+    // Tutor dashboard and student slot booking.
+    async function tutorRequest(path, body) {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch('/.netlify/functions/tutor-booking' + path, {
+        method: body ? 'POST' : 'GET',
+        headers: Object.assign({'Content-Type':'application/json'}, {'Authorization':'Bearer ' + token}),
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Request failed.');
+      return result;
+    }
+    async function refreshTutorDashboard() {
+      const data = await tutorRequest('?mine=1');
+      const slots = data.slots || [], bookings = data.bookings || [];
+      document.getElementById('tutorSlotsList').innerHTML = slots.length ? slots.map(x => '<div class="rounded-xl border border-white/10 p-3">' + esc(x.date) + ' · ' + esc(x.startTime) + '–' + esc(x.endTime) + ' <span class="text-emerald-300">' + esc(x.status) + '</span></div>').join('') : '<p class="text-slate-500">No availability added yet.</p>';
+      document.getElementById('tutorBookingsList').innerHTML = bookings.length ? bookings.map(x => '<article class="rounded-xl border border-white/10 p-3"><b>' + esc(x.studentName) + '</b><p class="text-xs text-slate-400">' + esc(x.date) + ' · ' + esc(x.startTime) + '–' + esc(x.endTime) + '</p><p class="text-xs text-slate-400">' + esc(x.phone) + ' · ' + esc(x.email) + '</p><p class="text-xs mt-2">' + esc(x.status) + '</p>' + (x.status === 'pending' ? '<button data-booking-decision="accept" data-booking-id="' + esc(x.id) + '" class="text-emerald-300 mr-3 mt-2">Accept</button><button data-booking-decision="decline" data-booking-id="' + esc(x.id) + '" class="text-rose-300 mt-2">Decline</button>' : '') + '</article>').join('') : '<p class="text-slate-500">No booking requests yet.</p>';
+      document.getElementById('tutorDashboard').classList.remove('hidden');
+    }
+    document.getElementById('tutorLoginForm').addEventListener('submit', async function(e) {
+      e.preventDefault(); const msg = document.getElementById('tutorLoginMsg'); msg.textContent = 'Signing in…';
+      try {
+        const f = new FormData(e.currentTarget);
+        await auth.signInWithEmailAndPassword(String(f.get('email')).trim(), String(f.get('password')));
+        if (!auth.currentUser.emailVerified) throw new Error('Please verify your email before signing in.');
+        await refreshTutorDashboard(); msg.textContent = 'Signed in successfully.'; msg.className = 'text-sm mt-3 text-emerald-300';
+      } catch (err) { msg.textContent = err.message; msg.className = 'text-sm mt-3 text-rose-300'; }
+    });
+    document.getElementById('availabilityForm').addEventListener('submit', async function(e) {
+      e.preventDefault(); const f = new FormData(e.currentTarget), msg = document.getElementById('availabilityMsg');
+      try {
+        const slot = {date:String(f.get('date')), startTime:String(f.get('startTime')), endTime:String(f.get('endTime'))};
+        if (slot.startTime >= slot.endTime) throw new Error('End time must be later than start time.');
+        await tutorRequest('', {action:'save-availability', slots:[slot]});
+        e.currentTarget.reset(); msg.textContent = 'Availability saved.'; msg.className = 'text-sm mt-2 text-emerald-300'; await refreshTutorDashboard();
+      } catch (err) { msg.textContent = err.message; msg.className = 'text-sm mt-2 text-rose-300'; }
+    });
+    document.getElementById('tutorBookingsList').addEventListener('click', async function(e) {
+      const b = e.target.closest('button[data-booking-decision]'); if (!b) return;
+      b.disabled = true;
+      try { await tutorRequest('', {action:'respond-booking', bookingId:b.dataset.bookingId, decision:b.dataset.bookingDecision}); await refreshTutorDashboard(); }
+      catch (err) { alert(err.message); b.disabled = false; }
+    });
+    document.getElementById('tutorLogoutBtn').addEventListener('click', async function() {
+      await auth.signOut(); document.getElementById('tutorDashboard').classList.add('hidden'); document.getElementById('tutorLoginMsg').textContent = 'Signed out.';
+    });
+    async function loadBookingTutors() {
+      const response = await fetch('/.netlify/functions/tutor-marketplace'); const data = await response.json();
+      if (!response.ok || !data.ok) return;
+      const select = document.getElementById('bookingTutorSelect');
+      select.innerHTML = '<option value="">Choose a tutor</option>' + data.tutors.map(t => '<option value="' + esc(t.id) + '">' + esc(t.name) + ' — ' + esc(t.subjects) + '</option>').join('');
+    }
+    loadBookingTutors();
+    document.getElementById('studentBookingForm').addEventListener('submit', async function(e) {
+      e.preventDefault(); const f = new FormData(e.currentTarget), out = document.getElementById('studentSlotResults'), msg = document.getElementById('studentBookingMsg');
+      out.innerHTML = ''; msg.textContent = 'Finding available slots…';
+      try {
+        const tutorId = String(f.get('tutorId')), from = String(f.get('from')), to = String(f.get('to'));
+        if (to < from) throw new Error('End date must be on or after start date.');
+        const response = await fetch('/.netlify/functions/tutor-booking?tutorId=' + encodeURIComponent(tutorId) + '&from=' + from + '&to=' + to);
+        const data = await response.json(); if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load slots.');
+        if (!data.slots.length) { msg.textContent = 'No available times in this date range. Please try another date.'; return; }
+        msg.textContent = 'Select a time to send your booking request.';
+        out.innerHTML = data.slots.map(x => '<button type="button" data-slot-id="' + esc(x.id) + '" class="block w-full text-left rounded-xl border border-white/10 p-3 hover:border-violet-400"><b>' + esc(x.date) + '</b> · ' + esc(x.startTime) + '–' + esc(x.endTime) + ' <span class="text-xs text-slate-400">Request this slot</span></button>').join('');
+        out.dataset.student = JSON.stringify({studentName:String(f.get('studentName')),phone:String(f.get('phone')),email:String(f.get('email')),tutorId:tutorId});
+      } catch (err) { msg.textContent = err.message; }
+    });
+    document.getElementById('studentSlotResults').addEventListener('click', async function(e) {
+      const b = e.target.closest('button[data-slot-id]'); if (!b) return; b.disabled = true;
+      const details = JSON.parse(e.currentTarget.dataset.student || '{}'), msg = document.getElementById('studentBookingMsg');
+      try {
+        const response = await fetch('/.netlify/functions/tutor-booking', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action:'request-booking',slotId:b.dataset.slotId},details))});
+        const data = await response.json(); if (!response.ok || !data.ok) throw new Error(data.error || 'Booking request failed.');
+        msg.textContent = 'Thank you! Your request has been sent to the tutor. Your class is pending until the tutor confirms it.'; msg.className = 'text-sm mt-3 text-emerald-300'; b.remove();
+      } catch (err) { msg.textContent = err.message; b.disabled = false; }
+    });
 
     // Lightweight AI demo that works without exposing an API key in the browser.
     let aiMode='polish';
