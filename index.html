@@ -1131,6 +1131,7 @@
       const response = await fetch('/.netlify/functions/tutor-marketplace'); const data = await response.json();
       if (!response.ok || !data.ok) return;
       const select = document.getElementById('bookingTutorSelect');
+      if (!select) return; // The preview uses date-range tutor search instead of a separate tutor dropdown.
       select.innerHTML = '<option value="">Choose a tutor</option>' + data.tutors.map(t => '<option value="' + esc(t.id) + '">' + esc(t.name) + ' — ' + esc(t.subjects) + '</option>').join('');
     }
     loadBookingTutors();
