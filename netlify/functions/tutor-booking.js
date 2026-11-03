@@ -51,11 +51,31 @@ exports.handler = async event => {
       const tutorId = clean(event.queryStringParameters?.tutorId, 150);
       const from = clean(event.queryStringParameters?.from, 10);
       const to = clean(event.queryStringParameters?.to, 10);
-      if (!tutorId || !/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
-        return reply(400, { ok: false, error: 'Tutor and date range are required.' });
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || to < from) {
+        return reply(400, { ok: false, error: 'A valid date range is required.' });
       }
-      const snap = await db.collection(SLOTS).where('tutorId', '==', tutorId).where('date', '>=', from).where('date', '<=', to).where('status', '==', 'available').limit(200).get();
-      return reply(200, { ok: true, slots: snap.docs.map(d => ({ id: d.id, date: d.data().date, startTime: d.data().startTime, endTime: d.data().endTime })) });
+      // Bounded read and in-memory filtering avoids a composite-index dependency.
+      let query = db.collection(SLOTS);
+      if (tutorId) query = query.where('tutorId', '==', tutorId);
+      const snap = await query.limit(1000).get();
+      const matching = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(slot => slot.status === 'available' && slot.date >= from && slot.date <= to);
+      if (tutorId) {
+        return reply(200, { ok: true, slots: matching.map(slot => ({ id: slot.id, date: slot.date, startTime: slot.startTime, endTime: slot.endTime })) });
+      }
+      const grouped = new Map();
+      for (const slot of matching) {
+        if (!grouped.has(slot.tutorId)) grouped.set(slot.tutorId, []);
+        grouped.get(slot.tutorId).push({ id: slot.id, date: slot.date, startTime: slot.startTime, endTime: slot.endTime });
+      }
+      const tutors = [];
+      for (const [id, slots] of grouped.entries()) {
+        const doc = await db.collection(TUTORS).doc(id).get();
+        if (!doc.exists || doc.data().status !== 'approved') continue;
+        const d = doc.data();
+        tutors.push({ id, name: clean(d.name, 90), qualification: clean(d.qualification, 160), experience: clean(d.experience, 100), subjects: clean(d.subjects, 180), city: clean(d.city, 100), bio: clean(d.bio, 700), photoData: clean(d.photoData, 700000), slots });
+      }
+      return reply(200, { ok: true, tutors });
     }
     if (event.httpMethod !== 'POST') return reply(405, { ok: false, error: 'Method not allowed.' });
     const body = JSON.parse(event.body || '{}');
