@@ -33,6 +33,18 @@ exports.handler = async event => {
         const pending = await db.collection(COLLECTION).where('status', '==', 'pending').limit(100).get();
         return reply(200, { ok: true, applications: pending.docs.map(doc => ({ id: doc.id, ...doc.data() })) });
       }
+      if (IS_PREVIEW_DEPLOY) {
+        const pendingPreview = await db.collection(COLLECTION).where('status', '==', 'pending').limit(100).get();
+        if (!pendingPreview.empty) {
+          const batch = db.batch();
+          pendingPreview.docs.forEach(doc => batch.update(doc.ref, {
+            status: 'approved',
+            reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+            reviewedBy: 'preview-auto-approval'
+          }));
+          await batch.commit();
+        }
+      }
       const snap = await db.collection(COLLECTION)
         .where('status', '==', 'approved').limit(60).get();
       const tutors = snap.docs.map(doc => {
