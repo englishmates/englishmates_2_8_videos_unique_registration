@@ -173,13 +173,23 @@
           </article>
         </div>
         <div id="tutor-apply" class="mt-8 card rounded-3xl p-6 md:p-8">
-          <h3 class="text-xl font-extrabold text-white">Are you a teacher?</h3>
-          <p class="text-sm text-slate-400 mt-2">Tutor registration and profile submission will be enabled in the next development stage. All applications will remain private until approved by Englishmates.</p>
+          <h3 class="text-xl font-extrabold text-white">Apply to become an Englishmates Tutor</h3>
+          <p class="text-sm text-slate-400 mt-2">Submit your details. Your profile stays private until Englishmates reviews and approves it.</p>
+          <form id="tutorApplicationForm" class="grid md:grid-cols-2 gap-3 mt-5">
+            <input name="name" required maxlength="90" placeholder="Full name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+            <input name="phone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+            <input name="email" type="email" required placeholder="Email address" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+            <input name="qualification" required maxlength="160" placeholder="Highest qualification" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+            <input name="experience" required maxlength="100" placeholder="Teaching experience (e.g. 2 years)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+            <input name="subjects" required maxlength="180" placeholder="Subjects / skills you teach" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+            <input name="city" required maxlength="100" placeholder="City / location" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+            <input name="photoUrl" type="url" placeholder="Profile photo URL (optional)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+            <textarea name="bio" required minlength="20" maxlength="700" placeholder="Short introduction: your teaching style and strengths" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea>
+            <label class="md:col-span-2 flex items-start gap-2 text-xs text-slate-400"><input name="consent" type="checkbox" required class="mt-1"> I confirm that these details are accurate and agree that Englishmates may contact me about this application.</label>
+            <button id="tutorApplySubmit" class="md:col-span-2 btn-primary py-3.5 rounded-xl text-white font-bold">Submit Tutor Application</button>
+            <p id="tutorApplyMsg" role="status" class="md:col-span-2 text-sm text-center"></p>
+          </form>
         </div>
-      </div>
-    </section>
-
-    <!-- WHY -->
     <section id="results" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
       <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
         <div class="reveal">
@@ -694,6 +704,43 @@
         btn.disabled=false; btn.textContent='Submit Registration';
       }
     });
+
+    // Tutor marketplace: applications are private until owner approval.
+    const tutorForm=$('#tutorApplicationForm');
+    tutorForm?.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const btn=$('#tutorApplySubmit'), msg=$('#tutorApplyMsg');
+      btn.disabled=true; btn.textContent='Submitting…'; msg.textContent='';
+      try{
+        const data=Object.fromEntries(new FormData(tutorForm).entries());
+        if(data.consent!=='on') throw new Error('Please confirm the declaration.');
+        delete data.consent;
+        const res=await fetch('/.netlify/functions/tutor-marketplace',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+        const result=await res.json();
+        if(!res.ok||!result.ok) throw new Error(result.error||'Application could not be submitted.');
+        msg.textContent='Application received. It will remain private until Englishmates approves your profile.';
+        msg.className='md:col-span-2 text-sm text-center text-emerald-300';
+        tutorForm.reset();
+      }catch(err){msg.textContent=err.message||'Could not submit. Please try again.';msg.className='md:col-span-2 text-sm text-center text-rose-300';}
+      finally{btn.disabled=false;btn.textContent='Submit Tutor Application';}
+    });
+    async function loadApprovedTutors(){
+      const box=$('#publicTutorGrid'); if(!box)return;
+      try{
+        const res=await fetch('/.netlify/functions/tutor-marketplace');
+        const data=await res.json();
+        if(!res.ok||!data.ok) throw new Error('Unavailable');
+        if(!data.tutors.length)return;
+        box.innerHTML=data.tutors.map(t=>`<article class="card rounded-3xl p-6">
+          <div class="flex items-center gap-4"><img src="${esc(t.photoUrl||'')}" onerror="this.style.display='none'" alt="" class="w-16 h-16 rounded-2xl object-cover bg-white/10">
+          <div><h3 class="font-extrabold text-white">${esc(t.name)}</h3><p class="text-xs text-violet-300">${esc(t.qualification)}</p></div></div>
+          <p class="text-sm text-slate-300 mt-4">${esc(t.bio)}</p>
+          <div class="text-xs text-slate-400 mt-4">Experience: ${esc(t.experience)} · ${esc(t.city)}</div>
+          <div class="text-xs text-slate-400 mt-2">Teaches: ${esc(t.subjects)}</div>
+          </article>`).join('');
+      }catch(err){console.warn('Approved tutor list unavailable',err);}
+    }
+    loadApprovedTutors();
 
     // Reviews
     $('#reviewForm').addEventListener('submit', async e=>{
