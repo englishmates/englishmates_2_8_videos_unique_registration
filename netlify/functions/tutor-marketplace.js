@@ -17,6 +17,8 @@ const reply = (statusCode, payload) => ({
   body: JSON.stringify(payload)
 });
 const clean = (v, max) => String(v || '').trim().slice(0, max);
+// Keep preview submissions separate from the live tutor directory.
+const COLLECTION = process.env.CONTEXT === 'production' ? 'tutorApplications' : 'tutorApplicationsPreview';
 
 exports.handler = async event => {
   try {
@@ -27,17 +29,17 @@ exports.handler = async event => {
         if (!token) return reply(401, { ok: false, error: 'Admin sign-in required.' });
         const decoded = await admin.auth().verifyIdToken(token);
         if ((decoded.email || '').toLowerCase() !== 'bddayma12@gmail.com') return reply(403, { ok: false, error: 'Owner access only.' });
-        const pending = await db.collection('tutorApplications').where('status', '==', 'pending').limit(100).get();
+        const pending = await db.collection(COLLECTION).where('status', '==', 'pending').limit(100).get();
         return reply(200, { ok: true, applications: pending.docs.map(doc => ({ id: doc.id, ...doc.data() })) });
       }
-      const snap = await db.collection('tutorApplications')
+      const snap = await db.collection(COLLECTION)
         .where('status', '==', 'approved').limit(60).get();
       const tutors = snap.docs.map(doc => {
         const d = doc.data();
         return {
           id: doc.id, name: d.name || '', qualification: d.qualification || '',
           experience: d.experience || '', subjects: d.subjects || '',
-          city: d.city || '', photoUrl: d.photoUrl || '', bio: d.bio || ''
+          city: d.city || '', photoData: d.photoData || '', bio: d.bio || ''
         };
       });
       return reply(200, { ok: true, tutors });
@@ -52,7 +54,7 @@ exports.handler = async event => {
       if ((decoded.email || '').toLowerCase() !== 'bddayma12@gmail.com') return reply(403, { ok: false, error: 'Owner access only.' });
       const id = clean(body.id, 150);
       if (!id) return reply(400, { ok: false, error: 'Application ID is required.' });
-      await db.collection('tutorApplications').doc(id).update({
+      await db.collection(COLLECTION).doc(id).update({
         status: body.action === 'approve' ? 'approved' : 'rejected',
         reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
         reviewedBy: decoded.email
@@ -67,21 +69,21 @@ exports.handler = async event => {
       experience: clean(body.experience, 100),
       subjects: clean(body.subjects, 180),
       city: clean(body.city, 100),
-      photoUrl: clean(body.photoUrl, 500),
+      photoData: clean(body.photoData, 700000),
       bio: clean(body.bio, 700)
     };
     if (!body.consent || data.name.length < 2 || !/^\d{10}$/.test(data.phone) ||
-        !/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(data.email) ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) ||
         !data.qualification || !data.experience || !data.subjects || !data.city || data.bio.length < 20) {
       return reply(400, { ok: false, error: 'Please complete all required fields with valid details.' });
     }
-    if (data.photoUrl && !/^https:\/\//i.test(data.photoUrl)) {
-      return reply(400, { ok: false, error: 'Photo URL must begin with https://.' });
+    if (data.photoData && (!/^data:image\/jpeg;base64,/.test(data.photoData) || data.photoData.length > 700000)) {
+      return reply(400, { ok: false, error: 'Please choose a smaller valid profile photo.' });
     }
-    const existing = await db.collection('tutorApplications').where('phone', '==', data.phone).limit(1).get();
+    const existing = await db.collection(COLLECTION).where('phone', '==', data.phone).limit(1).get();
     if (!existing.empty) return reply(409, { ok: false, error: 'An application with this mobile number already exists. Please contact Englishmates.' });
 
-    await db.collection('tutorApplications').add({
+    await db.collection(COLLECTION).add({
       ...data, status: 'pending',
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
       reviewedAt: null
