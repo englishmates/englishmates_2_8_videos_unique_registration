@@ -1,0 +1,90 @@
+const crypto = require('crypto');
+const admin = require('firebase-admin');
+
+const reply = (statusCode, body) => ({
+  statusCode,
+  headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
+  body
+});
+const page = message => '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Englishmates Google Calendar</title></head><body style="font-family:Arial,sans-serif;max-width:640px;margin:12vh auto;padding:24px;line-height:1.6"><h2>Englishmates Google Calendar</h2><p>' + message + '</p><p>You can close this window.</p></body></html>';
+
+function validState(state, secret) {
+  const parts = String(state || '').split('.');
+  if (parts.length !== 2) return false;
+  const expected = crypto.createHmac('sha256', secret).update(parts[0]).digest();
+  let supplied;
+  try { supplied = Buffer.from(parts[1], 'base64url'); } catch (_) { return false; }
+  if (expected.length !== supplied.length || !crypto.timingSafeEqual(expected, supplied)) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+    return Number.isFinite(payload.issuedAt) &&
+      Date.now() - payload.issuedAt >= 0 &&
+      Date.now() - payload.issuedAt <= 10 * 60 * 1000 &&
+      typeof payload.nonce === 'string';
+  } catch (_) { return false; }
+}
+
+function getDb() {
+  if (!admin.apps.length) {
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    if (!raw) throw new Error('Firebase service account is not configured');
+    admin.initializeApp({
+      credential: admin.credential.cert(JSON.parse(raw)),
+      projectId: process.env.FIREBASE_PROJECT_ID || 'englishmates-ratangarh-933f1'
+    });
+  }
+  return admin.firestore();
+}
+
+exports.handler = async event => {
+  if (process.env.CONTEXT !== 'deploy-preview') {
+    return reply(403, page('This authorization callback is currently restricted to the Englishmates preview deployment.'));
+  }
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI;
+  const stateSecret = process.env.OAUTH_STATE_SECRET;
+  if (!clientId || !clientSecret || !redirectUri || !stateSecret) {
+    return reply(500, page('OAuth setup is incomplete. Please check the required Netlify environment variables.'));
+  }
+  const params = event.queryStringParameters || {};
+  if (params.error) return reply(400, page('Google authorization was not completed: ' + String(params.error).replace(/[<>]/g, '')));
+  if (!params.code || !validState(params.state, stateSecret)) {
+    return reply(400, page('The authorization response is missing or expired. Please start the connection again from the preview website.'));
+  }
+  try {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code: params.code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code'
+      })
+    });
+    const tokens = await tokenResponse.json();
+    if (!tokenResponse.ok) {
+      console.error('Google token exchange failed:', tokens.error || tokenResponse.status);
+      return reply(502, page('Google could not complete authorization. Please check the OAuth client settings and try again.'));
+    }
+    if (!tokens.refresh_token) {
+      return reply(400, page('Google did not return a refresh token. Revoke the previous Englishmates authorization in your Google Account and connect again, choosing consent when prompted.'));
+    }
+    const db = getDb();
+    await db.collection('integrationSecrets').doc('googleCalendarPreview').set({
+      provider: 'google',
+      service: 'calendar',
+      refreshToken: tokens.refresh_token,
+      tokenType: tokens.token_type || 'Bearer',
+      scope: tokens.scope || 'https://www.googleapis.com/auth/calendar.events',
+      connectedAt: admin.firestore.FieldValue.serverTimestamp(),
+      connectedBy: 'preview-oauth'
+    }, { merge: true });
+    return reply(200, page('Google Calendar authorization was received and the refresh token was stored for the preview integration. No live website settings were changed.'));
+  } catch (error) {
+    console.error('Google OAuth callback error:', error);
+    return reply(500, page('The authorization could not be saved. Please check the preview server configuration.'));
+  }
+};
