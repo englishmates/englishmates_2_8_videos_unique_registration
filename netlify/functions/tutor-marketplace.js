@@ -22,6 +22,14 @@ exports.handler = async event => {
   try {
     const db = getDb();
     if (event.httpMethod === 'GET') {
+      if (event.queryStringParameters && event.queryStringParameters.admin === '1') {
+        const token = String(event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\\s+/i, '');
+        if (!token) return reply(401, { ok: false, error: 'Admin sign-in required.' });
+        const decoded = await admin.auth().verifyIdToken(token);
+        if ((decoded.email || '').toLowerCase() !== 'bddayma12@gmail.com') return reply(403, { ok: false, error: 'Owner access only.' });
+        const pending = await db.collection('tutorApplications').where('status', '==', 'pending').limit(100).get();
+        return reply(200, { ok: true, applications: pending.docs.map(doc => ({ id: doc.id, ...doc.data() })) });
+      }
       const snap = await db.collection('tutorApplications')
         .where('status', '==', 'approved').limit(60).get();
       const tutors = snap.docs.map(doc => {
@@ -37,6 +45,20 @@ exports.handler = async event => {
     if (event.httpMethod !== 'POST') return reply(405, { ok: false, error: 'Method not allowed' });
 
     const body = JSON.parse(event.body || '{}');
+    if (body.action === 'approve' || body.action === 'reject') {
+      const token = String(event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\\s+/i, '');
+      if (!token) return reply(401, { ok: false, error: 'Admin sign-in required.' });
+      const decoded = await admin.auth().verifyIdToken(token);
+      if ((decoded.email || '').toLowerCase() !== 'bddayma12@gmail.com') return reply(403, { ok: false, error: 'Owner access only.' });
+      const id = clean(body.id, 150);
+      if (!id) return reply(400, { ok: false, error: 'Application ID is required.' });
+      await db.collection('tutorApplications').doc(id).update({
+        status: body.action === 'approve' ? 'approved' : 'rejected',
+        reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+        reviewedBy: decoded.email
+      });
+      return reply(200, { ok: true });
+    }
     const data = {
       name: clean(body.name, 90),
       phone: clean(body.phone, 10).replace(/\\D/g, ''),
