@@ -415,6 +415,10 @@
           <div class="md:col-span-2 flex flex-wrap gap-2"><button class="btn-primary px-6 py-3 rounded-xl text-white font-bold">Save Student</button><button type="button" id="cancelStudentEdit2" class="px-6 py-3 rounded-xl bg-white/5 text-white">Cancel</button></div>
         </form>
       </div>
+      <div class="card rounded-3xl p-5 md:p-7 mt-8">
+        <div class="flex items-center justify-between gap-3"><div><h3 class="text-2xl font-extrabold text-white">Tutor Applications</h3><p class="text-sm text-slate-400 mt-1">Review applications. Only approved tutors appear publicly.</p></div><button id="refreshTutorApps" class="px-4 py-2 rounded-xl bg-white/5 text-white text-sm">Refresh</button></div>
+        <div id="tutorApplicationAdminList" class="mt-5 space-y-3"><p class="text-sm text-slate-500">Sign in as owner to review applications.</p></div>
+      </div>
       <div id="courseRoster" class="mt-8 space-y-8"></div>
     </div>
   </section>
@@ -929,6 +933,38 @@
         msg.textContent=id?'Student details updated.':'Student added successfully.';
       }catch(err){console.error(err);msg.textContent='Could not save student. Check Firestore rules and try again.';}
     });
+    async function loadTutorApplications(){
+      const box=$('#tutorApplicationAdminList');
+      if(!auth?.currentUser){box.textContent='Please sign in as owner.';return;}
+      box.textContent='Loading applications…';
+      try{
+        const token=await auth.currentUser.getIdToken();
+        const res=await fetch('/.netlify/functions/tutor-marketplace?admin=1',{headers:{Authorization:'Bearer '+token}});
+        const data=await res.json(); if(!res.ok||!data.ok)throw new Error(data.error||'Could not load applications');
+        if(!data.applications.length){box.innerHTML='<p class="text-sm text-slate-500">No pending tutor applications.</p>';return;}
+        box.innerHTML=data.applications.map(a=>`<article class="rounded-2xl border border-white/10 bg-white/[.03] p-4">
+          <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div><h4 class="font-bold text-white">${esc(a.name)}</h4><p class="text-xs text-slate-400 mt-1">${esc(a.qualification)} · ${esc(a.experience)}</p>
+            <p class="text-xs text-slate-400 mt-1">${esc(a.phone)} · ${esc(a.email)} · ${esc(a.city)}</p>
+            <p class="text-sm text-slate-300 mt-3">Teaches: ${esc(a.subjects)}</p><p class="text-sm text-slate-400 mt-2">${esc(a.bio)}</p></div>
+            <div class="flex gap-2 shrink-0"><button data-tutor-action="approve" data-id="${esc(a.id)}" class="px-4 py-2 rounded-lg bg-emerald-500/15 text-emerald-300 text-sm font-bold">Approve</button><button data-tutor-action="reject" data-id="${esc(a.id)}" class="px-4 py-2 rounded-lg bg-rose-500/10 text-rose-300 text-sm font-bold">Reject</button></div>
+          </div></article>`).join('');
+      }catch(err){box.textContent=err.message||'Unable to load tutor applications.';}
+    }
+    $('#refreshTutorApps')?.addEventListener('click',loadTutorApplications);
+    $('#tutorApplicationAdminList')?.addEventListener('click',async e=>{
+      const b=e.target.closest('button[data-tutor-action]'); if(!b)return;
+      const action=b.dataset.tutorAction;
+      if(action==='reject'&&!confirm('Reject this tutor application?'))return;
+      b.disabled=true;
+      try{
+        const token=await auth.currentUser.getIdToken();
+        const res=await fetch('/.netlify/functions/tutor-marketplace',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({action,id:b.dataset.id})});
+        const data=await res.json();if(!res.ok||!data.ok)throw new Error(data.error||'Action failed');
+        await loadTutorApplications();await loadApprovedTutors();
+      }catch(err){alert(err.message||'Could not update application.');b.disabled=false;}
+    });
+
     function renderRoster(students){
       renderStudentManager(students);
       const counts={}; COURSES.forEach(c=>counts[c]=0);
@@ -976,6 +1012,7 @@
       $('#adminArea').classList.remove('hidden'); $('#adminArea').scrollIntoView({behavior:'smooth'});
       try{await seedDefaultCourses();renderCourseManager();}catch(err){$('#courseManagerMsg').textContent='Course controls need Firestore rules allowing owner access to the courses collection.';}
       subscribeAdmin();
+      loadTutorApplications();
     }
     $('#adminLink').addEventListener('click',()=>auth&&auth.currentUser?showAdmin():openModal('#adminLoginModal'));
     $('#adminLoginForm').addEventListener('submit',async e=>{
