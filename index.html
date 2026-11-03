@@ -758,13 +758,15 @@
       btn.disabled=true; btn.textContent='Submitting…'; msg.textContent='';
       try{
         const data=Object.fromEntries(new FormData(tutorForm).entries());
-        if(data.consent!=='on') throw new Error('Please confirm the declaration.');
-        delete data.consent; delete data.photoFile;
+        if(data.consent!=='on') throw new Error('Please confirm the declaration before submitting.');
+        // Keep an explicit consent flag: the server validates this field.
+        data.consent=true;
+        delete data.photoFile;
         data.photoData=await compressTutorPhoto(tutorPhotoFile.files?.[0]);
         const res=await fetch('/.netlify/functions/tutor-marketplace',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
         const result=await res.json();
         if(!res.ok||!result.ok) throw new Error(result.error||'Application could not be submitted.');
-        msg.textContent='Application received. It will remain private until Englishmates approves your profile.';
+        msg.textContent='Thank you! Your tutor registration was submitted successfully. Your application is now PENDING with the Englishmates administrator. Your profile will appear publicly only after approval.';
         msg.className='md:col-span-2 text-sm text-center text-emerald-300';
         tutorForm.reset();
       }catch(err){msg.textContent=err.message||'Could not submit. Please try again.';msg.className='md:col-span-2 text-sm text-center text-rose-300';}
