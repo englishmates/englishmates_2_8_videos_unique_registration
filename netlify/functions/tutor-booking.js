@@ -91,6 +91,10 @@ exports.handler = async event => {
         }
         const id = tutor.id + '_' + date + '_' + startTime.replace(':', '');
         const ref = db.collection(SLOTS).doc(id);
+        const existingSlot = await ref.get();
+        if (existingSlot.exists && existingSlot.data().status !== 'available') {
+          return reply(409, { ok: false, error: 'This time slot already has a booking or request and cannot be overwritten.' });
+        }
         batch.set(ref, { tutorId: tutor.id, tutorName: clean(tutor.name, 90), date, startTime, endTime, status: 'available', updatedAt: admin.firestore.FieldValue.serverTimestamp(), updatedBy: user.email }, { merge: true });
       }
       await batch.commit();
