@@ -140,8 +140,41 @@
       </div>
     </section>
 
+    <!-- SIMPLE TUTOR PROFILE DEMO -->
+    <section id="tutor-profile-demo" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
+      <div class="max-w-5xl mx-auto">
+        <p class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Meet your tutor</p>
+        <h2 class="text-4xl font-extrabold text-white mt-3">Find a Tutor</h2>
+        <p class="text-slate-400 mt-3">Choose a tutor and view their profile and sample availability.</p>
+        <article class="card rounded-3xl p-6 md:p-8 mt-8">
+          <div class="flex flex-col sm:flex-row gap-6 items-start">
+            <div class="w-24 h-24 rounded-full bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-3xl font-extrabold text-violet-200">BD</div>
+            <div class="flex-1">
+              <span class="text-xs text-emerald-300 font-bold">ENGLISHMATES TUTOR · DEMO PROFILE</span>
+              <h3 class="text-2xl font-extrabold text-white mt-2">Bhagirath Dayma</h3>
+              <p class="text-violet-200 mt-1">Spoken English & Communication Skills Trainer</p>
+              <p class="text-sm text-slate-400 mt-3">M.Sc. Computer Science · 4 years of teaching experience · Ratangarh, Rajasthan</p>
+              <p class="text-sm text-slate-300 leading-6 mt-3">Founder of Englishmates Institute. Helps learners build spoken English, communication skills, confidence and public-speaking ability through practical activities and guided practice.</p>
+              <p class="text-sm text-slate-400 mt-3"><strong class="text-white">Teaches:</strong> Spoken English, Communication Skills, Public Speaking, Personality Development</p>
+              <button type="button" id="demoViewSlots" class="btn-primary text-white px-5 py-3 rounded-xl font-bold text-sm mt-5">View Available Time Slots</button>
+            </div>
+          </div>
+          <div id="demoTutorSlots" class="hidden mt-7 border-t border-white/10 pt-6">
+            <h4 class="text-lg font-bold text-white">Sample availability</h4>
+            <p class="text-xs text-amber-300 mt-1">Demo only — these are sample times, not confirmed live availability or bookable appointments.</p>
+            <div class="grid sm:grid-cols-2 gap-3 mt-4">
+              <div class="rounded-xl border border-white/10 p-4"><p class="font-bold text-white">Wednesday · 4 November 2026</p><p class="text-sm text-emerald-200 mt-2">4:00 PM – 4:30 PM</p></div>
+              <div class="rounded-xl border border-white/10 p-4"><p class="font-bold text-white">Thursday · 5 November 2026</p><p class="text-sm text-emerald-200 mt-2">5:00 PM – 5:30 PM</p></div>
+              <div class="rounded-xl border border-white/10 p-4"><p class="font-bold text-white">Friday · 6 November 2026</p><p class="text-sm text-emerald-200 mt-2">4:30 PM – 5:00 PM</p></div>
+              <div class="rounded-xl border border-white/10 p-4"><p class="font-bold text-white">Saturday · 7 November 2026</p><p class="text-sm text-emerald-200 mt-2">11:00 AM – 11:30 AM</p></div>
+            </div>
+            <p class="text-sm text-slate-400 mt-4">For an actual class, contact Englishmates directly. Online booking will be connected after the demo is verified.</p>
+          </div>
+        </article>
+      </div>
+    </section>
     <!-- TUTOR MARKETPLACE PREVIEW -->
-    <section id="tutors" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
+    <section id="tutors" class="hidden section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
       <div class="max-w-7xl mx-auto">
         <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 reveal">
           <div class="max-w-3xl">
@@ -1080,6 +1113,12 @@
     });
     $('#logoutBtn').addEventListener('click',async()=>{if(adminUnsubscribe)adminUnsubscribe();knownStudentIds.clear();adminFirstLoad=true;$('#adminArea').classList.add('hidden');await auth.signOut()});
     if(auth) auth.onAuthStateChanged(u=>{ if(u && !$('#adminArea').classList.contains('hidden')) subscribeAdmin(); });
+
+    document.getElementById('demoViewSlots')?.addEventListener('click', function() {
+      const panel = document.getElementById('demoTutorSlots');
+      panel.classList.toggle('hidden');
+      this.textContent = panel.classList.contains('hidden') ? 'View Available Time Slots' : 'Hide Time Slots';
+    });
 
     // Tutor dashboard and student slot booking.
     async function tutorRequest(path, body) {
