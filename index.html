@@ -183,7 +183,18 @@
             <input name="experience" required maxlength="100" placeholder="Teaching experience (e.g. 2 years)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
             <input name="subjects" required maxlength="180" placeholder="Subjects / skills you teach" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
             <input name="city" required maxlength="100" placeholder="City / location" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
-            <input name="photoUrl" type="url" placeholder="Profile photo URL (optional)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+            <div class="md:col-span-2 flex flex-col sm:flex-row items-center gap-5 rounded-2xl border border-white/10 bg-black/20 p-5">
+              <div class="relative shrink-0">
+                <img id="tutorPhotoPreview" alt="Tutor profile photo preview" class="w-28 h-28 rounded-full object-cover border-4 border-violet-400/70 shadow-lg shadow-violet-900/30 bg-slate-800" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Ccircle cx='60' cy='60' r='60' fill='%231e293b'/%3E%3Cpath d='M60 62a19 19 0 1 0 0-38 19 19 0 0 0 0 38m-34 42c2-20 15-30 34-30s32 10 34 30' fill='%2394a3b8'/%3E%3C/svg%3E">
+                <span class="absolute bottom-1 right-1 w-7 h-7 rounded-full bg-violet-500 border-2 border-slate-900 flex items-center justify-center"><i data-lucide="camera" class="w-3.5 h-3.5 text-white"></i></span>
+              </div>
+              <div class="min-w-0 text-center sm:text-left">
+                <label for="tutorPhotoFile" class="block font-bold text-white">Profile Photo</label>
+                <p class="text-xs text-slate-400 mt-1">Choose a photo from your phone or computer. On mobile, you can use the camera. It will appear in a round frame.</p>
+                <input id="tutorPhotoFile" name="photoFile" type="file" accept="image/*" capture="user" class="block w-full max-w-sm text-sm text-slate-300 mt-3 file:mr-3 file:rounded-full file:border-0 file:bg-violet-500 file:px-4 file:py-2 file:font-bold file:text-white">
+                <p class="text-[11px] text-slate-500 mt-2">JPG, PNG or WebP · Up to 8 MB</p>
+              </div>
+            </div>
             <textarea name="bio" required minlength="20" maxlength="700" placeholder="Short introduction: your teaching style and strengths" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea>
             <label class="md:col-span-2 flex items-start gap-2 text-xs text-slate-400"><input name="consent" type="checkbox" required class="mt-1"> I confirm that these details are accurate and agree that Englishmates may contact me about this application.</label>
             <button id="tutorApplySubmit" class="md:col-span-2 btn-primary py-3.5 rounded-xl text-white font-bold">Submit Tutor Application</button>
@@ -710,6 +721,34 @@
     });
 
     // Tutor marketplace: applications are private until owner approval.
+    const tutorPhotoFile=$('#tutorPhotoFile');
+    const tutorPhotoPreview=$('#tutorPhotoPreview');
+    tutorPhotoFile?.addEventListener('change',()=>{
+      const file=tutorPhotoFile.files?.[0]; if(!file)return;
+      if(!file.type.startsWith('image/')){alert('Please choose an image file.');tutorPhotoFile.value='';return;}
+      if(file.size>8*1024*1024){alert('Please choose an image smaller than 8 MB.');tutorPhotoFile.value='';return;}
+      tutorPhotoPreview.src=URL.createObjectURL(file);
+    });
+    function compressTutorPhoto(file){
+      return new Promise((resolve,reject)=>{
+        if(!file){resolve('');return;}
+        const reader=new FileReader();
+        reader.onerror=()=>reject(new Error('Could not read the selected photo.'));
+        reader.onload=()=>{
+          const img=new Image();
+          img.onerror=()=>reject(new Error('This photo could not be opened.'));
+          img.onload=()=>{
+            const side=480, scale=Math.min(1,side/Math.max(img.width,img.height));
+            const canvas=document.createElement('canvas');
+            canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+            canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+            resolve(canvas.toDataURL('image/jpeg',0.78));
+          };
+          img.src=reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
     const tutorForm=$('#tutorApplicationForm');
     tutorForm?.addEventListener('submit',async e=>{
       e.preventDefault();
@@ -718,7 +757,8 @@
       try{
         const data=Object.fromEntries(new FormData(tutorForm).entries());
         if(data.consent!=='on') throw new Error('Please confirm the declaration.');
-        delete data.consent;
+        delete data.consent; delete data.photoFile;
+        data.photoData=await compressTutorPhoto(tutorPhotoFile.files?.[0]);
         const res=await fetch('/.netlify/functions/tutor-marketplace',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
         const result=await res.json();
         if(!res.ok||!result.ok) throw new Error(result.error||'Application could not be submitted.');
@@ -736,7 +776,7 @@
         if(!res.ok||!data.ok) throw new Error('Unavailable');
         if(!data.tutors.length)return;
         box.innerHTML=data.tutors.map(t=>`<article class="card rounded-3xl p-6">
-          <div class="flex items-center gap-4"><img src="${esc(t.photoUrl||'')}" onerror="this.style.display='none'" alt="" class="w-16 h-16 rounded-2xl object-cover bg-white/10">
+          <div class="flex items-center gap-4"><img src="${esc(t.photoData||'')}" onerror="this.style.display='none'" alt="${esc(t.name)}" class="w-20 h-20 rounded-full object-cover border-4 border-violet-400/60 shadow-lg bg-slate-800">
           <div><h3 class="font-extrabold text-white">${esc(t.name)}</h3><p class="text-xs text-violet-300">${esc(t.qualification)}</p></div></div>
           <p class="text-sm text-slate-300 mt-4">${esc(t.bio)}</p>
           <div class="text-xs text-slate-400 mt-4">Experience: ${esc(t.experience)} · ${esc(t.city)}</div>
@@ -944,9 +984,9 @@
         if(!data.applications.length){box.innerHTML='<p class="text-sm text-slate-500">No pending tutor applications.</p>';return;}
         box.innerHTML=data.applications.map(a=>`<article class="rounded-2xl border border-white/10 bg-white/[.03] p-4">
           <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            <div><h4 class="font-bold text-white">${esc(a.name)}</h4><p class="text-xs text-slate-400 mt-1">${esc(a.qualification)} · ${esc(a.experience)}</p>
+            <div class="flex items-center gap-4"><img src="${esc(a.photoData||'')}" onerror="this.style.display='none'" alt="" class="w-16 h-16 rounded-full object-cover border-2 border-violet-400/60 bg-slate-800"><div><h4 class="font-bold text-white">${esc(a.name)}</h4><p class="text-xs text-slate-400 mt-1">${esc(a.qualification)} · ${esc(a.experience)}</p>
             <p class="text-xs text-slate-400 mt-1">${esc(a.phone)} · ${esc(a.email)} · ${esc(a.city)}</p>
-            <p class="text-sm text-slate-300 mt-3">Teaches: ${esc(a.subjects)}</p><p class="text-sm text-slate-400 mt-2">${esc(a.bio)}</p></div>
+            <p class="text-sm text-slate-300 mt-3">Teaches: ${esc(a.subjects)}</p><p class="text-sm text-slate-400 mt-2">${esc(a.bio)}</p></div></div>
             <div class="flex gap-2 shrink-0"><button data-tutor-action="approve" data-id="${esc(a.id)}" class="px-4 py-2 rounded-lg bg-emerald-500/15 text-emerald-300 text-sm font-bold">Approve</button><button data-tutor-action="reject" data-id="${esc(a.id)}" class="px-4 py-2 rounded-lg bg-rose-500/10 text-rose-300 text-sm font-bold">Reject</button></div>
           </div></article>`).join('');
       }catch(err){box.textContent=err.message||'Unable to load tutor applications.';}
