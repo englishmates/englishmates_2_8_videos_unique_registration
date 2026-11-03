@@ -55,6 +55,7 @@
       </a>
       <div class="hidden md:flex items-center gap-7 text-sm font-semibold">
         <a class="nav-link" href="#programs">Programs</a>
+        <a class="nav-link" href="#tutors">Find a Tutor</a>
         <a class="nav-link" href="#ai-lab">AI Lab</a>
         <a class="nav-link" href="#gallery">Activities</a>
         <a class="nav-link" href="#results">Why Englishmates</a>
@@ -65,7 +66,7 @@
     </nav>
     <div id="mobileMenu" class="hidden md:hidden px-5 pb-5 border-t border-white/5">
       <div class="flex flex-col gap-4 pt-4 text-sm font-semibold">
-        <a class="nav-link" href="#programs">Programs</a><a class="nav-link" href="#ai-lab">AI Lab</a>
+        <a class="nav-link" href="#programs">Programs</a><a class="nav-link" href="#tutors">Find a Tutor</a><a class="nav-link" href="#ai-lab">AI Lab</a>
         <a class="nav-link" href="#results">Why Englishmates</a><a class="nav-link" href="#about">About</a>
         <a href="#enroll" class="btn-coral text-white text-center px-5 py-3 rounded-xl">Book a Demo</a>
       </div>
@@ -136,6 +137,45 @@
           <p class="text-slate-400 mt-5 leading-7">Choose one skill or combine them. Every program is designed to turn knowledge into confidence and action.</p>
         </div>
         <div id="publicCourseGrid" class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-10"><div class="text-slate-400">Loading courses…</div></div>
+      </div>
+    </section>
+
+    <!-- TUTOR MARKETPLACE PREVIEW -->
+    <section id="tutors" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 reveal">
+          <div class="max-w-3xl">
+            <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Learn with the right guide</span>
+            <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Meet our <span class="gradient-text">Tutors.</span></h2>
+            <p class="text-slate-400 mt-4 leading-7">Explore tutor profiles, compare qualifications and teaching experience, and choose the right learning partner for your goals.</p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <a href="#enroll" class="btn-primary text-white px-5 py-3 rounded-xl font-bold text-sm">I'm a Student</a>
+            <a href="#tutor-apply" class="border border-white/15 bg-white/5 hover:bg-white/10 text-white px-5 py-3 rounded-xl font-bold text-sm">Apply as a Tutor</a>
+          </div>
+        </div>
+        <div id="publicTutorGrid" class="grid md:grid-cols-2 xl:grid-cols-3 gap-5 mt-10">
+          <div class="md:col-span-2 xl:col-span-3 card rounded-3xl p-8 text-center">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-violet-500/10 text-violet-300 flex items-center justify-center"><i data-lucide="users" class="w-7 h-7"></i></div>
+            <h3 class="text-xl font-extrabold text-white mt-4">Tutor profiles are coming soon</h3>
+            <p class="text-sm text-slate-400 mt-2 max-w-xl mx-auto">Tutors can apply to join Englishmates. Every profile will be reviewed and approved by the institute before it becomes visible to students.</p>
+            <div class="inline-flex items-center gap-2 mt-5 px-3 py-2 rounded-full bg-amber-400/10 text-amber-300 text-xs font-bold"><i data-lucide="shield-check" class="w-4 h-4"></i> Approval required before publishing</div>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5 mt-8">
+          <article class="card rounded-3xl p-6">
+            <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-300 flex items-center justify-center"><i data-lucide="graduation-cap"></i></div><div><h3 class="font-extrabold text-white">Tutor Dashboard</h3><p class="text-xs text-slate-500">For teachers and tutors</p></div></div>
+            <p class="text-sm text-slate-400 leading-6 mt-4">Create a profile, add qualifications and teaching experience, and manage availability after your profile is approved.</p>
+          </article>
+          <article class="card rounded-3xl p-6">
+            <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-300 flex items-center justify-center"><i data-lucide="calendar-check"></i></div><div><h3 class="font-extrabold text-white">Student Dashboard</h3><p class="text-xs text-slate-500">For learners</p></div></div>
+            <p class="text-sm text-slate-400 leading-6 mt-4">Browse approved tutors, compare their profiles, and later book a free demo, one-to-one class, or complete course.</p>
+          </article>
+        </div>
+        <div id="tutor-apply" class="mt-8 card rounded-3xl p-6 md:p-8">
+          <h3 class="text-xl font-extrabold text-white">Are you a teacher?</h3>
+          <p class="text-sm text-slate-400 mt-2">Tutor registration and profile submission will be enabled in the next development stage. All applications will remain private until approved by Englishmates.</p>
+        </div>
       </div>
     </section>
 
