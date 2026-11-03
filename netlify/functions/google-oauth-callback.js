@@ -44,7 +44,8 @@ exports.handler = async event => {
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
   const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI;
   const stateSecret = process.env.OAUTH_STATE_SECRET;
-  if (!clientId || !clientSecret || !redirectUri || !stateSecret) {
+  const encryptionKeyHex = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY || '';
+  if (!clientId || !clientSecret || !redirectUri || !stateSecret || !/^[a-f0-9]{64}$/i.test(encryptionKeyHex)) {
     return reply(500, page('OAuth setup is incomplete. Please check the required Netlify environment variables.'));
   }
   const params = event.queryStringParameters || {};
@@ -72,11 +73,17 @@ exports.handler = async event => {
     if (!tokens.refresh_token) {
       return reply(400, page('Google did not return a refresh token. Revoke the previous Englishmates authorization in your Google Account and connect again, choosing consent when prompted.'));
     }
+    const key = Buffer.from(encryptionKeyHex, 'hex');
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const encryptedToken = Buffer.concat([cipher.update(tokens.refresh_token, 'utf8'), cipher.final()]);
     const db = getDb();
     await db.collection('integrationSecrets').doc('googleCalendarPreview').set({
       provider: 'google',
       service: 'calendar',
-      refreshToken: tokens.refresh_token,
+      refreshTokenEncrypted: encryptedToken.toString('base64'),
+      refreshTokenIv: iv.toString('base64'),
+      refreshTokenAuthTag: cipher.getAuthTag().toString('base64'),
       tokenType: tokens.token_type || 'Bearer',
       scope: tokens.scope || 'https://www.googleapis.com/auth/calendar.events',
       connectedAt: admin.firestore.FieldValue.serverTimestamp(),
