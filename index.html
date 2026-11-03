@@ -776,7 +776,7 @@
         const res=await fetch('/.netlify/functions/tutor-marketplace',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
         const result=await res.json();
         if(!res.ok||!result.ok) throw new Error(result.error||'Application could not be submitted.');
-        msg.textContent='Thank you! Your tutor registration was submitted successfully. Your application is now PENDING with the Englishmates administrator. Your profile will appear publicly only after approval.';
+        msg.textContent=result.autoApproved?'Your tutor profile is automatically approved on this preview and is now visible to students.':'Your tutor registration was submitted and is awaiting Englishmates approval.';
         msg.className='md:col-span-2 text-sm text-center text-emerald-300';
         tutorForm.reset();
       }catch(err){msg.textContent=err.message||'Could not submit. Please try again.';msg.className='md:col-span-2 text-sm text-center text-rose-300';}
