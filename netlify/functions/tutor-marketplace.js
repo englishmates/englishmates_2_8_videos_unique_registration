@@ -23,7 +23,7 @@ exports.handler = async event => {
     const db = getDb();
     if (event.httpMethod === 'GET') {
       if (event.queryStringParameters && event.queryStringParameters.admin === '1') {
-        const token = String(event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\\s+/i, '');
+        const token = String(event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\s+/i, '');
         if (!token) return reply(401, { ok: false, error: 'Admin sign-in required.' });
         const decoded = await admin.auth().verifyIdToken(token);
         if ((decoded.email || '').toLowerCase() !== 'bddayma12@gmail.com') return reply(403, { ok: false, error: 'Owner access only.' });
@@ -46,7 +46,7 @@ exports.handler = async event => {
 
     const body = JSON.parse(event.body || '{}');
     if (body.action === 'approve' || body.action === 'reject') {
-      const token = String(event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\\s+/i, '');
+      const token = String(event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\s+/i, '');
       if (!token) return reply(401, { ok: false, error: 'Admin sign-in required.' });
       const decoded = await admin.auth().verifyIdToken(token);
       if ((decoded.email || '').toLowerCase() !== 'bddayma12@gmail.com') return reply(403, { ok: false, error: 'Owner access only.' });
@@ -61,7 +61,7 @@ exports.handler = async event => {
     }
     const data = {
       name: clean(body.name, 90),
-      phone: clean(body.phone, 10).replace(/\\D/g, ''),
+      phone: clean(body.phone, 10).replace(/\D/g, ''),
       email: clean(body.email, 160).toLowerCase(),
       qualification: clean(body.qualification, 160),
       experience: clean(body.experience, 100),
@@ -70,8 +70,8 @@ exports.handler = async event => {
       photoUrl: clean(body.photoUrl, 500),
       bio: clean(body.bio, 700)
     };
-    if (!body.consent || data.name.length < 2 || !/^\\d{10}$/.test(data.phone) ||
-        !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(data.email) ||
+    if (!body.consent || data.name.length < 2 || !/^\d{10}$/.test(data.phone) ||
+        !/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(data.email) ||
         !data.qualification || !data.experience || !data.subjects || !data.city || data.bio.length < 20) {
       return reply(400, { ok: false, error: 'Please complete all required fields with valid details.' });
     }
