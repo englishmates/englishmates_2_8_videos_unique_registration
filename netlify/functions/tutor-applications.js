@@ -32,12 +32,25 @@ exports.handler=async event=>{
   if(event.httpMethod==='POST'){
    const body=JSON.parse(event.body||'{}');
    if(body.action==='apply'){
-    const name=clean(body.name,80),email=clean(body.email,160).toLowerCase(),phone=clean(body.phone,10),subjects=clean(body.subjects,180),experience=clean(body.experience,80),bio=clean(body.bio,600);
-    if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!/^\d{10}$/.test(phone)||subjects.length<2||bio.length<20)return reply(400,{ok:false,error:'Please complete all required fields. Use a valid email, 10-digit phone number and a bio of at least 20 characters.'});
-    const applicationId='email_'+crypto.createHash('sha256').update(email).digest('hex');
-    try{await store.collection(APPS).doc(applicationId).create({name,email,phone,subjects,experience,bio,status:'pending',createdAt:admin.firestore.FieldValue.serverTimestamp()});}
-    catch(err){if(err.code===6||err.code==='already-exists')return reply(409,{ok:false,error:'An application with this email already exists. Please contact Englishmates for an update.'});throw err;}
-    return reply(200,{ok:true,message:'Application submitted. Englishmates will review your profile.'});
+    const h=event.headers||{},token=String(h.authorization||h.Authorization||'').replace(/^Bearer\\s+/i,'');
+    if(!token)return reply(401,{ok:false,error:'Please create your account and verify your email before submitting your tutor profile.'});
+    const account=await admin.auth().verifyIdToken(token);
+    const email=clean(account.email,160).toLowerCase();
+    if(!account.email_verified||!email)return reply(403,{ok:false,error:'Please verify your email address, then return here and complete registration.'});
+    const name=clean(body.name,80),phone=clean(body.phone,10),subjects=clean(body.subjects,180),experience=clean(body.experience,80),bio=clean(body.bio,600);
+    if(name.length<2||!/^\\d{10}$/.test(phone)||subjects.length<2||bio.length<20)return reply(400,{ok:false,error:'Please complete all required profile fields. Use a 10-digit phone number and a bio of at least 20 characters.'});
+    const authUser=await admin.auth().getUser(account.uid);
+    if(!authUser.emailVerified||String(authUser.email||'').toLowerCase()!==email)return reply(403,{ok:false,error:'Your verified account could not be confirmed. Please sign in again.'});
+    const existing=await store.collection(APPS).where('email','==',email).limit(1).get();
+    const ref=existing.empty?store.collection(APPS).doc('uid_'+account.uid):existing.docs[0].ref;
+    const now=admin.firestore.FieldValue.serverTimestamp();
+    await store.runTransaction(async tx=>{
+     const snap=await tx.get(ref);
+     if(snap.exists&&snap.data().authUid&&snap.data().authUid!==account.uid)throw Object.assign(new Error('A tutor profile already exists for this email. Please contact Englishmates.'),{status:409});
+     const previous=snap.exists?snap.data():{};
+     tx.set(ref,{name,email,phone,subjects,experience,bio,status:previous.status==='inactive'?'inactive':'approved',authUid:account.uid,createdAt:previous.createdAt||now,updatedAt:now,verifiedAt:now,registrationSource:'self_service'}, {merge:true});
+    });
+    return reply(200,{ok:true,message:'Email verified and tutor profile activated. You can now sign in to your Teacher Dashboard.'});
    }
    const actor=await adminUser(event);
    const id=clean(body.applicationId,180);if(!id)return reply(400,{ok:false,error:'Invalid application.'});
