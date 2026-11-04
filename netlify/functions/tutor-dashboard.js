@@ -99,7 +99,7 @@ exports.handler = async event => {
       const date = clean(body.date, 10);
       const reason = clean(body.reason, 100);
       if (!isDate(date)) return reply(400, { ok: false, error: 'Choose a valid date.' });
-      const today = new Date().toISOString().slice(0, 10);
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
       if (date < today) return reply(400, { ok: false, error: 'You cannot block a date in the past.' });
       const ref = store.collection(BLOCKS).doc(tutor.id + '_' + date);
       await ref.set({
