@@ -81,8 +81,8 @@ exports.handler=async event=>{
   const ref=db.collection(bookingsCol).doc(id);
   try{
    await db.runTransaction(async tx=>{
-    const existing=await tx.get(ref);if(existing.exists)throw new Error('SLOT_TAKEN');
-    tx.create(ref,{tutorId,tutorName:clean(tutorSnap.data().name||tutorSnap.data().fullName||tutorSnap.data().displayName,90)||'Englishmates Tutor',studentName,phone,email,date,startTime,endTime:String(Math.floor((startM+30)/60)).padStart(2,'0')+':'+String((startM+30)%60).padStart(2,'0'),durationMinutes:30,status:'pending',timezone:'Asia/Kolkata',createdAt:admin.firestore.FieldValue.serverTimestamp()});
+    const existing=await tx.get(ref);if(existing.exists&&!['cancelled','rejected'].includes(String(existing.data().status||'').toLowerCase()))throw new Error('SLOT_TAKEN');
+    tx.set(ref,{tutorId,tutorName:clean(tutorSnap.data().name||tutorSnap.data().fullName||tutorSnap.data().displayName,90)||'Englishmates Tutor',studentName,phone,email,date,startTime,endTime:String(Math.floor((startM+30)/60)).padStart(2,'0')+':'+String((startM+30)%60).padStart(2,'0'),durationMinutes:30,status:'pending',timezone:'Asia/Kolkata',createdAt:admin.firestore.FieldValue.serverTimestamp()});
    });
   }catch(e){if(e.message==='SLOT_TAKEN')return reply(409,{ok:false,error:'This slot has just been requested. Please choose another.'});throw e;}
   return reply(200,{ok:true,message:'Your 30-minute class request has been sent. The tutor will contact you to confirm it.'});
