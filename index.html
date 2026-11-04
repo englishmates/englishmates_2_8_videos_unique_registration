@@ -164,7 +164,7 @@
                 <span class="px-3 py-2 rounded-full bg-white/5 text-slate-300">Public Speaking</span>
                 <span class="px-3 py-2 rounded-full bg-white/5 text-slate-300">Personality Development</span>
               </div>
-              <a href="#enroll" class="inline-flex items-center gap-2 btn-primary text-white px-5 py-3 rounded-xl font-bold text-sm mt-6">Book a Demo <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+              <a href="#studentTutorBooking" class="inline-flex items-center gap-2 btn-primary text-white px-5 py-3 rounded-xl font-bold text-sm mt-6">View teaching timings & calendar <i data-lucide="calendar-days" class="w-4 h-4"></i></a>
             </div>
           </div>
         </article>
@@ -185,12 +185,13 @@
           <div class="flex flex-wrap justify-between items-start gap-3"><div><span class="text-violet-300 text-xs font-extrabold uppercase tracking-widest">30-minute sessions</span><h3 class="text-2xl font-extrabold text-white mt-2">Find an available tutor</h3><p class="text-sm text-slate-400 mt-2">Choose an approved tutor and request a convenient 30-minute slot.</p></div><button id="reloadTutorSlots" class="text-sm text-violet-200 border border-white/10 rounded-xl px-4 py-2">Refresh slots</button></div>
           <div id="publicTutorList" class="grid md:grid-cols-2 gap-4 mt-6"><p class="text-sm text-slate-400">Loading available tutors…</p></div>
           <form id="studentBookingForm" class="hidden mt-6 border-t border-white/10 pt-6 grid sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2"><h4 class="font-bold text-white">Request your class</h4><p id="selectedTutorLabel" class="text-sm text-violet-200 mt-1"></p></div>
+            <div class="sm:col-span-2"><h4 class="font-bold text-white">Book a 30-minute demo</h4><p id="selectedTutorLabel" class="text-sm text-violet-200 mt-1"></p></div>
             <input type="hidden" name="tutorId"><input type="hidden" name="date"><input type="hidden" name="startTime">
             <input name="studentName" required maxlength="90" placeholder="Your full name" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
             <input name="phone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
             <input name="email" required type="email" placeholder="Email address" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white sm:col-span-2">
-            <button id="sendBookingRequest" class="btn-primary rounded-xl p-3 text-white font-bold sm:col-span-2">Send 30-minute class request</button>
+            <div class="sm:col-span-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-4"><div class="flex items-center justify-between gap-3"><strong class="text-white">One-time demo booking fee</strong><strong class="text-2xl text-emerald-300">₹29</strong></div><p class="text-xs text-slate-300 mt-2">Pay ₹29 for this demo only. The full course fee (for example, ₹4,500) is not charged now; it applies only if you decide to enrol later.</p><img src="1000470557.png" alt="Englishmates UPI payment QR" class="w-36 h-36 mx-auto my-3 rounded-lg bg-white object-contain"><p class="text-xs text-center text-slate-300">UPI: <strong>9351031200@upi</strong></p><input name="demoTxnId" required maxlength="100" placeholder="Enter UPI transaction ID / UTR after paying ₹29" class="w-full mt-3 rounded-xl bg-black/20 border border-white/10 p-3 text-white"><p class="text-xs text-amber-200 mt-2">Payment is recorded for manual verification; your slot is not confirmed until the tutor confirms it.</p></div>
+            <button id="sendBookingRequest" class="btn-primary rounded-xl p-3 text-white font-bold sm:col-span-2">Submit ₹29 demo booking request</button>
             <p id="bookingFormMessage" role="status" class="text-sm sm:col-span-2"></p>
           </form>
         </div>
@@ -995,15 +996,27 @@
         tutorList.innerHTML=publicTutors.map(t=>'<article class="rounded-2xl border border-white/10 bg-white/[.025] p-4">'+
           '<div class="flex items-center gap-3">'+(safeTutorPhoto(t.photoUrl)?'<img src="'+esc(t.photoUrl)+'" alt="" class="w-14 h-14 rounded-xl object-cover">':'<div class="w-14 h-14 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-200 font-bold text-xl">'+esc((t.name||'T').slice(0,1).toUpperCase())+'</div>')+
           '<div><h4 class="font-extrabold text-white">'+esc(t.name)+'</h4><p class="text-xs text-violet-200">'+esc(t.subjects||'Englishmates Tutor')+'</p></div></div>'+
-          (t.bio?'<p class="text-sm text-slate-400 mt-3">'+esc(t.bio)+'</p>':'')+
-          '<label class="block text-xs text-slate-400 mt-4">Available 30-minute slots</label><select data-tutor-slot="'+esc(t.id)+'" class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white"><option value="">Choose a date and time</option>'+t.slots.map(s=>'<option value="'+esc(s.date+'|'+s.startTime)+'">'+esc(s.date)+' · '+esc(s.startTime)+'–'+esc(s.endTime)+' IST</option>').join('')+'</select><button type="button" data-book-tutor="'+esc(t.id)+'" class="btn-primary rounded-xl px-4 py-2.5 text-sm font-bold text-white mt-3">Request this tutor</button></article>').join('');
+          '<button type="button" data-toggle-profile="'+esc(t.id)+'" class="mt-4 text-sm font-bold text-violet-200 underline underline-offset-4">View profile, timings & calendar</button>'+
+          '<div data-profile-details="'+esc(t.id)+'" class="hidden mt-4 border-t border-white/10 pt-4">'+(t.bio?'<p class="text-sm text-slate-400">'+esc(t.bio)+'</p>':'')+
+          '<label class="block text-xs text-slate-400 mt-4">Choose a date</label><input type="date" data-tutor-date="'+esc(t.id)+'" min="'+new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'})+'" class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white">'+
+          '<label class="block text-xs text-slate-400 mt-3">Available 30-minute timing (IST)</label><select data-tutor-slot="'+esc(t.id)+'" disabled class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white"><option value="">Select a date first</option></select>'+
+          '<button type="button" data-book-tutor="'+esc(t.id)+'" class="btn-primary rounded-xl px-4 py-2.5 text-sm font-bold text-white mt-3">Book ₹29 demo</button></div></article>').join('');
       }catch(e){tutorList.innerHTML='<p class="text-sm text-rose-300">'+esc(e.message)+'</p>';}
     }
+    tutorList.addEventListener('change',e=>{
+      const input=e.target.closest('[data-tutor-date]');if(!input)return;
+      const id=input.dataset.tutorDate,tutor=publicTutors.find(t=>t.id===id),select=tutorList.querySelector('[data-tutor-slot="'+id+'"]');
+      const matches=(tutor?.slots||[]).filter(s=>s.date===input.value);
+      select.innerHTML='<option value="">'+(matches.length?'Choose a time':'No slots on this date')+'</option>'+matches.map(s=>'<option value="'+esc(s.startTime)+'">'+esc(s.startTime)+'–'+esc(s.endTime)+' IST</option>').join('');
+      select.disabled=!matches.length;
+    });
     tutorList.addEventListener('click',e=>{
+      const toggle=e.target.closest('[data-toggle-profile]');
+      if(toggle){const panel=tutorList.querySelector('[data-profile-details="'+toggle.dataset.toggleProfile+'"]');panel.classList.toggle('hidden');toggle.textContent=panel.classList.contains('hidden')?'View profile, timings & calendar':'Hide profile & calendar';return;}
       const btn=e.target.closest('[data-book-tutor]');if(!btn)return;
-      const tutor=publicTutors.find(t=>t.id===btn.dataset.bookTutor),select=tutorList.querySelector('[data-tutor-slot="'+btn.dataset.bookTutor+'"]');
-      if(!tutor||!select.value){alert('Please choose an available 30-minute slot first.');return;}
-      const [date,startTime]=select.value.split('|');
+      const id=btn.dataset.bookTutor,tutor=publicTutors.find(t=>t.id===id),dateInput=tutorList.querySelector('[data-tutor-date="'+id+'"]'),select=tutorList.querySelector('[data-tutor-slot="'+id+'"]');
+      if(!tutor||!dateInput?.value||!select?.value){alert('Please choose a date and available 30-minute time first.');return;}
+      const date=dateInput.value,startTime=select.value;
       bookingForm.elements.tutorId.value=tutor.id;bookingForm.elements.date.value=date;bookingForm.elements.startTime.value=startTime;
       $('#selectedTutorLabel').textContent=tutor.name+' · '+date+' · '+startTime+' IST (30 minutes)';
       $('#bookingFormMessage').textContent='';bookingForm.classList.remove('hidden');bookingForm.scrollIntoView({behavior:'smooth',block:'center'});
