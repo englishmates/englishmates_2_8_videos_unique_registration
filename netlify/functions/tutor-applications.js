@@ -1,4 +1,5 @@
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 const ADMIN_EMAIL = 'bddayma12@gmail.com';
 function db() {
   if (!admin.apps.length) {
@@ -27,25 +28,32 @@ exports.handler=async event=>{
    if(body.action==='apply'){
     const name=clean(body.name,80),email=clean(body.email,160).toLowerCase(),phone=clean(body.phone,10),subjects=clean(body.subjects,180),experience=clean(body.experience,80),bio=clean(body.bio,600);
     if(name.length<2||!/^\S+@\S+\.\S+$/.test(email)||!/^\d{10}$/.test(phone)||subjects.length<2||bio.length<20) return reply(400,{ok:false,error:'Please complete all required fields. Use a valid email, 10-digit phone number and a bio of at least 20 characters.'});
-    const existing=await store.collection(APPS).where('email','==',email).limit(1).get();
-    if(!existing.empty) return reply(409,{ok:false,error:'An application with this email already exists. Please contact Englishmates for an update.'});
-    const ref=store.collection(APPS).doc();
-    await ref.create({name,email,phone,subjects,experience,bio,status:'pending',createdAt:admin.firestore.FieldValue.serverTimestamp()});
+    const applicationId='email_'+crypto.createHash('sha256').update(email).digest('hex');
+    const ref=store.collection(APPS).doc(applicationId);
+    try {
+     await ref.create({name,email,phone,subjects,experience,bio,status:'pending',createdAt:admin.firestore.FieldValue.serverTimestamp()});
+    } catch (err) {
+     if(err.code===6 || err.code==='already-exists') return reply(409,{ok:false,error:'An application with this email already exists. Please contact Englishmates for an update.'});
+     throw err;
+    }
     return reply(200,{ok:true,message:'Application submitted. Englishmates will review your profile.'});
    }
    await adminUser(event);
    if(body.action==='approve'||body.action==='reject'){
     const id=clean(body.applicationId,140);if(!id)return reply(400,{ok:false,error:'Invalid application.'});
     const ref=store.collection(APPS).doc(id);
-    const result=await store.runTransaction(async tx=>{
-     const snap=await tx.get(ref);if(!snap.exists||snap.data().status!=='pending')throw new Error('This application is no longer pending.');
-     const app=snap.data();
-     if(body.action==='approve'){
-      const account=await admin.auth().getUserByEmail(app.email).catch(()=>null);
-      if(!account||!account.emailVerified)throw new Error('Create a Firebase Authentication account for this tutor and verify the email before approval.');
-      tx.set(ref,{status:'approved',authUid:account.uid,approvedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
-     }else tx.set(ref,{status:'rejected',reviewedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
-     return {email:app.email};
+    const initial=await ref.get();
+    if(!initial.exists||initial.data().status!=='pending') throw new Error('This application is no longer pending.');
+    let account=null;
+    if(body.action==='approve'){
+     account=await admin.auth().getUserByEmail(initial.data().email).catch(()=>null);
+     if(!account||!account.emailVerified) throw new Error('Create a Firebase Authentication account for this tutor and verify the email before approval.');
+    }
+    await store.runTransaction(async tx=>{
+     const snap=await tx.get(ref);
+     if(!snap.exists||snap.data().status!=='pending') throw new Error('This application is no longer pending.');
+     if(body.action==='approve') tx.set(ref,{status:'approved',authUid:account.uid,approvedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+     else tx.set(ref,{status:'rejected',reviewedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
     });
     return reply(200,{ok:true,message:body.action==='approve'?'Tutor approved.':'Application rejected.'});
    }
