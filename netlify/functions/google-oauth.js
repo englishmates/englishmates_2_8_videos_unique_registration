@@ -21,7 +21,7 @@ exports.handler=async event=>{
   const query=event.queryStringParameters||{};
   const code=query.code,state=query.state;
   const origin=new URL(process.env.GOOGLE_REDIRECT_URI).origin;
-  if(params.get('error'))return redirect(origin+'/teacher-dashboard.html?google=denied');
+  if(query.error)return redirect(origin+'/teacher-dashboard.html?google=denied');
   if(!code||!state||!/^[a-f0-9]{64}$/.test(state))return redirect(origin+'/teacher-dashboard.html?google=error');
   const store=db(),suffix=process.env.CONTEXT==='production'?'':'Preview';
   const stateRef=store.collection('googleOAuthStates'+suffix).doc(state),snap=await stateRef.get();
