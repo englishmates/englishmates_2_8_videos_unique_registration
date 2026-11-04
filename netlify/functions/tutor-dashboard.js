@@ -111,6 +111,17 @@ exports.handler = async event => {
       return reply(200, { ok: true });
     }
 
+    if (body.action === 'update-booking-status') {
+      const bookingId = clean(body.bookingId, 180);
+      const status = clean(body.status, 20).toLowerCase();
+      if (!bookingId || !['confirmed','rejected','cancelled'].includes(status)) return reply(400, { ok: false, error: 'Invalid booking update.' });
+      const ref = store.collection(BOOKINGS).doc(bookingId);
+      const booking = await ref.get();
+      if (!booking.exists || booking.data().tutorId !== tutor.id) return reply(404, { ok: false, error: 'Booking request not found.' });
+      await ref.update({ status, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      return reply(200, { ok: true, message: 'Booking status updated.' });
+    }
+
     if (body.action === 'unblock-date') {
       const dateId = clean(body.dateId, 180);
       if (!dateId || !dateId.startsWith(tutor.id + '_')) return reply(400, { ok: false, error: 'Invalid blocked date.' });
