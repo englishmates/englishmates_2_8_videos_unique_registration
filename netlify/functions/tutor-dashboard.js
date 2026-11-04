@@ -1,6 +1,5 @@
 const admin = require('firebase-admin');
 const crypto = require('crypto');
-const crypto = require('crypto');
 
 function db() {
   if (!admin.apps.length) {
