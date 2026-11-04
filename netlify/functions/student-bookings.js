@@ -67,7 +67,7 @@ exports.handler=async event=>{
   const studentName=clean(body.studentName,90),phone=clean(body.phone,20).replace(/\\D/g,'').slice(-10),email=clean(body.email,140);
   if(!tutorId||!validDate(date)||!timeRe.test(startTime)||!studentName||!/^\\d{10}$/.test(phone)||!/^\\S+@\\S+\\.\\S+$/.test(email))return reply(400,{ok:false,error:'Enter your name, valid 10-digit phone, email and choose a valid slot.'});
   const tutorRef=db.collection(tutorsCol).doc(tutorId),[tutorSnap,scheduleSnap,blockSnap,bookingSnap]=await Promise.all([
-   tutorRef.get(),db.collection(weeklyCol).doc(tutorId).get(),db.collection(blocksCol).doc(tutorId+'_'+date).get(),db.collection(bookingsCol).where('tutorId','==',tutorId).where('date','==',date).get()
+   tutorRef.get(),db.collection(weeklyCol).doc(tutorId).get(),db.collection(blocksCol).doc(tutorId+'_'+date).get(),db.collection(bookingsCol).where('tutorId','==',tutorId).get()
   ]);
   if(!tutorSnap.exists||tutorSnap.data().status!=='approved')return reply(404,{ok:false,error:'This tutor is not available.'});
   if(!scheduleSnap.exists||blockSnap.exists)return reply(409,{ok:false,error:'This date is not available. Please choose another slot.'});
@@ -75,7 +75,7 @@ exports.handler=async event=>{
   const startM=Number(startTime.slice(0,2))*60+Number(startTime.slice(3));
   const fits=ranges.some(r=>timeRe.test(r.start||'')&&timeRe.test(r.end||'')&&startM>=Number(r.start.slice(0,2))*60+Number(r.start.slice(3))&&startM+30<=Number(r.end.slice(0,2))*60+Number(r.end.slice(3)));
   const now=indiaNowParts();if(!fits||date<now.date||(date===now.date&&startTime<=now.time))return reply(409,{ok:false,error:'That 30-minute slot is no longer available.'});
-  const occupied=bookingSnap.docs.some(d=>!['cancelled','rejected'].includes(String(d.data().status||'').toLowerCase())&&d.data().startTime===startTime);
+  const occupied=bookingSnap.docs.some(d=>d.data().date===date&&!['cancelled','rejected'].includes(String(d.data().status||'').toLowerCase())&&d.data().startTime===startTime);
   if(occupied)return reply(409,{ok:false,error:'Someone has already requested this slot. Please choose another.'});
   const id=crypto.createHash('sha256').update(tutorId+'|'+date+'|'+startTime).digest('hex');
   const ref=db.collection(bookingsCol).doc(id);
