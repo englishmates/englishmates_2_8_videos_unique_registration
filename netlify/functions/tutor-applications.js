@@ -33,7 +33,7 @@ exports.handler=async event=>{
    const body=JSON.parse(event.body||'{}');
    if(body.action==='apply'){
     const name=clean(body.name,80),email=clean(body.email,160).toLowerCase(),phone=clean(body.phone,10),subjects=clean(body.subjects,180),experience=clean(body.experience,80),bio=clean(body.bio,600);
-    if(name.length<2||!/^[^\s@]+@[^\s@]+\s[^\s@]+$/.test(email)||!/^\s{10}$/.test(phone)||subjects.length<2||bio.length<20)return reply(400,{ok:false,error:'Please complete all required fields. Use a valid email, 10-digit phone number and a bio of at least 20 characters.'});
+    if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!/^\d{10}$/.test(phone)||subjects.length<2||bio.length<20)return reply(400,{ok:false,error:'Please complete all required fields. Use a valid email, 10-digit phone number and a bio of at least 20 characters.'});
     const applicationId='email_'+crypto.createHash('sha256').update(email).digest('hex');
     try{await store.collection(APPS).doc(applicationId).create({name,email,phone,subjects,experience,bio,status:'pending',createdAt:admin.firestore.FieldValue.serverTimestamp()});}
     catch(err){if(err.code===6||err.code==='already-exists')return reply(409,{ok:false,error:'An application with this email already exists. Please contact Englishmates for an update.'});throw err;}
@@ -46,7 +46,7 @@ exports.handler=async event=>{
    const before=initial.data(),currentStatus=before.status||'pending';
    if(body.action==='update-profile'){
     const p=body.profile||{},name=clean(p.name,80),phone=clean(p.phone,10),subjects=clean(p.subjects,180),experience=clean(p.experience,80),bio=clean(p.bio,600);
-    if(name.length<2||!/^\s{10}$/.test(phone)||subjects.length<2||bio.length<20)return reply(400,{ok:false,error:'Check the name, 10-digit phone, subjects and introduction (at least 20 characters).'});
+    if(name.length<2||!/^\d{10}$/.test(phone)||subjects.length<2||bio.length<20)return reply(400,{ok:false,error:'Check the name, 10-digit phone, subjects and introduction (at least 20 characters).'});
     const patch={name,phone,subjects,experience,bio,updatedAt:admin.firestore.FieldValue.serverTimestamp(),updatedBy:actor.uid};
     await store.runTransaction(async tx=>{const snap=await tx.get(ref);if(!snap.exists)throw new Error('Tutor record not found.');tx.update(ref,patch);});
     await audit(store,actor,id,'profile_updated',currentStatus,currentStatus,{fields:['name','phone','subjects','experience','bio']});
