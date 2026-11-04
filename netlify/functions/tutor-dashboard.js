@@ -37,7 +37,13 @@ async function createMeetEvent(store,tutor,booking,bookingRef){
  let eventRes=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all',{method:'POST',headers:{Authorization:'Bearer '+tokenData.access_token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
  let eventData=await eventRes.json();if(eventRes.status===409){eventRes=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/'+eventId,{headers:{Authorization:'Bearer '+tokenData.access_token}});eventData=await eventRes.json();}
  if(!eventRes.ok)throw new Error('Google Calendar could not create the meeting. Reconnect your Google account and try again.');
- const meetLink=eventData.hangoutLink||eventData.conferenceData?.entryPoints?.find(x=>x.entryPointType==='video')?.uri;if(!meetLink)throw new Error('Google Calendar created an event but did not return a Meet link. Please retry.');
+ let meetLink=eventData.hangoutLink||eventData.conferenceData?.entryPoints?.find(x=>x.entryPointType==='video')?.uri;
+ for(let attempt=0;!meetLink&&attempt<5;attempt++){
+  await new Promise(resolve=>setTimeout(resolve,1000));
+  const poll=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/'+eventId,{headers:{Authorization:'Bearer '+tokenData.access_token}});
+  if(poll.ok){eventData=await poll.json();meetLink=eventData.hangoutLink||eventData.conferenceData?.entryPoints?.find(x=>x.entryPointType==='video')?.uri;}
+ }
+ if(!meetLink)throw new Error('Google Calendar has not finished generating the Meet link. Please retry in a moment.');
  return {meetLink,googleEventId:eventData.id};
 }
 const SCHEDULES = 'tutorWeeklyAvailability' + suffix;
