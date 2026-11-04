@@ -18,8 +18,8 @@ function encryptToken(value){
 exports.handler=async event=>{
  const redirect=(url)=>({statusCode:302,headers:{Location:url,'Cache-Control':'no-store'}});
  try{
-  const params=new URLSearchParams(event.rawQuery||'');
-  const code=params.get('code'),state=params.get('state');
+  const query=event.queryStringParameters||{};
+  const code=query.code,state=query.state;
   const origin=new URL(process.env.GOOGLE_REDIRECT_URI).origin;
   if(params.get('error'))return redirect(origin+'/teacher-dashboard.html?google=denied');
   if(!code||!state||!/^[a-f0-9]{64}$/.test(state))return redirect(origin+'/teacher-dashboard.html?google=error');
@@ -31,7 +31,7 @@ exports.handler=async event=>{
   const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({code,client_id:process.env.GOOGLE_CLIENT_ID,client_secret:process.env.GOOGLE_CLIENT_SECRET,redirect_uri:process.env.GOOGLE_REDIRECT_URI,grant_type:'authorization_code'})});
   const tokens=await tokenRes.json();
   if(!tokenRes.ok||!tokens.refresh_token)throw new Error('Google did not return a refresh token. Please reconnect and grant calendar access.');
-  await store.collection('tutorGoogleConnections'+suffix).doc(tutorId).set({refreshToken:encryptToken(tokens.refresh_token),scope:tokens.scope||'',connectedAt:admin.firestore.FieldValue.serverTimestamp(),googleAccount:tokens.id_token||null},{merge:true});
+  await store.collection('tutorGoogleConnections'+suffix).doc(tutorId).set({refreshToken:encryptToken(tokens.refresh_token),scope:tokens.scope||'',connectedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
   return redirect(origin+'/teacher-dashboard.html?google=connected');
  }catch(error){
   console.error('Google OAuth callback:',error.message);
