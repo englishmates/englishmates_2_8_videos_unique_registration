@@ -16,7 +16,7 @@ const APPS='tutorApplications'+suffix;
 const AUDIT='tutorAdminAudit'+suffix;
 const VALID_STATUSES=['pending','approved','rejected','inactive'];
 async function adminUser(event){
- const h=event.headers||{},token=String(h.authorization||h.Authorization||'').replace(/^Bearer\s+/i,'');
+    const h=event.headers||{},token=String(h.authorization||h.Authorization||'').replace(/^Bearer\s+/i,'');
  if(!token)throw Object.assign(new Error('Admin sign-in required.'),{status:401});
  const user=await admin.auth().verifyIdToken(token);
  if(!user.email_verified||String(user.email||'').toLowerCase()!==ADMIN_EMAIL)throw Object.assign(new Error('Not authorized.'),{status:403});
@@ -32,13 +32,13 @@ exports.handler=async event=>{
   if(event.httpMethod==='POST'){
    const body=JSON.parse(event.body||'{}');
    if(body.action==='apply'){
-    const h=event.headers||{},token=String(h.authorization||h.Authorization||'').replace(/^Bearer\\s+/i,'');
+    const h=event.headers||{},token=String(h.authorization||h.Authorization||'').replace(/^Bearer\s+/i,'');
     if(!token)return reply(401,{ok:false,error:'Please create your account and verify your email before submitting your tutor profile.'});
     const account=await admin.auth().verifyIdToken(token);
     const email=clean(account.email,160).toLowerCase();
     if(!account.email_verified||!email)return reply(403,{ok:false,error:'Please verify your email address, then return here and complete registration.'});
     const name=clean(body.name,80),phone=clean(body.phone,10),subjects=clean(body.subjects,180),experience=clean(body.experience,80),bio=clean(body.bio,600);
-    if(name.length<2||!/^\\d{10}$/.test(phone)||subjects.length<2||bio.length<20)return reply(400,{ok:false,error:'Please complete all required profile fields. Use a 10-digit phone number and a bio of at least 20 characters.'});
+    if(name.length<2||!/^\d{10}$/.test(phone)||subjects.length<2||bio.length<20)return reply(400,{ok:false,error:'Please complete all required profile fields. Use a 10-digit phone number and a bio of at least 20 characters.'});
     const authUser=await admin.auth().getUser(account.uid);
     if(!authUser.emailVerified||String(authUser.email||'').toLowerCase()!==email)return reply(403,{ok:false,error:'Your verified account could not be confirmed. Please sign in again.'});
     const existing=await store.collection(APPS).where('email','==',email).limit(1).get();
