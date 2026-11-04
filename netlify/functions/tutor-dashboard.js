@@ -1,4 +1,5 @@
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 
 function db() {
   if (!admin.apps.length) {
@@ -21,6 +22,30 @@ const isDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const suffix = process.env.CONTEXT === 'production' ? '' : 'Preview';
 const TUTORS = 'tutorApplications' + suffix;
+const GOOGLE_CONNECTIONS = 'tutorGoogleConnections' + suffix;
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+function encryptionKey(){const k=process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'';if(!/^[a-f0-9]{64}$/i.test(k))throw new Error('Google Meet integration is not configured: token encryption key is missing.');return Buffer.from(k,'hex');}
+function decryptToken(value){const [iv,tag,data]=String(value||'').split('.');const d=crypto.createDecipheriv('aes-256-gcm',encryptionKey(),Buffer.from(iv,'base64url'));d.setAuthTag(Buffer.from(tag,'base64url'));return Buffer.concat([d.update(Buffer.from(data,'base64url')),d.final()]).toString();}
+async function createMeetEvent(store,tutor,booking,bookingRef){
+ const conn=await store.collection(GOOGLE_CONNECTIONS).doc(tutor.id).get();if(!conn.exists||!conn.data().refreshToken)throw new Error('Connect your Google Calendar before confirming bookings.');
+ const refreshToken=decryptToken(conn.data().refreshToken);
+ const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:process.env.GOOGLE_CLIENT_ID,client_secret:process.env.GOOGLE_CLIENT_SECRET,refresh_token:refreshToken,grant_type:'refresh_token'})});
+ const tokenData=await tokenRes.json();if(!tokenRes.ok||!tokenData.access_token)throw new Error('Google authorization expired. Reconnect Google Calendar.');
+ const eventId='em'+crypto.createHash('sha256').update(bookingRef.id).digest('hex').slice(0,40);
+ const start=new Date(booking.date+'T'+booking.startTime+':00+05:30'),end=new Date(booking.date+'T'+booking.endTime+':00+05:30');
+ const payload={id:eventId,summary:'Englishmates 30-minute session with '+clean(booking.studentName,90),description:'Englishmates tutoring session. Booking ID: '+bookingRef.id, start:{dateTime:start.toISOString(),timeZone:'Asia/Kolkata'},end:{dateTime:end.toISOString(),timeZone:'Asia/Kolkata'},attendees:[{email:booking.email}],conferenceData:{createRequest:{requestId:eventId,conferenceSolutionKey:{type:'hangoutsMeet'}}}};
+ let eventRes=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all',{method:'POST',headers:{Authorization:'Bearer '+tokenData.access_token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+ let eventData=await eventRes.json();if(eventRes.status===409){eventRes=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/'+eventId,{headers:{Authorization:'Bearer '+tokenData.access_token}});eventData=await eventRes.json();}
+ if(!eventRes.ok)throw new Error('Google Calendar could not create the meeting. Reconnect your Google account and try again.');
+ let meetLink=eventData.hangoutLink||eventData.conferenceData?.entryPoints?.find(x=>x.entryPointType==='video')?.uri;
+ for(let attempt=0;!meetLink&&attempt<5;attempt++){
+  await new Promise(resolve=>setTimeout(resolve,1000));
+  const poll=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/'+eventId,{headers:{Authorization:'Bearer '+tokenData.access_token}});
+  if(poll.ok){eventData=await poll.json();meetLink=eventData.hangoutLink||eventData.conferenceData?.entryPoints?.find(x=>x.entryPointType==='video')?.uri;}
+ }
+ if(!meetLink)throw new Error('Google Calendar has not finished generating the Meet link. Please retry in a moment.');
+ return {meetLink,googleEventId:eventData.id};
+}
 const SCHEDULES = 'tutorWeeklyAvailability' + suffix;
 const BLOCKS = 'tutorAvailabilityBlocks' + suffix;
 const BOOKINGS = 'tutorBookings' + suffix;
@@ -77,11 +102,21 @@ exports.handler = async event => {
         tutorName: clean(tutor.name, 90),
         schedule: scheduleDoc.exists ? scheduleDoc.data().schedule || {} : {},
         blocks,
-        bookings
+        bookings,
+        googleConnected: (await store.collection(GOOGLE_CONNECTIONS).doc(tutor.id).get()).exists
       });
     }
     if (event.httpMethod !== 'POST') return reply(405, { ok: false, error: 'Method not allowed.' });
     const body = JSON.parse(event.body || '{}');
+
+    if (body.action === 'connect-google') {
+      const state=crypto.randomBytes(32).toString('hex');
+      await store.collection('googleOAuthStates'+suffix).doc(state).set({tutorId:tutor.id,createdAt:admin.firestore.FieldValue.serverTimestamp(),expiresAt:Date.now()+10*60*1000});
+      const redirect=process.env.GOOGLE_REDIRECT_URI;
+      if(!process.env.GOOGLE_CLIENT_ID||!redirect)throw new Error('Google OAuth client configuration is missing.');
+      const params=new URLSearchParams({client_id:process.env.GOOGLE_CLIENT_ID,redirect_uri:redirect,response_type:'code',scope:GOOGLE_SCOPES,access_type:'offline',prompt:'consent',include_granted_scopes:'true',state});
+      return reply(200,{ok:true,authUrl:'https://accounts.google.com/o/oauth2/v2/auth?'+params.toString()});
+    }
 
     if (body.action === 'save-weekly-schedule') {
       const schedule = validateSchedule(body.schedule);
@@ -109,6 +144,25 @@ exports.handler = async event => {
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
       return reply(200, { ok: true });
+    }
+
+    if (body.action === 'update-booking-status') {
+      const bookingId = clean(body.bookingId, 180);
+      const status = clean(body.status, 20).toLowerCase();
+      if (!bookingId || !['confirmed','rejected','cancelled'].includes(status)) return reply(400, { ok: false, error: 'Invalid booking update.' });
+      const ref = store.collection(BOOKINGS).doc(bookingId);
+      const booking = await ref.get();
+      if (!booking.exists || booking.data().tutorId !== tutor.id) return reply(404, { ok: false, error: 'Booking request not found.' });
+      if(status==='confirmed'){
+        const current=booking.data();
+        if(current.status==='confirmed'&&current.meetLink)return reply(200,{ok:true,message:'Booking is already confirmed.',meetLink:current.meetLink});
+        if(current.status!=='pending')return reply(409,{ok:false,error:'Only pending requests can be confirmed.'});
+        const meeting=await createMeetEvent(store,tutor,current,ref);
+        await ref.update({status:'confirmed',meetLink:meeting.meetLink,googleEventId:meeting.googleEventId,updatedAt:admin.firestore.FieldValue.serverTimestamp()});
+        return reply(200,{ok:true,message:'Booking confirmed and Google Meet created.',meetLink:meeting.meetLink});
+      }
+      await ref.update({ status, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      return reply(200, { ok: true, message: 'Booking status updated.' });
     }
 
     if (body.action === 'unblock-date') {
