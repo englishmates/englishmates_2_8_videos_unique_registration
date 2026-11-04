@@ -64,8 +64,8 @@ exports.handler=async event=>{
   }
   if(event.httpMethod!=='POST')return reply(405,{ok:false,error:'Method not allowed.'});
   const body=JSON.parse(event.body||'{}'),tutorId=clean(body.tutorId,180),date=clean(body.date,10),startTime=clean(body.startTime,5);
-  const studentName=clean(body.studentName,90),phone=clean(body.phone,20).replace(/\D/g,'').slice(-10),email=clean(body.email,140);
-  if(!tutorId||!validDate(date)||!timeRe.test(startTime)||!studentName||!/^\d{10}$/.test(phone)||!/^\S+@\S+\.\S+$/.test(email))return reply(400,{ok:false,error:'Enter your name, valid 10-digit phone, email and choose a valid slot.'});
+  const studentName=clean(body.studentName,90),phone=clean(body.phone,20).replace(/\D/g,'').slice(-10),email=clean(body.email,140),demoTxnId=clean(body.demoTxnId,100);
+  if(!tutorId||!validDate(date)||!timeRe.test(startTime)||!studentName||!/^\d{10}$/.test(phone)||!/^\S+@\S+\.\S+$/.test(email)||demoTxnId.length<6)return reply(400,{ok:false,error:'Enter your details, choose a valid slot, pay the ₹29 demo fee and enter the UPI transaction ID.'});
   const tutorRef=db.collection(tutorsCol).doc(tutorId),[tutorSnap,scheduleSnap,blockSnap,bookingSnap]=await Promise.all([
    tutorRef.get(),db.collection(weeklyCol).doc(tutorId).get(),db.collection(blocksCol).doc(tutorId+'_'+date).get(),db.collection(bookingsCol).where('tutorId','==',tutorId).get()
   ]);
@@ -82,7 +82,7 @@ exports.handler=async event=>{
   try{
    await db.runTransaction(async tx=>{
     const existing=await tx.get(ref);if(existing.exists&&!['cancelled','rejected'].includes(String(existing.data().status||'').toLowerCase()))throw new Error('SLOT_TAKEN');
-    tx.set(ref,{tutorId,tutorName:clean(tutorSnap.data().name||tutorSnap.data().fullName||tutorSnap.data().displayName,90)||'Englishmates Tutor',studentName,phone,email,date,startTime,endTime:String(Math.floor((startM+30)/60)).padStart(2,'0')+':'+String((startM+30)%60).padStart(2,'0'),durationMinutes:30,status:'pending',timezone:'Asia/Kolkata',createdAt:admin.firestore.FieldValue.serverTimestamp()});
+    tx.set(ref,{tutorId,tutorName:clean(tutorSnap.data().name||tutorSnap.data().fullName||tutorSnap.data().displayName,90)||'Englishmates Tutor',studentName,phone,email,date,startTime,endTime:String(Math.floor((startM+30)/60)).padStart(2,'0')+':'+String((startM+30)%60).padStart(2,'0'),durationMinutes:30,status:'pending',demoFee:29,demoPaymentStatus:'verification_pending',demoTransactionId,timezone:'Asia/Kolkata',createdAt:admin.firestore.FieldValue.serverTimestamp()});
    });
   }catch(e){if(e.message==='SLOT_TAKEN')return reply(409,{ok:false,error:'This slot has just been requested. Please choose another.'});throw e;}
   return reply(200,{ok:true,message:'Your 30-minute class request has been sent. The tutor will contact you to confirm it.'});
