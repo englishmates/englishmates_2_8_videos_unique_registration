@@ -179,7 +179,20 @@
             <a href="/teacher-dashboard.html" class="inline-flex mt-4 px-4 py-2 rounded-xl bg-violet-500/15 text-violet-200 text-sm font-bold hover:bg-violet-500/25">Teacher Login & Availability <i data-lucide="arrow-up-right" class="w-4 h-4 ml-2"></i></a>
           </article>
         </div>
-        <p class="text-xs text-slate-500 mt-5">Teacher availability dashboard is being tested in preview. Student-side live slot display, booking confirmation and Google Meet scheduling will be added in the next stages.</p>
+        <div class="card rounded-3xl p-6 md:p-8 mt-6" id="studentTutorBooking">
+          <div class="flex flex-wrap justify-between items-start gap-3"><div><span class="text-violet-300 text-xs font-extrabold uppercase tracking-widest">30-minute sessions</span><h3 class="text-2xl font-extrabold text-white mt-2">Find an available tutor</h3><p class="text-sm text-slate-400 mt-2">Choose an approved tutor and request a convenient 30-minute slot.</p></div><button id="reloadTutorSlots" class="text-sm text-violet-200 border border-white/10 rounded-xl px-4 py-2">Refresh slots</button></div>
+          <div id="publicTutorList" class="grid md:grid-cols-2 gap-4 mt-6"><p class="text-sm text-slate-400">Loading available tutors…</p></div>
+          <form id="studentBookingForm" class="hidden mt-6 border-t border-white/10 pt-6 grid sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2"><h4 class="font-bold text-white">Request your class</h4><p id="selectedTutorLabel" class="text-sm text-violet-200 mt-1"></p></div>
+            <input type="hidden" name="tutorId"><input type="hidden" name="date"><input type="hidden" name="startTime">
+            <input name="studentName" required maxlength="90" placeholder="Your full name" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
+            <input name="phone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
+            <input name="email" required type="email" placeholder="Email address" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white sm:col-span-2">
+            <button id="sendBookingRequest" class="btn-primary rounded-xl p-3 text-white font-bold sm:col-span-2">Send 30-minute class request</button>
+            <p id="bookingFormMessage" role="status" class="text-sm sm:col-span-2"></p>
+          </form>
+        </div>
+        <p class="text-xs text-slate-500 mt-5">Class requests are pending until the tutor confirms them. All times are India Standard Time (IST). Google Meet scheduling will be added separately.</p>
       </div>
     </section>
 
@@ -964,6 +977,44 @@
       if(aiMode==='vocab') r=`Vocabulary practice for “${v}”:\\n• Understand the meaning in context\\n• Learn 2–3 useful alternatives\\n• Make your own sentence\\n• Use the word in tomorrow’s conversation`;
       $('#aiResult').textContent=r; $('#aiResult').classList.remove('hidden');
     });
+
+
+    // Student-facing tutor availability and 30-minute booking requests.
+    const tutorList=$('#publicTutorList'), bookingForm=$('#studentBookingForm');
+    let publicTutors=[];
+    const safeTutorPhoto=(url)=>/^https:\/\//i.test(url)?url:'';
+    async function loadPublicTutors(){
+      tutorList.innerHTML='<p class="text-sm text-slate-400">Loading available tutors…</p>';
+      try{
+        const r=await fetch('/.netlify/functions/student-bookings',{cache:'no-store'}),data=await r.json();
+        if(!r.ok||!data.ok)throw new Error(data.error||'Could not load tutors.');
+        publicTutors=data.tutors||[];
+        if(!publicTutors.length){tutorList.innerHTML='<p class="text-sm text-slate-400">No tutor slots are available right now. Please check again later.</p>';return;}
+        tutorList.innerHTML=publicTutors.map(t=>'<article class="rounded-2xl border border-white/10 bg-white/[.025] p-4">'+
+          '<div class="flex items-center gap-3">'+(safeTutorPhoto(t.photoUrl)?'<img src="'+esc(t.photoUrl)+'" alt="" class="w-14 h-14 rounded-xl object-cover">':'<div class="w-14 h-14 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-200 font-bold text-xl">'+esc((t.name||'T').slice(0,1).toUpperCase())+'</div>')+
+          '<div><h4 class="font-extrabold text-white">'+esc(t.name)+'</h4><p class="text-xs text-violet-200">'+esc(t.subjects||'Englishmates Tutor')+'</p></div></div>'+
+          (t.bio?'<p class="text-sm text-slate-400 mt-3">'+esc(t.bio)+'</p>':'')+
+          '<label class="block text-xs text-slate-400 mt-4">Available 30-minute slots</label><select data-tutor-slot="'+esc(t.id)+'" class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white"><option value="">Choose a date and time</option>'+t.slots.map(s=>'<option value="'+esc(s.date+'|'+s.startTime)+'">'+esc(s.date)+' · '+esc(s.startTime)+'–'+esc(s.endTime)+' IST</option>').join('')+'</select><button type="button" data-book-tutor="'+esc(t.id)+'" class="btn-primary rounded-xl px-4 py-2.5 text-sm font-bold text-white mt-3">Request this tutor</button></article>').join('');
+      }catch(e){tutorList.innerHTML='<p class="text-sm text-rose-300">'+esc(e.message)+'</p>';}
+    }
+    tutorList.addEventListener('click',e=>{
+      const btn=e.target.closest('[data-book-tutor]');if(!btn)return;
+      const tutor=publicTutors.find(t=>t.id===btn.dataset.bookTutor),select=tutorList.querySelector('[data-tutor-slot="'+btn.dataset.bookTutor+'"]');
+      if(!tutor||!select.value){alert('Please choose an available 30-minute slot first.');return;}
+      const [date,startTime]=select.value.split('|');
+      bookingForm.elements.tutorId.value=tutor.id;bookingForm.elements.date.value=date;bookingForm.elements.startTime.value=startTime;
+      $('#selectedTutorLabel').textContent=tutor.name+' · '+date+' · '+startTime+' IST (30 minutes)';
+      $('#bookingFormMessage').textContent='';bookingForm.classList.remove('hidden');bookingForm.scrollIntoView({behavior:'smooth',block:'center'});
+    });
+    bookingForm.addEventListener('submit',async e=>{
+      e.preventDefault();const btn=$('#sendBookingRequest');btn.disabled=true;$('#bookingFormMessage').textContent='Sending your request…';
+      const payload=Object.fromEntries(new FormData(bookingForm).entries());
+      try{const r=await fetch('/.netlify/functions/student-bookings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not send request.');
+        $('#bookingFormMessage').textContent=data.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-emerald-300';bookingForm.reset();bookingForm.classList.add('hidden');await loadPublicTutors();
+      }catch(err){$('#bookingFormMessage').textContent=err.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-rose-300';await loadPublicTutors();}
+      finally{btn.disabled=false;}
+    });
+    $('#reloadTutorSlots').addEventListener('click',loadPublicTutors);loadPublicTutors();
 
     // Reveal animations
     const io=new IntersectionObserver(entries=>entries.forEach(en=>{if(en.isIntersecting){en.target.classList.add('show');io.unobserve(en.target)}}),{threshold:.08});
