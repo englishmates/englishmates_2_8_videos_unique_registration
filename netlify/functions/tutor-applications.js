@@ -57,7 +57,7 @@ exports.handler=async event=>{
     if(status==='approved'){
      const account=await admin.auth().getUserByEmail(String(before.email||'').toLowerCase()).catch(()=>null);
      if(!account||!account.emailVerified)return reply(409,{ok:false,error:'This tutor needs a Firebase Authentication account with a verified email before approval.'});
-     await store.runTransaction(async tx=>{const snap=await tx.get(ref);if(!snap.exists)throw new Error('Tutor record not found.');const old=snap.data().status||'pending';const patch={status:'approved',authUid:account.uid,approvedAt:admin.firestore.FieldValue.serverTimestamp(),updatedAt:admin.firestore.FieldValue.serverTimestamp(),updatedBy:actor.uid};delete patch.deactivatedAt;delete patch.deactivatedBy;tx.update(ref,patch);});
+     await store.runTransaction(async tx=>{const snap=await tx.get(ref);if(!snap.exists)throw new Error('Tutor record not found.');const old=snap.data().status||'pending';const patch={status:'approved',authUid:account.uid,approvedAt:admin.firestore.FieldValue.serverTimestamp(),updatedAt:admin.firestore.FieldValue.serverTimestamp(),updatedBy:actor.uid,deactivatedAt:admin.firestore.FieldValue.delete(),deactivatedBy:admin.firestore.FieldValue.delete()};tx.update(ref,patch);});
     }else{
      await store.runTransaction(async tx=>{const snap=await tx.get(ref);if(!snap.exists)throw new Error('Tutor record not found.');const patch={status,updatedAt:admin.firestore.FieldValue.serverTimestamp(),updatedBy:actor.uid};if(status==='rejected')patch.reviewedAt=admin.firestore.FieldValue.serverTimestamp();if(status==='inactive'){patch.deactivatedAt=admin.firestore.FieldValue.serverTimestamp();patch.deactivatedBy=actor.uid;}tx.update(ref,patch);});
     }
@@ -72,7 +72,7 @@ exports.handler=async event=>{
    if(status!=='all'&&!VALID_STATUSES.includes(status))return reply(400,{ok:false,error:'Invalid status filter.'});
    const counts={};
    await Promise.all(VALID_STATUSES.map(async s=>{try{const snap=await store.collection(APPS).where('status','==',s).count().get();counts[s]=snap.data().count;}catch{counts[s]=null;}}));
-   let query=store.collection(APPS).orderBy('createdAt','desc');
+   let query=store.collection(APPS).orderBy(admin.firestore.FieldPath.documentId());
    if(status!=='all')query=query.where('status','==',status);
    const cursor=clean(event.queryStringParameters?.cursor,180);
    if(cursor){const cursorSnap=await store.collection(APPS).doc(cursor).get();if(cursorSnap.exists)query=query.startAfter(cursorSnap);}
