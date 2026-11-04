@@ -12,13 +12,13 @@ function store() {
 const reply=(statusCode,payload)=>({statusCode,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(payload)});
 const clean=(v,n=120)=>String(v||'').trim().slice(0,n);
 const days=['sun','mon','tue','wed','thu','fri','sat'];
-const timeRe=/^(?:[01]\\d|2[0-3]):[0-5]\\d$/;
+const timeRe=/^(?:[01]\d|2[0-3]):[0-5]\d$/;
 function indiaNowParts(){
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
   const o={};parts.forEach(p=>o[p.type]=p.value);return {date:o.year+'-'+o.month+'-'+o.day,time:o.hour+':'+o.minute};
 }
 function addDays(date,n){const d=new Date(date+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
-function validDate(s){if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(s))return false;const d=new Date(s+'T00:00:00Z');return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===s;}
+function validDate(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T00:00:00Z');return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===s;}
 function makeSlots(schedule,blocks,bookings){
  const now=indiaNowParts(),blocked=new Set(blocks.map(x=>x.date));
  const taken=new Set(bookings.filter(x=>!['cancelled','rejected'].includes(String(x.status||'').toLowerCase())).map(x=>x.date+'_'+x.startTime));
@@ -64,8 +64,8 @@ exports.handler=async event=>{
   }
   if(event.httpMethod!=='POST')return reply(405,{ok:false,error:'Method not allowed.'});
   const body=JSON.parse(event.body||'{}'),tutorId=clean(body.tutorId,180),date=clean(body.date,10),startTime=clean(body.startTime,5);
-  const studentName=clean(body.studentName,90),phone=clean(body.phone,20).replace(/\\D/g,'').slice(-10),email=clean(body.email,140);
-  if(!tutorId||!validDate(date)||!timeRe.test(startTime)||!studentName||!/^\\d{10}$/.test(phone)||!/^\\S+@\\S+\\.\\S+$/.test(email))return reply(400,{ok:false,error:'Enter your name, valid 10-digit phone, email and choose a valid slot.'});
+  const studentName=clean(body.studentName,90),phone=clean(body.phone,20).replace(/\D/g,'').slice(-10),email=clean(body.email,140);
+  if(!tutorId||!validDate(date)||!timeRe.test(startTime)||!studentName||!/^\d{10}$/.test(phone)||!/^\S+@\S+\.\S+$/.test(email))return reply(400,{ok:false,error:'Enter your name, valid 10-digit phone, email and choose a valid slot.'});
   const tutorRef=db.collection(tutorsCol).doc(tutorId),[tutorSnap,scheduleSnap,blockSnap,bookingSnap]=await Promise.all([
    tutorRef.get(),db.collection(weeklyCol).doc(tutorId).get(),db.collection(blocksCol).doc(tutorId+'_'+date).get(),db.collection(bookingsCol).where('tutorId','==',tutorId).get()
   ]);
