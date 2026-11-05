@@ -44,13 +44,16 @@ exports.handler=async event=>{
     const existing=await store.collection(APPS).where('email','==',email).limit(1).get();
     const ref=existing.empty?store.collection(APPS).doc('uid_'+account.uid):existing.docs[0].ref;
     const now=admin.firestore.FieldValue.serverTimestamp();
-    await store.runTransaction(async tx=>{
+    const applicationStatus=await store.runTransaction(async tx=>{
      const snap=await tx.get(ref);
      if(snap.exists&&snap.data().authUid&&snap.data().authUid!==account.uid)throw Object.assign(new Error('A tutor profile already exists for this email. Please contact Englishmates.'),{status:409});
      const previous=snap.exists?snap.data():{};
-     tx.set(ref,{name,email,phone,subjects,experience,bio,status:previous.status==='inactive'?'inactive':'approved',authUid:account.uid,createdAt:previous.createdAt||now,updatedAt:now,verifiedAt:now,registrationSource:'self_service'}, {merge:true});
+     const status=VALID_STATUSES.includes(previous.status)?previous.status:'pending';
+      tx.set(ref,{name,email,phone,subjects,experience,bio,status,authUid:account.uid,createdAt:previous.createdAt||now,updatedAt:now,verifiedAt:now,registrationSource:'self_service'}, {merge:true});
+     return status;
     });
-    return reply(200,{ok:true,message:'Email verified and tutor profile activated. You can now sign in to your Teacher Dashboard.'});
+    const messages={pending:'Email verified. Your tutor application has been submitted for admin approval.',approved:'Your tutor profile is already approved. You can sign in to the Teacher Dashboard.',rejected:'Your tutor application is currently rejected. Please contact Englishmates for help.',inactive:'Your tutor profile is inactive. Please contact Englishmates to reactivate it.'};
+    return reply(200,{ok:true,status:applicationStatus,message:messages[applicationStatus]||messages.pending});
    }
    const actor=await adminUser(event);
    const id=clean(body.applicationId,180);if(!id)return reply(400,{ok:false,error:'Invalid application.'});
