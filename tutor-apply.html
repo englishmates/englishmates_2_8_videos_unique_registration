@@ -19,7 +19,7 @@
 <section class="panel rounded-2xl p-6 mt-7"><h2 class="font-bold">Already have an account?</h2><p class="muted text-sm mt-2">Sign in to the Teacher Dashboard. If you forgot your password, use the password reset option there.</p><a href="/teacher-dashboard.html" class="inline-block text-violet-300 font-semibold mt-3">Tutor login →</a></section>
 </main>
 <script>
-const firebaseConfig={apiKey:"AIzaSyCFuF2PBq09cKOHBuoLDoypEgrI1Smm4c",authDomain:"englishmates-ratangarh-933f1.firebaseapp.com",projectId:"englishmates-ratangarh-933f1",storageBucket:"englishmates-ratangarh-933f1.firebasestorage.app",messagingSenderId:"501474121790",appId:"1:501474121790:web:5097a43a6be4e7bc07996f6"};
+const firebaseConfig={apiKey:"AIzaSyCFuF2PBq09cKOHBuoLDoypEgrI1gSmm4c",authDomain:"englishmates-ratangarh-933f1.firebaseapp.com",projectId:"englishmates-ratangarh-933f1",storageBucket:"englishmates-ratangarh-933f1.firebasestorage.app",messagingSenderId:"501474121790",appId:"1:501474121790:web:5097a43a6be4e7bc07996f6"};
 firebase.initializeApp(firebaseConfig);const auth=firebase.auth(),$=s=>document.querySelector(s);
 let profile=null;try{profile=JSON.parse(sessionStorage.getItem("englishmatesTutorProfile")||"null");}catch{profile=null;}
 function message(el,text,ok=false){el.textContent=text;el.className="text-sm mt-3 "+(ok?"text-emerald-300":"text-rose-300");}
