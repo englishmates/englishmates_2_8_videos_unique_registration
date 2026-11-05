@@ -23,6 +23,14 @@ Never commit secrets or paste them into chat. Set variables separately for deplo
 5. Add the deployed site origin (for example, `https://englishmates-ratangarh.netlify.app`) to **Authorized JavaScript origins** if requested by the OAuth client setup.
 6. Add tutor Google accounts as test users while the consent screen is in Testing. For a public tutor marketplace, complete Google's applicable verification/publishing requirements before broad rollout.
 
+## Fixing OAuth redirect errors
+
+For the production site, the only callback URI to register in the Google Cloud OAuth **Web application** client is:
+
+`https://englishmates-ratangarh.netlify.app/.netlify/functions/google-oauth`
+
+The Netlify `GOOGLE_REDIRECT_URI` variable must be exactly the same value: HTTPS, no query string, and no trailing slash. Give all four Google variables the **Production** deploy context and **Functions** scope in Netlify, then redeploy. If Google displays `Error 400: redirect_uri_mismatch`, the failure occurs before Englishmates receives the request; it is fixed by adding this exact URI under **Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client IDs → Authorized redirect URIs**.
+
 ## Tutor flow
 
 1. Tutor signs in to the Englishmates teacher dashboard.

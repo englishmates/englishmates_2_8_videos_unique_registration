@@ -194,6 +194,7 @@
             <p id="bookingFormMessage" role="status" class="text-sm sm:col-span-2"></p>
           </form>
         </div>
+        <dialog id="tutorIntroDialog" class="w-[min(92vw,760px)] rounded-3xl border border-white/10 bg-[#10192b] text-white p-0 backdrop:bg-black/80"><div class="p-5 md:p-6"><div class="flex items-center justify-between gap-4"><div><p class="text-xs text-violet-300 font-bold uppercase tracking-widest">Tutor introduction</p><h3 id="tutorIntroTitle" class="text-xl font-extrabold mt-1"></h3></div><button id="closeTutorIntro" type="button" class="text-slate-300 hover:text-white text-2xl" aria-label="Close introduction">×</button></div><video id="tutorIntroVideo" controls preload="metadata" playsinline class="w-full aspect-video rounded-2xl bg-black mt-5"></video></div></dialog>
         <p class="text-xs text-slate-500 mt-5">Class requests remain pending until the tutor confirms them. Confirmed sessions are scheduled through the tutor’s connected Google Calendar with a Google Meet link. All times are India Standard Time (IST).</p>
       </div>
     </section>
@@ -986,6 +987,11 @@
     const tutorList=$('#publicTutorList'), bookingForm=$('#studentBookingForm');
     let publicTutors=[];
     const safeTutorPhoto=(url)=>/^https:\/\//i.test(url)?url:'';
+    const safeTutorVideo=(url)=>/^https:\/\/firebasestorage\.googleapis\.com\//i.test(url)?url:'';
+    const tutorIntroDialog=$('#tutorIntroDialog'),tutorIntroVideo=$('#tutorIntroVideo');
+    function closeTutorIntro(){tutorIntroVideo.pause();tutorIntroVideo.removeAttribute('src');tutorIntroVideo.load();if(tutorIntroDialog.open)tutorIntroDialog.close();}
+    function openTutorIntro(tutor){const video=safeTutorVideo(tutor.introVideoUrl);if(!video)return;tutorIntroVideo.src=video;$('#tutorIntroTitle').textContent=tutor.name+' · introduction';tutorIntroDialog.showModal();tutorIntroVideo.play().catch(()=>{});}
+    $('#closeTutorIntro').addEventListener('click',closeTutorIntro);tutorIntroDialog.addEventListener('close',()=>{tutorIntroVideo.pause();tutorIntroVideo.removeAttribute('src');tutorIntroVideo.load();});
     async function loadPublicTutors(){
       tutorList.innerHTML='<p class="text-sm text-slate-400">Loading available tutors…</p>';
       try{
@@ -993,14 +999,16 @@
         if(!r.ok||!data.ok)throw new Error(data.error||'Could not load tutors.');
         publicTutors=data.tutors||[];
         if(!publicTutors.length){tutorList.innerHTML='<p class="text-sm text-slate-400">No tutor slots are available right now. Please check again later.</p>';return;}
-        tutorList.innerHTML=publicTutors.map(t=>'<article class="rounded-2xl border border-white/10 bg-white/[.025] p-4">'+
-          '<div class="flex items-center gap-3">'+(safeTutorPhoto(t.photoUrl)?'<img src="'+esc(t.photoUrl)+'" alt="" class="w-14 h-14 rounded-xl object-cover">':'<div class="w-14 h-14 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-200 font-bold text-xl">'+esc((t.name||'T').slice(0,1).toUpperCase())+'</div>')+
+        tutorList.innerHTML=publicTutors.map(t=>{const photo=safeTutorPhoto(t.photoUrl),intro=safeTutorVideo(t.introVideoUrl),avatar=photo?'<img src="'+esc(photo)+'" alt="" class="w-14 h-14 rounded-xl object-cover">':'<div class="w-14 h-14 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-200 font-bold text-xl">'+esc((t.name||'T').slice(0,1).toUpperCase())+'</div>';return '<article class="rounded-2xl border border-white/10 bg-white/[.025] p-4">'+
+          '<div class="flex items-center gap-3">'+(intro?'<button type="button" data-watch-intro="'+esc(t.id)+'" class="relative shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400" aria-label="Watch '+esc(t.name)+' introduction">'+avatar+'<span class="absolute inset-0 grid place-items-center rounded-xl bg-black/45 text-white text-lg">▶</span></button>':avatar)+
           '<div><h4 class="font-extrabold text-white">'+esc(t.name)+'</h4><p class="text-xs text-violet-200">'+esc(t.subjects||'Englishmates Tutor')+'</p></div></div>'+
           (t.bio?'<p class="text-sm text-slate-400 mt-3">'+esc(t.bio)+'</p>':'')+
-          '<label class="block text-xs text-slate-400 mt-4">Available 30-minute slots</label><select data-tutor-slot="'+esc(t.id)+'" class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white"><option value="">Choose a date and time</option>'+t.slots.map(s=>'<option value="'+esc(s.date+'|'+s.startTime)+'">'+esc(s.date)+' · '+esc(s.startTime)+'–'+esc(s.endTime)+' IST</option>').join('')+'</select><button type="button" data-book-tutor="'+esc(t.id)+'" class="btn-primary rounded-xl px-4 py-2.5 text-sm font-bold text-white mt-3">Request this tutor</button></article>').join('');
+          (intro?'<button type="button" data-watch-intro="'+esc(t.id)+'" class="text-sm text-violet-200 font-bold mt-3">▶ Watch '+esc(String(Math.round(t.introVideoDurationSeconds||0)||1))+'-second introduction</button>':'')+
+          '<label class="block text-xs text-slate-400 mt-4">Available 30-minute slots</label><select data-tutor-slot="'+esc(t.id)+'" class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white"><option value="">Choose a date and time</option>'+t.slots.map(s=>'<option value="'+esc(s.date+'|'+s.startTime)+'">'+esc(s.date)+' · '+esc(s.startTime)+'–'+esc(s.endTime)+' IST</option>').join('')+'</select><button type="button" data-book-tutor="'+esc(t.id)+'" class="btn-primary rounded-xl px-4 py-2.5 text-sm font-bold text-white mt-3">Request this tutor</button></article>';}).join('');
       }catch(e){tutorList.innerHTML='<p class="text-sm text-rose-300">'+esc(e.message)+'</p>';}
     }
     tutorList.addEventListener('click',e=>{
+      const intro=e.target.closest('[data-watch-intro]');if(intro){const tutor=publicTutors.find(t=>t.id===intro.dataset.watchIntro);if(tutor)openTutorIntro(tutor);return;}
       const btn=e.target.closest('[data-book-tutor]');if(!btn)return;
       const tutor=publicTutors.find(t=>t.id===btn.dataset.bookTutor),select=tutorList.querySelector('[data-tutor-slot="'+btn.dataset.bookTutor+'"]');
       if(!tutor||!select.value){alert('Please choose an available 30-minute slot first.');return;}

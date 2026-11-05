@@ -58,7 +58,7 @@ exports.handler=async event=>{
     const schedule=s.exists?(s.data().schedule||{}):{};
     const slots=makeSlots(schedule,b.docs.map(x=>x.data()),k.docs.map(x=>x.data()));
     if(!slots.length)continue;
-    tutors.push({id,name:clean(t.name||t.fullName||t.displayName,90)||'Englishmates Tutor',subjects:clean(t.subjects||t.expertise||t.specialization,140),bio:clean(t.bio||t.about,240),photoUrl:clean(t.photoUrl||t.photoURL||t.profileUrl,500),slots});
+    tutors.push({id,name:clean(t.name||t.fullName||t.displayName,90)||'Englishmates Tutor',subjects:clean(t.subjects||t.expertise||t.specialization,140),bio:clean(t.bio||t.about,240),photoUrl:clean(t.photoUrl||t.photoURL||t.profileUrl,1600),introVideoUrl:clean(t.introVideoUrl,1600),introVideoDurationSeconds:Math.min(60,Math.max(0,Number(t.introVideoDurationSeconds)||0)),slots});
    }
    return reply(200,{ok:true,durationMinutes:30,tutors});
   }

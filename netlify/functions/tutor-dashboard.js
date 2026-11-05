@@ -24,12 +24,16 @@ const suffix = process.env.CONTEXT === 'production' ? '' : 'Preview';
 const TUTORS = 'tutorApplications' + suffix;
 const GOOGLE_CONNECTIONS = 'tutorGoogleConnections' + suffix;
 const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+const MAX_INTRO_VIDEO_SECONDS = 60;
 function encryptionKey(){const k=process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'';if(!/^[a-f0-9]{64}$/i.test(k))throw new Error('Google Meet integration is not configured: token encryption key is missing.');return Buffer.from(k,'hex');}
+function googleOAuthConfig(){const clientId=clean(process.env.GOOGLE_CLIENT_ID,300),clientSecret=clean(process.env.GOOGLE_CLIENT_SECRET,500),tokenKey=String(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'').trim(),redirectUri=String(process.env.GOOGLE_REDIRECT_URI||'').trim().replace(/\/+$/,'');const missing=[];if(!clientId)missing.push('GOOGLE_CLIENT_ID');if(!clientSecret)missing.push('GOOGLE_CLIENT_SECRET');if(!redirectUri)missing.push('GOOGLE_REDIRECT_URI');if(!/^[a-f0-9]{64}$/i.test(tokenKey))missing.push('GOOGLE_TOKEN_ENCRYPTION_KEY (64 hexadecimal characters)');if(missing.length)throw new Error('Google OAuth configuration is incomplete for this deploy. Missing: '+missing.join(', ')+'.');let parsed;try{parsed=new URL(redirectUri);}catch{throw new Error('GOOGLE_REDIRECT_URI must be a valid HTTPS URL.');}if(parsed.protocol!=='https:'||parsed.pathname!=='/.netlify/functions/google-oauth'||parsed.search||parsed.hash)throw new Error('GOOGLE_REDIRECT_URI must exactly end with /.netlify/functions/google-oauth and must not include a query string or trailing slash.');return {clientId,clientSecret,redirectUri};}
+function mediaUrlForTutor(value,uid,label){const url=clean(value,1600);if(!url)return '';try{const parsed=new URL(url),path=decodeURIComponent(parsed.pathname);if(parsed.protocol!=='https:'||parsed.hostname!=='firebasestorage.googleapis.com'||!path.includes('/o/tutor-media/'+uid+'/'))throw new Error();return url;}catch{throw new Error(label+' must be uploaded from your Englishmates profile media form.');}}
 function decryptToken(value){const [iv,tag,data]=String(value||'').split('.');const d=crypto.createDecipheriv('aes-256-gcm',encryptionKey(),Buffer.from(iv,'base64url'));d.setAuthTag(Buffer.from(tag,'base64url'));return Buffer.concat([d.update(Buffer.from(data,'base64url')),d.final()]).toString();}
 async function createMeetEvent(store,tutor,booking,bookingRef){
  const conn=await store.collection(GOOGLE_CONNECTIONS).doc(tutor.id).get();if(!conn.exists||!conn.data().refreshToken)throw new Error('Connect your Google Calendar before confirming bookings.');
  const refreshToken=decryptToken(conn.data().refreshToken);
- const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:process.env.GOOGLE_CLIENT_ID,client_secret:process.env.GOOGLE_CLIENT_SECRET,refresh_token:refreshToken,grant_type:'refresh_token'})});
+ const oauth=googleOAuthConfig();
+ const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:oauth.clientId,client_secret:oauth.clientSecret,refresh_token:refreshToken,grant_type:'refresh_token'})});
  const tokenData=await tokenRes.json();if(!tokenRes.ok||!tokenData.access_token)throw new Error('Google authorization expired. Reconnect Google Calendar.');
  const eventId='em'+crypto.createHash('sha256').update(bookingRef.id).digest('hex').slice(0,40);
  const start=new Date(booking.date+'T'+booking.startTime+':00+05:30'),end=new Date(booking.date+'T'+booking.endTime+':00+05:30');
@@ -61,7 +65,7 @@ async function approvedTutor(event) {
     .where('email', '==', decoded.email.toLowerCase())
     .where('status', '==', 'approved').limit(1).get();
   if (snapshot.empty) throw Object.assign(new Error('Your tutor profile is not approved yet. Please contact Englishmates.'), { status: 403 });
-  return { id: snapshot.docs[0].id, ...snapshot.docs[0].data(), email: decoded.email.toLowerCase() };
+  return { id: snapshot.docs[0].id, ...snapshot.docs[0].data(), uid: decoded.uid, email: decoded.email.toLowerCase() };
 }
 
 function validateSchedule(input) {
@@ -100,6 +104,9 @@ exports.handler = async event => {
       return reply(200, {
         ok: true,
         tutorName: clean(tutor.name, 90),
+        photoUrl: clean(tutor.photoUrl, 1600),
+        introVideoUrl: clean(tutor.introVideoUrl, 1600),
+        introVideoDurationSeconds: Math.min(MAX_INTRO_VIDEO_SECONDS, Math.max(0, Number(tutor.introVideoDurationSeconds) || 0)),
         schedule: scheduleDoc.exists ? scheduleDoc.data().schedule || {} : {},
         blocks,
         bookings,
@@ -110,12 +117,21 @@ exports.handler = async event => {
     const body = JSON.parse(event.body || '{}');
 
     if (body.action === 'connect-google') {
+      const oauth=googleOAuthConfig();
       const state=crypto.randomBytes(32).toString('hex');
       await store.collection('googleOAuthStates'+suffix).doc(state).set({tutorId:tutor.id,createdAt:admin.firestore.FieldValue.serverTimestamp(),expiresAt:Date.now()+10*60*1000});
-      const redirect=process.env.GOOGLE_REDIRECT_URI;
-      if(!process.env.GOOGLE_CLIENT_ID||!redirect)throw new Error('Google OAuth client configuration is missing.');
-      const params=new URLSearchParams({client_id:process.env.GOOGLE_CLIENT_ID,redirect_uri:redirect,response_type:'code',scope:GOOGLE_SCOPES,access_type:'offline',prompt:'consent',include_granted_scopes:'true',state});
+      const params=new URLSearchParams({client_id:oauth.clientId,redirect_uri:oauth.redirectUri,response_type:'code',scope:GOOGLE_SCOPES,access_type:'offline',prompt:'consent',include_granted_scopes:'true',state});
       return reply(200,{ok:true,authUrl:'https://accounts.google.com/o/oauth2/v2/auth?'+params.toString()});
+    }
+
+    if (body.action === 'update-profile-media') {
+      const hasPhoto=Object.prototype.hasOwnProperty.call(body,'photoUrl'),hasVideo=Object.prototype.hasOwnProperty.call(body,'introVideoUrl');
+      if(!hasPhoto&&!hasVideo)return reply(400,{ok:false,error:'Choose a profile photo or intro video first.'});
+      const patch={updatedAt:admin.firestore.FieldValue.serverTimestamp(),updatedBy:tutor.uid};
+      if(hasPhoto)patch.photoUrl=mediaUrlForTutor(body.photoUrl,tutor.uid,'Profile photo');
+      if(hasVideo){const seconds=Number(body.introVideoDurationSeconds);if(!Number.isFinite(seconds)||seconds<=0||seconds>MAX_INTRO_VIDEO_SECONDS)return reply(400,{ok:false,error:'Your intro video must be no longer than 60 seconds.'});patch.introVideoUrl=mediaUrlForTutor(body.introVideoUrl,tutor.uid,'Intro video');patch.introVideoDurationSeconds=Math.round(seconds*10)/10;}
+      await store.collection(TUTORS).doc(tutor.id).set(patch,{merge:true});
+      return reply(200,{ok:true,message:'Tutor profile media saved.'});
     }
 
     if (body.action === 'save-weekly-schedule') {
