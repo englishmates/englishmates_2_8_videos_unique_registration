@@ -42,7 +42,14 @@
     .modal-backdrop{background:rgba(0,0,0,.78);backdrop-filter:blur(8px)}
     .hide-scrollbar::-webkit-scrollbar{display:none}
     @media(max-width:640px){.hero-title{font-size:2.65rem;line-height:1.05}.section-pad{padding-top:4.5rem;padding-bottom:4.5rem}}
-  </style>
+  
+    .em-call-stage{background:radial-gradient(circle at 50% 0%,rgba(59,130,246,.18),transparent 42%),linear-gradient(145deg,#101a2d,#080d18);border:1px solid rgba(148,163,184,.18);box-shadow:0 30px 90px rgba(0,0,0,.35)}
+    .em-call-phone{width:min(100%,350px);min-height:570px;border:1px solid rgba(255,255,255,.13);border-radius:2.3rem;background:linear-gradient(160deg,#17243a,#0c1424 55%,#080d18);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 24px 60px rgba(0,0,0,.4)}
+    .em-call-avatar{width:112px;height:112px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#60a5fa,#8b5cf6 58%,#ec4899);border:5px solid rgba(255,255,255,.12)}
+    .em-call-btn{width:68px;height:68px;border-radius:9999px;display:grid;place-items:center;color:white;border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 25px rgba(0,0,0,.28);opacity:1!important}
+    .em-call-red{background:linear-gradient(145deg,#fb5367,#dc2626)} .em-call-green{background:linear-gradient(145deg,#22c55e,#15803d)}
+    @media(max-width:640px){.em-call-phone{min-height:545px}.em-call-btn{width:62px;height:62px}}
+</style>
 </head>
 <body>
   <div class="fixed inset-0 grid-bg opacity-30 pointer-events-none"></div>
@@ -57,6 +64,7 @@
         <a class="nav-link" href="#programs">Programs</a>
         <a class="nav-link" href="#tutor-preview">Find a Tutor</a>
         <a class="nav-link" href="/tutor-apply.html">Become a Tutor</a>
+        <a class="nav-link" href="#calling-community">Calling Community <span class="text-violet-300 text-[10px]">SOON</span></a>
         <a class="nav-link" href="#ai-lab">AI Lab</a>
         <a class="nav-link" href="#gallery">Activities</a>
         <a class="nav-link" href="#results">Why Englishmates</a>
@@ -67,7 +75,7 @@
     </nav>
     <div id="mobileMenu" class="hidden md:hidden px-5 pb-5 border-t border-white/5">
       <div class="flex flex-col gap-4 pt-4 text-sm font-semibold">
-        <a class="nav-link" href="#programs">Programs</a><a class="nav-link" href="#tutor-preview">Find a Tutor</a><a class="nav-link" href="/tutor-apply.html">Become a Tutor</a><a class="nav-link" href="#ai-lab">AI Lab</a>
+        <a class="nav-link" href="#programs">Programs</a><a class="nav-link" href="#tutor-preview">Find a Tutor</a><a class="nav-link" href="/tutor-apply.html">Become a Tutor</a><a class="nav-link" href="/calling-community.html">Calling Community <span class="text-violet-300 text-[10px]">SOON</span></a><a class="nav-link" href="#ai-lab">AI Lab</a>
         <a class="nav-link" href="#results">Why Englishmates</a><a class="nav-link" href="#about">About</a>
         <a href="#enroll" class="btn-coral text-white text-center px-5 py-3 rounded-xl">Book a Demo</a>
       </div>
@@ -126,6 +134,46 @@
         <div><div class="text-white font-extrabold">Sunday</div><div class="text-xs text-slate-500 mt-1">AI workshops</div></div>
         <div><div class="text-white font-extrabold">Practical</div><div class="text-xs text-slate-500 mt-1">Speaking activities</div></div>
         <div><div class="text-white font-extrabold">Ratangarh</div><div class="text-xs text-slate-500 mt-1">Pooja Market</div></div>
+      </div>
+    </section>
+
+
+    <section id="calling-community" class="relative overflow-hidden py-20 md:py-24 px-4 lg:px-8">
+      <div class="max-w-7xl mx-auto relative">
+        <div class="text-center max-w-2xl mx-auto">
+          <span class="text-blue-300 text-xs font-extrabold uppercase tracking-[.22em]">Englishmates Calling Community</span>
+          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Your next speaking call.</h2>
+          <p class="text-slate-400 mt-4 leading-7">A familiar phone-call experience for English practice with another learner.</p>
+        </div>
+        <div class="em-call-stage rounded-[2rem] p-4 sm:p-8 md:p-10 mt-10 flex flex-col items-center gap-10">
+          <div class="flex justify-center">
+            <div class="em-call-phone px-7 py-8 sm:px-9 flex flex-col items-center text-center text-white">
+              <div class="w-full flex items-center justify-between text-xs text-slate-400"><span class="font-bold tracking-wider">ENGLISHMATES</span><span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> CALL PREVIEW</span></div>
+              <p class="mt-12 text-sm text-slate-300">Incoming practice call</p>
+              <div class="em-call-avatar mt-7"><img src="/assets/calling-avatar.jpg" alt="Speaking partner wearing a headset and enjoying an English conversation" class="w-full h-full rounded-full object-cover" loading="lazy"></div>
+              <h3 class="text-2xl sm:text-3xl font-extrabold mt-6">Speaking Partner</h3>
+              <p class="text-sm text-slate-400 mt-2">Englishmates Calling Community</p>
+              <span class="mt-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold border border-amber-300/25 bg-amber-300/10 text-amber-200"><i data-lucide="clock-3" class="w-3.5 h-3.5"></i> COMING SOON</span>
+              <div class="mt-auto pt-12 w-full">
+                <div class="flex items-center justify-center gap-14">
+                  <div class="flex flex-col items-center gap-2"><button type="button" class="em-call-btn em-call-red" disabled aria-label="Decline call — coming soon"><i data-lucide="phone-off" class="w-7 h-7"></i></button><span class="text-xs text-slate-300 font-semibold">Decline</span></div>
+                  <div class="flex flex-col items-center gap-2"><button type="button" class="em-call-btn em-call-green" disabled aria-label="Answer call — coming soon"><i data-lucide="phone" class="w-7 h-7"></i></button><span class="text-xs text-slate-300 font-semibold">Answer</span></div>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-7">Call controls are shown for preview only</p>
+              </div>
+            </div>
+          </div>
+          <div class="max-w-xl w-full mx-auto text-center">
+            <span class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-extrabold border border-amber-300/25 bg-amber-300/10 text-amber-200">FEATURE COMING SOON</span>
+            <h3 class="text-3xl sm:text-4xl font-extrabold text-white mt-5 leading-tight">Real conversations.<br><span class="gradient-text">More confident English.</span></h3>
+            <p class="text-slate-400 leading-7 mt-5">The screen shows how the calling experience will look after launch. You will be able to answer or decline a practice call, just like a familiar phone app.</p>
+            <div class="grid sm:grid-cols-2 gap-3 mt-7">
+              <div class="rounded-2xl border border-white/10 bg-white/[.04] p-4"><i data-lucide="mic" class="w-5 h-5 text-blue-300"></i><p class="text-white font-bold mt-3">Audio conversations</p><p class="text-xs text-slate-400 mt-1">Voice-only practice. No video.</p></div>
+              <div class="rounded-2xl border border-white/10 bg-white/[.04] p-4"><i data-lucide="shield-check" class="w-5 h-5 text-emerald-300"></i><p class="text-white font-bold mt-3">Safety-led design</p><p class="text-xs text-slate-400 mt-1">Privacy and moderation before launch.</p></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-6">Answer and Decline are intentionally inactive until verification, calling and moderation are configured.</p>
+          </div>
+        </div>
       </div>
     </section>
 
