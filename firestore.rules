@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner() {
+      return request.auth != null
+        && request.auth.token.email == 'bddayma12@gmail.com';
+    }
+
+    // Courses: public catalogue, owner-managed.
+    match /courses/{courseId} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
+
+    // Existing private operational data.
+    match /students/{studentId} { allow read, write: if isOwner(); }
+    match /leads/{leadId} { allow read, write: if isOwner(); }
+    match /attendance/{recordId} { allow read, write: if isOwner(); }
+    match /registrationLocks/{lockId} { allow read, write: if false; }
+    match /adminDevices/{deviceId} { allow read, write: if isOwner(); }
+
+    // Public reviews with validation.
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly([
+          'name', 'rating', 'text', 'createdAt', 'timestamp'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 5
+        && request.resource.data.text.size() <= 600
+        && request.resource.data.rating is string
+        && request.resource.data.rating in ['3', '4', '5'];
+      allow update, delete: if isOwner();
+    }
+
+    // Calling Community is server-mediated. Profiles, location preferences,
+    // invitations, sessions, reports and moderation history must never be read
+    // or written directly by a browser client.
+    match /callingProfiles/{userId} { allow read, write: if false; }
+    match /callingQueues/{userId} { allow read, write: if false; }
+    match /callingSessions/{sessionId} { allow read, write: if false; }
+    match /callingBlocks/{blockId} { allow read, write: if false; }
+    match /callingReports/{reportId} { allow read, write: if false; }
+    match /callingModerationAudit/{auditId} { allow read, write: if false; }
+    match /callingRateLimits/{limitId} { allow read, write: if false; }
+
+    // Default-deny for all other collections, including tutor service data that
+    // is accessed only through Netlify Functions using Firebase Admin SDK.
+    match /{document=**} { allow read, write: if false; }
+  }
+}
