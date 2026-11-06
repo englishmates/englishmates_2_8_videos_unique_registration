@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#070b17">
+  <meta name="description" content="Join the Englishmates Calling Community to practise spoken English with fellow learners.">
+  <title>Calling Community | Englishmates</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <style>
+    :root{color-scheme:dark}body{font-family:'DM Sans',sans-serif;background:#070b17;color:#e5e7eb}
+    .grid-bg{background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:42px 42px}
+    .card{background:linear-gradient(145deg,rgba(17,27,48,.96),rgba(10,16,30,.96));border:1px solid #22304a}
+    .gradient-text{background:linear-gradient(90deg,#60a5fa,#a78bfa 55%,#fb7185);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .orb{position:absolute;border-radius:9999px;filter:blur(75px);pointer-events:none}
+    .field{width:100%;border:1px solid #334155;background:#0b1220;color:#f8fafc;border-radius:12px;padding:12px 14px;outline:none}
+    .field:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.15)}
+    .btn{border-radius:12px;padding:12px 16px;font-weight:700;transition:filter .2s ease,transform .2s ease}
+    .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+    .btn-primary{background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:white}
+    .btn-google{background:#f8fafc;color:#111827}
+    .muted{color:#94a3b8}
+  </style>
+</head>
+<body>
+  <div class="fixed inset-0 grid-bg opacity-30 pointer-events-none"></div>
+  <header class="relative z-10 border-b border-white/10 bg-[#070b17]/90">
+    <nav class="max-w-7xl mx-auto h-[74px] px-4 lg:px-8 flex items-center justify-between">
+      <a href="/" aria-label="Englishmates home"><img src="/assets/englishmates-logo.jpg" alt="Englishmates logo" class="w-[190px] sm:w-[220px] h-auto object-contain"></a>
+      <a href="/" class="text-sm font-bold text-slate-300 hover:text-white">← Back to Home</a>
+    </nav>
+  </header>
+  <main class="relative min-h-[calc(100vh-74px)] flex items-center justify-center overflow-hidden px-4 py-12">
+    <div class="orb w-96 h-96 bg-violet-600/20 -top-24 -right-24"></div>
+    <div class="orb w-80 h-80 bg-blue-500/15 bottom-0 -left-24"></div>
+    <section class="relative max-w-6xl w-full grid lg:grid-cols-12 gap-6 items-center">
+      <div class="lg:col-span-6 card rounded-[2rem] p-7 sm:p-10">
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-400/10 border border-emerald-300/20 text-emerald-200 text-xs font-extrabold tracking-wide"><i data-lucide="sparkles" class="w-4 h-4"></i> ENGLISHMATES COMMUNITY</span>
+        <p class="text-violet-300 text-xs font-extrabold uppercase tracking-[.2em] mt-7">Practise together. Improve together.</p>
+        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mt-4 leading-[1.08]">Speak more.<br><span class="gradient-text">Grow together.</span></h1>
+        <p class="text-slate-300 text-base leading-8 mt-6">Create your learner account to get started. Our next steps will add your speaking profile, admin approval and partner matching before live calls are enabled.</p>
+        <ul class="mt-8 space-y-4 text-sm text-slate-300">
+          <li class="flex gap-3"><i data-lucide="users" class="w-5 h-5 text-violet-300 shrink-0"></i><span>Connect with fellow English learners</span></li>
+          <li class="flex gap-3"><i data-lucide="mic" class="w-5 h-5 text-blue-300 shrink-0"></i><span>Prepare for conversation-based speaking practice</span></li>
+          <li class="flex gap-3"><i data-lucide="shield-check" class="w-5 h-5 text-emerald-300 shrink-0"></i><span>Verified email is required for account access</span></li>
+        </ul>
+        <div class="mt-8 rounded-2xl border border-amber-300/15 bg-amber-300/[.06] p-4 text-sm text-amber-100">
+          <strong>Development preview</strong>
+          <p class="text-amber-100/75 text-xs leading-5 mt-2">Account registration and sign-in are being introduced first. Student profiles, admin approval, matching and audio calling are not active yet. Do not share passwords or OTPs with anyone.</p>
+        </div>
+      </div>
+
+      <div class="lg:col-span-6 card rounded-[2rem] p-6 sm:p-8">
+        <div id="authPanel">
+          <div class="flex gap-2 p-1 rounded-xl bg-slate-900/80 mb-6">
+            <button id="registerTab" type="button" class="flex-1 btn btn-primary">Create account</button>
+            <button id="loginTab" type="button" class="flex-1 btn text-slate-300">Sign in</button>
+          </div>
+
+          <div id="registerView">
+            <h2 class="text-2xl font-extrabold text-white">Join Englishmates</h2>
+            <p class="muted text-sm mt-2 mb-6">Use your email or continue with Google.</p>
+            <form id="registerForm" class="space-y-4">
+              <label class="block text-sm font-semibold">Full name
+                <input id="regName" class="field mt-2" type="text" autocomplete="name" maxlength="80" required placeholder="Your name">
+              </label>
+              <label class="block text-sm font-semibold">Email address
+                <input id="regEmail" class="field mt-2" type="email" autocomplete="email" required placeholder="you@example.com">
+              </label>
+              <label class="block text-sm font-semibold">Password
+                <input id="regPassword" class="field mt-2" type="password" autocomplete="new-password" minlength="6" required placeholder="At least 6 characters">
+              </label>
+              <button id="registerButton" class="btn btn-primary w-full" type="submit">Create account</button>
+            </form>
+            <div class="flex items-center gap-3 my-5"><div class="h-px bg-slate-700 flex-1"></div><span class="muted text-xs">OR</span><div class="h-px bg-slate-700 flex-1"></div></div>
+            <button id="googleButton" type="button" class="btn btn-google w-full flex items-center justify-center gap-3"><span class="font-extrabold text-lg">G</span> Continue with Google</button>
+          </div>
+
+          <div id="loginView" class="hidden">
+            <h2 class="text-2xl font-extrabold text-white">Welcome back</h2>
+            <p class="muted text-sm mt-2 mb-6">Sign in to your Englishmates account.</p>
+            <form id="loginForm" class="space-y-4">
+              <label class="block text-sm font-semibold">Email address
+                <input id="loginEmail" class="field mt-2" type="email" autocomplete="email" required placeholder="you@example.com">
+              </label>
+              <label class="block text-sm font-semibold">Password
+                <input id="loginPassword" class="field mt-2" type="password" autocomplete="current-password" required placeholder="Your password">
+              </label>
+              <button id="loginButton" class="btn btn-primary w-full" type="submit">Sign in</button>
+            </form>
+            <button id="resetButton" type="button" class="text-sm text-violet-300 hover:text-violet-200 mt-5">Forgot password?</button>
+            <div class="flex items-center gap-3 my-5"><div class="h-px bg-slate-700 flex-1"></div><span class="muted text-xs">OR</span><div class="h-px bg-slate-700 flex-1"></div></div>
+            <button id="googleLoginButton" type="button" class="btn btn-google w-full flex items-center justify-center gap-3"><span class="font-extrabold text-lg">G</span> Continue with Google</button>
+          </div>
+        </div>
+
+        <div id="accountPanel" class="hidden">
+          <div class="w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-300 flex items-center justify-center"><i data-lucide="user-check" class="w-7 h-7"></i></div>
+          <h2 class="text-2xl font-extrabold text-white mt-5">Your account</h2>
+          <p id="accountEmail" class="muted text-sm mt-2 break-all"></p>
+          <div id="verificationNotice" class="rounded-xl border border-amber-300/20 bg-amber-300/[.06] p-4 mt-6 text-sm text-amber-100">
+            Your email is not verified yet. Open the verification link sent to your inbox, then return and refresh your status.
+            <button id="resendButton" type="button" class="block underline font-bold mt-3">Resend verification email</button>
+            <button id="refreshButton" type="button" class="block underline font-bold mt-2">I have verified — refresh status</button>
+          </div>
+          <div id="verifiedNotice" class="hidden rounded-xl border border-emerald-300/20 bg-emerald-300/[.06] p-4 mt-6 text-sm text-emerald-100">Email verified. Continue to complete your learner profile. Calling is not enabled yet.<a href="/community-profile.html" class="btn btn-primary block text-center mt-4">Complete learner profile</a></div>
+          <button id="logoutButton" type="button" class="btn w-full border border-white/15 text-white mt-6">Sign out</button>
+        </div>
+
+        <div id="authMessage" role="status" aria-live="polite" class="hidden rounded-xl p-4 mt-5 text-sm"></div>
+        <p class="muted text-xs leading-5 mt-6">By creating an account, you agree to use the community respectfully. Please do not create accounts for other people without their consent.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    // This is the same public Firebase web configuration already used by the main Englishmates site.
+    // Firebase web apiKey is not a server secret; access must be protected with Firebase rules and provider settings.
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFuF2PBq09cKOHBuoLDoypEgrI1gSmm4c",
+      authDomain: "englishmates-ratangarh-933f1.firebaseapp.com",
+      projectId: "englishmates-ratangarh-933f1",
+      storageBucket: "englishmates-ratangarh-933f1.firebasestorage.app",
+      messagingSenderId: "501474121790",
+      appId: "1:501474121790:web:5097a43a6be4e7bc07996f6"
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const panel = $('authMessage');
+    let auth = null;
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      auth = firebase.auth();
+      auth.languageCode = 'en';
+    } catch (error) {
+      console.error('Firebase initialization failed:', error);
+      showMessage('Firebase could not start. Please check the Firebase project configuration.', true);
+    }
+
+    function showMessage(message, isError = false) {
+      panel.textContent = message;
+      panel.className = 'rounded-xl p-4 mt-5 text-sm ' + (isError ? 'border border-rose-400/20 bg-rose-400/10 text-rose-200' : 'border border-emerald-400/20 bg-emerald-400/10 text-emerald-200');
+      panel.classList.remove('hidden');
+    }
+    function clearMessage() { panel.textContent = ''; panel.classList.add('hidden'); }
+    function friendlyError(error) {
+      const map = {
+        'auth/email-already-in-use': 'This email already has an account. Please sign in instead.',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/weak-password': 'Choose a stronger password with at least 6 characters.',
+        'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
+        'auth/popup-blocked': 'Your browser blocked the Google sign-in popup. Allow popups and try again.',
+        'auth/account-exists-with-different-credential': 'An account already exists with this email using another sign-in method. Sign in with that method first.',
+        'auth/user-not-found': 'No account was found for this email.',
+        'auth/wrong-password': 'The password is incorrect.',
+        'auth/invalid-credential': 'The email or password is incorrect.',
+        'auth/too-many-requests': 'Too many attempts. Please wait and try again.',
+        'auth/unauthorized-domain': 'This website domain is not authorized in Firebase Authentication.'
+      };
+      return map[error.code] || error.message || 'Something went wrong. Please try again.';
+    }
+    function setBusy(button, busy, label) {
+      button.disabled = busy;
+      button.classList.toggle('opacity-60', busy);
+      button.textContent = busy ? 'Please wait…' : label;
+    }
+    function switchMode(mode) {
+      clearMessage();
+      const registering = mode === 'register';
+      $('registerView').classList.toggle('hidden', !registering);
+      $('loginView').classList.toggle('hidden', registering);
+      $('registerTab').className = registering ? 'flex-1 btn btn-primary' : 'flex-1 btn text-slate-300';
+      $('loginTab').className = registering ? 'flex-1 btn text-slate-300' : 'flex-1 btn btn-primary';
+    }
+    $('registerTab').addEventListener('click', () => switchMode('register'));
+    $('loginTab').addEventListener('click', () => switchMode('login'));
+
+    async function sendVerification(user) {
+      await user.sendEmailVerification({ url: window.location.origin + '/calling-community.html', handleCodeInApp: false });
+    }
+    $('registerForm').addEventListener('submit', async (event) => {
+      event.preventDefault(); clearMessage();
+      if (!auth) return showMessage('Authentication is unavailable. Please try again later.', true);
+      const name = $('regName').value.trim();
+      const email = $('regEmail').value.trim();
+      const password = $('regPassword').value;
+      if (name.length < 2) return showMessage('Please enter your full name.', true);
+      const button = $('registerButton'); setBusy(button, true, 'Create account');
+      try {
+        const result = await auth.createUserWithEmailAndPassword(email, password);
+        await result.user.updateProfile({ displayName: name });
+        await sendVerification(result.user);
+        showMessage('Account created. A verification email has been sent to ' + email + '. Please verify it before continuing.');
+      } catch (error) {
+        console.error('Registration failed:', error);
+        showMessage(friendlyError(error), true);
+      } finally { setBusy(button, false, 'Create account'); }
+    });
+
+    async function googleSignIn() {
+      clearMessage();
+      if (!auth) return showMessage('Authentication is unavailable. Please try again later.', true);
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      try {
+        await auth.signInWithPopup(provider);
+      } catch (error) {
+        console.error('Google sign-in failed:', error);
+        showMessage(friendlyError(error), true);
+      }
+    }
+    $('googleButton').addEventListener('click', googleSignIn);
+    $('googleLoginButton').addEventListener('click', googleSignIn);
+
+    $('loginForm').addEventListener('submit', async (event) => {
+      event.preventDefault(); clearMessage();
+      if (!auth) return showMessage('Authentication is unavailable. Please try again later.', true);
+      const button = $('loginButton'); setBusy(button, true, 'Sign in');
+      try {
+        const result = await auth.signInWithEmailAndPassword($('loginEmail').value.trim(), $('loginPassword').value);
+        await result.user.reload();
+        if (!result.user.emailVerified) {
+          await sendVerification(result.user);
+          showMessage('Your email is not verified yet. We sent another verification link. Please check your inbox.');
+        }
+      } catch (error) {
+        console.error('Sign-in failed:', error);
+        showMessage(friendlyError(error), true);
+      } finally { setBusy(button, false, 'Sign in'); }
+    });
+
+    $('resetButton').addEventListener('click', async () => {
+      clearMessage();
+      const email = $('loginEmail').value.trim();
+      if (!email) return showMessage('Enter your email address first, then select Forgot password.', true);
+      try {
+        await auth.sendPasswordResetEmail(email);
+        showMessage('Password reset email sent. Please check your inbox.');
+      } catch (error) { showMessage(friendlyError(error), true); }
+    });
+
+    async function refreshAccount() {
+      const user = auth.currentUser;
+      if (!user) return;
+      await user.reload();
+      const freshUser = auth.currentUser;
+      $('accountEmail').textContent = freshUser.email || 'Google account';
+      $('verificationNotice').classList.toggle('hidden', !!freshUser.emailVerified);
+      $('verifiedNotice').classList.toggle('hidden', !freshUser.emailVerified);
+    }
+    $('resendButton').addEventListener('click', async () => {
+      try { await sendVerification(auth.currentUser); showMessage('A new verification email has been sent.'); }
+      catch (error) { showMessage(friendlyError(error), true); }
+    });
+    $('refreshButton').addEventListener('click', async () => {
+      try { await refreshAccount(); showMessage(auth.currentUser.emailVerified ? 'Email verification confirmed.' : 'We cannot see the verification yet. Open the email link, then try again.'); }
+      catch (error) { showMessage(friendlyError(error), true); }
+    });
+    $('logoutButton').addEventListener('click', async () => {
+      try { await auth.signOut(); clearMessage(); }
+      catch (error) { showMessage(friendlyError(error), true); }
+    });
+
+    if (auth) auth.onAuthStateChanged(async (user) => {
+      $('authPanel').classList.toggle('hidden', !!user);
+      $('accountPanel').classList.toggle('hidden', !user);
+      if (user) {
+        try { await refreshAccount(); }
+        catch (error) { showMessage(friendlyError(error), true); }
+      } else { clearMessage(); }
+    });
+  </script>
+</body>
+</html>
