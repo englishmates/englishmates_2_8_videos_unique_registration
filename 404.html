@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Englishmates Institute Ratangarh | Spoken English & AI Academy</title>
+  <meta name="description" content="Englishmates Institute, Ratangarh — Spoken English, Public Speaking, Communication Skills and AI & ChatGPT training. Book a demo and start learning.">
+  <meta name="keywords" content="spoken English classes Ratangarh, English speaking course Ratangarh, AI classes Ratangarh, ChatGPT course Ratangarh, public speaking Ratangarh">
+  <meta name="theme-color" content="#070b17">
+  <meta property="og:title" content="Englishmates — Communication & AI Academy">
+  <meta property="og:description" content="Speak English confidently. Master AI. Build your future.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://englishmates-ratangarh.netlify.app/">
+  <link rel="canonical" href="https://englishmates-ratangarh.netlify.app/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+  <style>
+    :root{--bg:#070b17;--panel:#0d1424;--panel2:#111b30;--line:#22304a;--blue:#60a5fa;--purple:#a78bfa;--coral:#fb7185;--green:#34d399}
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:#e5e7eb;font-family:'DM Sans',sans-serif}
+    .serif{font-family:'Merriweather',serif}
+    .glass{background:rgba(7,11,23,.78);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.07)}
+    .card{background:linear-gradient(145deg,rgba(17,27,48,.96),rgba(10,16,30,.96));border:1px solid var(--line)}
+    .card:hover{border-color:rgba(167,139,250,.45);transform:translateY(-4px);box-shadow:0 22px 55px rgba(0,0,0,.28)}
+    .transition-card{transition:transform .35s ease,border-color .35s ease,box-shadow .35s ease}
+    .orb{position:absolute;border-radius:9999px;filter:blur(70px);pointer-events:none}
+    .gradient-text{background:linear-gradient(90deg,#60a5fa,#a78bfa 55%,#fb7185);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .grid-bg{background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:42px 42px}
+    .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+    .reveal.show{opacity:1;transform:none}
+    .btn-primary{background:linear-gradient(135deg,#3b82f6,#8b5cf6);box-shadow:0 12px 30px rgba(99,102,241,.22)}
+    .btn-primary:hover{filter:brightness(1.08);transform:translateY(-2px)}
+    .btn-coral{background:linear-gradient(135deg,#f43f5e,#fb7185);box-shadow:0 12px 30px rgba(244,63,94,.2)}
+    .nav-link{color:#94a3b8}.nav-link:hover{color:#fff}
+    .modal-backdrop{background:rgba(0,0,0,.78);backdrop-filter:blur(8px)}
+    .hide-scrollbar::-webkit-scrollbar{display:none}
+    @media(max-width:640px){.hero-title{font-size:2.65rem;line-height:1.05}.section-pad{padding-top:4.5rem;padding-bottom:4.5rem}}
+  </style>
+</head>
+<body>
+  <div class="fixed inset-0 grid-bg opacity-30 pointer-events-none"></div>
+
+  <!-- NAVBAR -->
+  <header class="fixed top-0 left-0 right-0 z-50 glass">
+    <nav class="max-w-7xl mx-auto h-[74px] px-4 lg:px-8 flex items-center justify-between">
+      <a href="#home" class="flex items-center gap-3" aria-label="Englishmates home">
+        <img src="assets/englishmates-logo.jpg" alt="Englishmates logo" class="w-[190px] sm:w-[220px] h-auto object-contain">
+      </a>
+      <div class="hidden md:flex items-center gap-7 text-sm font-semibold">
+        <a class="nav-link" href="#programs">Programs</a>
+        <a class="nav-link" href="#tutor-preview">Find a Tutor</a>
+        <a class="nav-link" href="/tutor-apply.html">Become a Tutor</a>
+        <a class="nav-link" href="/calling-community.html">Calling Community</a>
+        <a class="nav-link" href="#ai-lab">AI Lab</a>
+        <a class="nav-link" href="#gallery">Activities</a>
+        <a class="nav-link" href="#results">Why Englishmates</a>
+        <a class="nav-link" href="#about">About</a>
+        <a class="btn-coral text-white px-5 py-2.5 rounded-full" href="#enroll">Book a Demo</a>
+      </div>
+      <button id="menuBtn" class="md:hidden p-2 text-white" aria-label="Open menu"><i data-lucide="menu"></i></button>
+    </nav>
+    <div id="mobileMenu" class="hidden md:hidden px-5 pb-5 border-t border-white/5">
+      <div class="flex flex-col gap-4 pt-4 text-sm font-semibold">
+        <a class="nav-link" href="#programs">Programs</a><a class="nav-link" href="#tutor-preview">Find a Tutor</a><a class="nav-link" href="/tutor-apply.html">Become a Tutor</a><a class="nav-link" href="/calling-community.html">Calling Community</a><a class="nav-link" href="#ai-lab">AI Lab</a>
+        <a class="nav-link" href="#results">Why Englishmates</a><a class="nav-link" href="#about">About</a>
+        <a href="#enroll" class="btn-coral text-white text-center px-5 py-3 rounded-xl">Book a Demo</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <main id="home">
+    <section class="relative overflow-hidden pt-32 md:pt-40 pb-16 section-pad">
+      <div class="orb w-80 h-80 bg-violet-600/20 -top-10 right-0"></div>
+      <div class="orb w-72 h-72 bg-blue-500/15 top-72 -left-24"></div>
+      <div class="max-w-7xl mx-auto px-4 lg:px-8 relative">
+        <div class="grid lg:grid-cols-12 gap-5">
+          <div class="lg:col-span-8 card rounded-[2rem] p-7 sm:p-10 lg:p-12 relative overflow-hidden reveal">
+            <div class="absolute right-0 top-0 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl"></div>
+            <div class="relative">
+              <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-violet-300 text-xs font-bold tracking-wide">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> COMMUNICATION + AI
+              </div>
+              <h1 class="hero-title mt-6 text-5xl md:text-6xl font-extrabold tracking-tight text-white">
+                Speak with confidence.<br><span class="gradient-text">Think with AI.</span>
+              </h1>
+              <p class="serif text-slate-400 text-base md:text-lg leading-8 max-w-2xl mt-6">
+                Build fluent English, public-speaking confidence and practical AI skills — with a learning experience designed for real life, interviews and careers.
+              </p>
+              <div class="flex flex-col sm:flex-row gap-3 mt-8">
+                <a href="#enroll" class="btn-primary transition-card text-white px-7 py-4 rounded-xl font-bold text-center inline-flex items-center justify-center gap-2">Book Free Demo <i data-lucide="arrow-right" class="w-5 h-5"></i></a>
+                <a href="#programs" class="px-7 py-4 rounded-xl font-bold text-center border border-white/10 bg-white/5 hover:bg-white/10 transition">Explore Programs</a>
+              </div>
+              <div class="flex flex-wrap gap-x-6 gap-y-3 mt-8 text-sm text-slate-400">
+                <span class="flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Practical speaking</span>
+                <span class="flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> AI-integrated learning</span>
+                <span class="flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Career-focused</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-4 reveal">
+            <div class="relative rounded-[2rem] overflow-hidden border border-white/10 bg-slate-900 shadow-2xl">
+              <img src="bhagirath-dayma-profile.png" alt="Bhagirath Dayma, Founder and Lead Trainer at Englishmates" class="w-full h-full min-h-[430px] object-cover object-center">
+              <div class="absolute inset-x-4 bottom-4 rounded-2xl bg-black/70 backdrop-blur-md border border-white/10 p-4">
+                <div class="text-xs uppercase tracking-[.18em] text-violet-300 font-bold">Founder & Lead Trainer</div>
+                <div class="text-xl font-extrabold text-white mt-1">Bhagirath Dayma</div>
+                <div class="text-xs text-slate-300 mt-1">Spoken English • Communication • AI</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRUST -->
+    <section class="border-y border-white/5 bg-white/[.025]">
+      <div class="max-w-7xl mx-auto px-4 lg:px-8 py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div><div class="text-white font-extrabold">5+ Years</div><div class="text-xs text-slate-500 mt-1">Teaching experience</div></div>
+        <div><div class="text-white font-extrabold">Sunday</div><div class="text-xs text-slate-500 mt-1">AI workshops</div></div>
+        <div><div class="text-white font-extrabold">Practical</div><div class="text-xs text-slate-500 mt-1">Speaking activities</div></div>
+        <div><div class="text-white font-extrabold">Ratangarh</div><div class="text-xs text-slate-500 mt-1">Pooja Market</div></div>
+      </div>
+    </section>
+
+    <!-- PROGRAMS -->
+    <section id="programs" class="section-pad py-20 px-4 lg:px-8">
+      <div class="max-w-7xl mx-auto">
+        <div class="max-w-2xl reveal">
+          <span class="text-blue-400 text-xs font-extrabold uppercase tracking-[.2em]">Learn by doing</span>
+          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Programs built for <span class="gradient-text">real growth.</span></h2>
+          <p class="text-slate-400 mt-5 leading-7">Choose one skill or combine them. Every program is designed to turn knowledge into confidence and action.</p>
+        </div>
+        <div id="publicCourseGrid" class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-10"><div class="text-slate-400">Loading courses…</div></div>
+      </div>
+    </section>
+
+    <!-- TUTOR DESIGN PREVIEW: informational only; no live booking or login -->
+    <section id="tutor-preview" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
+      <div class="max-w-6xl mx-auto">
+        <div class="max-w-3xl reveal">
+          <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Learn with the right guide</span>
+          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Meet your <span class="gradient-text">Tutor.</span></h2>
+          <p class="text-slate-400 mt-4 leading-7">Get personal guidance from experienced educators. Explore the tutor experience we are building at Englishmates.</p>
+        </div>
+        <article class="card rounded-3xl p-6 md:p-8 mt-9 reveal">
+          <div class="flex flex-col sm:flex-row gap-6 items-start">
+            <img src="bhagirath-dayma-profile.png" alt="Bhagirath Dayma, Founder and Lead Trainer" class="w-28 h-28 rounded-2xl object-cover object-center border border-violet-400/40">
+            <div class="flex-1">
+              <span class="text-xs text-emerald-300 font-bold uppercase tracking-wide">Englishmates · Lead Trainer</span>
+              <h3 class="text-2xl font-extrabold text-white mt-2">Bhagirath Dayma</h3>
+              <p class="text-violet-200 mt-1">Spoken English & Communication Skills</p>
+              <p class="text-sm text-slate-400 mt-3">M.Sc. Computer Science · Ratangarh, Rajasthan</p>
+              <p class="text-sm text-slate-300 leading-6 mt-3">Founder of Englishmates Institute. Focused on practical spoken English, communication, public speaking and confidence-building through guided practice.</p>
+              <div class="flex flex-wrap gap-2 mt-4 text-xs">
+                <span class="px-3 py-2 rounded-full bg-white/5 text-slate-300">Spoken English</span>
+                <span class="px-3 py-2 rounded-full bg-white/5 text-slate-300">Communication</span>
+                <span class="px-3 py-2 rounded-full bg-white/5 text-slate-300">Public Speaking</span>
+                <span class="px-3 py-2 rounded-full bg-white/5 text-slate-300">Personality Development</span>
+              </div>
+              <a href="#enroll" class="inline-flex items-center gap-2 btn-primary text-white px-5 py-3 rounded-xl font-bold text-sm mt-6">Book a Demo <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+            </div>
+          </div>
+        </article>
+        <div class="grid md:grid-cols-2 gap-5 mt-6">
+          <article class="card rounded-3xl p-6">
+            <div class="flex items-center gap-3"><i data-lucide="graduation-cap" class="w-6 h-6 text-blue-300"></i><h3 class="font-extrabold text-white">Student Experience</h3></div>
+            <p class="text-sm text-slate-400 leading-6 mt-3">A future student dashboard will help learners explore tutor profiles and manage class requests.</p>
+            <span class="inline-flex mt-4 px-3 py-2 rounded-full bg-amber-400/10 text-amber-300 text-xs font-bold">Coming soon</span>
+          </article>
+          <article class="card rounded-3xl p-6">
+            <div class="flex items-center gap-3"><i data-lucide="calendar-check" class="w-6 h-6 text-violet-300"></i><h3 class="font-extrabold text-white">Tutor Experience</h3></div>
+            <p class="text-sm text-slate-400 leading-6 mt-3">Approved teachers can sign in to set their weekly teaching hours and block dates when they are unavailable.</p>
+            <a href="/teacher-dashboard.html" class="inline-flex mt-4 px-4 py-2 rounded-xl bg-violet-500/15 text-violet-200 text-sm font-bold hover:bg-violet-500/25">Teacher Login & Availability <i data-lucide="arrow-up-right" class="w-4 h-4 ml-2"></i></a>
+            <a href="/tutor-apply.html" class="inline-flex mt-3 ml-0 sm:ml-2 px-4 py-2 rounded-xl bg-blue-500/15 text-blue-200 text-sm font-bold hover:bg-blue-500/25">Apply to Become a Tutor <i data-lucide="user-plus" class="w-4 h-4 ml-2"></i></a>
+          </article>
+        </div>
+        <div class="card rounded-3xl p-6 md:p-8 mt-6" id="studentTutorBooking">
+          <div class="flex flex-wrap justify-between items-start gap-3"><div><span class="text-violet-300 text-xs font-extrabold uppercase tracking-widest">30-minute sessions</span><h3 class="text-2xl font-extrabold text-white mt-2">Find an available tutor</h3><p class="text-sm text-slate-400 mt-2">Choose an approved tutor and request a convenient 30-minute slot.</p></div><button id="reloadTutorSlots" class="text-sm text-violet-200 border border-white/10 rounded-xl px-4 py-2">Refresh slots</button></div>
+          <div id="publicTutorList" class="grid md:grid-cols-2 gap-4 mt-6"><p class="text-sm text-slate-400">Loading available tutors…</p></div>
+          <form id="studentBookingForm" class="hidden mt-6 border-t border-white/10 pt-6 grid sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2"><h4 class="font-bold text-white">Request your class</h4><p id="selectedTutorLabel" class="text-sm text-violet-200 mt-1"></p></div>
+            <input type="hidden" name="tutorId"><input type="hidden" name="date"><input type="hidden" name="startTime">
+            <input name="studentName" required maxlength="90" placeholder="Your full name" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
+            <input name="phone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
+            <input name="email" required type="email" placeholder="Email address" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white sm:col-span-2">
+            <button id="sendBookingRequest" class="btn-primary rounded-xl p-3 text-white font-bold sm:col-span-2">Send 30-minute class request</button>
+            <p id="bookingFormMessage" role="status" class="text-sm sm:col-span-2"></p>
+          </form>
+        </div>
+        <dialog id="tutorIntroDialog" class="w-[min(92vw,760px)] rounded-3xl border border-white/10 bg-[#10192b] text-white p-0 backdrop:bg-black/80"><div class="p-5 md:p-6"><div class="flex items-center justify-between gap-4"><div><p class="text-xs text-violet-300 font-bold uppercase tracking-widest">Tutor introduction</p><h3 id="tutorIntroTitle" class="text-xl font-extrabold mt-1"></h3></div><button id="closeTutorIntro" type="button" class="text-slate-300 hover:text-white text-2xl" aria-label="Close introduction">×</button></div><video id="tutorIntroVideo" controls preload="metadata" playsinline class="w-full aspect-video rounded-2xl bg-black mt-5"></video></div></dialog>
+        <p class="text-xs text-slate-500 mt-5">Class requests remain pending until the tutor confirms them. Confirmed sessions are scheduled through the tutor’s connected Google Calendar with a Google Meet link. All times are India Standard Time (IST).</p>
+      </div>
+    </section>
+
+    <!-- WHY -->
+    <section id="results" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
+      <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
+        <div class="reveal">
+          <span class="text-rose-400 text-xs font-extrabold uppercase tracking-[.2em]">Why Englishmates?</span>
+          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Don't just learn.<br><span class="gradient-text">Become better.</span></h2>
+          <p class="text-slate-400 leading-7 mt-5 max-w-xl">The classroom is only the beginning. We focus on repeated practice, feedback and useful skills you can carry into college, interviews, work and everyday conversations.</p>
+          <div class="grid sm:grid-cols-2 gap-4 mt-8">
+            <div class="bg-white/[.03] border border-white/5 rounded-2xl p-5"><i data-lucide="message-circle" class="text-blue-400"></i><h3 class="font-bold text-white mt-4">Speak more</h3><p class="text-xs text-slate-500 mt-2">Practice before perfection.</p></div>
+            <div class="bg-white/[.03] border border-white/5 rounded-2xl p-5"><i data-lucide="brain" class="text-violet-400"></i><h3 class="font-bold text-white mt-4">Think better</h3><p class="text-xs text-slate-500 mt-2">Build useful communication habits.</p></div>
+            <div class="bg-white/[.03] border border-white/5 rounded-2xl p-5"><i data-lucide="presentation" class="text-cyan-400"></i><h3 class="font-bold text-white mt-4">Present clearly</h3><p class="text-xs text-slate-500 mt-2">Turn ideas into confident delivery.</p></div>
+            <div class="bg-white/[.03] border border-white/5 rounded-2xl p-5"><i data-lucide="rocket" class="text-rose-400"></i><h3 class="font-bold text-white mt-4">Use AI</h3><p class="text-xs text-slate-500 mt-2">Work smarter with modern tools.</p></div>
+          </div>
+        </div>
+        <div class="card rounded-[2rem] p-7 md:p-9 reveal">
+          <div class="flex items-center gap-4">
+            <img src="bhagirath-dayma-profile.png" alt="Bhagirath Dayma" class="w-16 h-16 rounded-full object-cover object-center border-2 border-violet-400/50">
+            <div><h3 class="text-2xl font-extrabold text-white">B.D. Sir</h3><p class="text-rose-400 text-xs font-bold uppercase tracking-widest">Founder & Lead Instructor</p></div>
+          </div>
+          <p class="serif text-slate-300 leading-8 mt-7">“Most institutes teach you to memorize. I want you to communicate, create and use what you learn.”</p>
+          <div class="mt-7 flex flex-wrap gap-2 text-xs"><span class="px-3 py-2 rounded-full bg-white/5 text-slate-300">M.Sc. (Computer Science)</span><span class="px-3 py-2 rounded-full bg-white/5 text-slate-300">B.Sc. (PCM)</span><span class="px-3 py-2 rounded-full bg-white/5 text-slate-300">AI Educator</span></div>
+          <a href="#about" class="inline-flex items-center gap-2 text-blue-400 font-bold text-sm mt-7">Read the teaching philosophy <i data-lucide="arrow-right" class="w-4"></i></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI LAB -->
+    <section id="ai-lab" class="section-pad py-20 px-4 lg:px-8">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center reveal">
+          <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">AI Lab</span>
+          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Try the <span class="gradient-text">AI Skill Booster.</span></h2>
+          <p class="text-slate-400 mt-4">A small taste of the practical AI experience students can build with Englishmates.</p>
+        </div>
+        <div class="card rounded-[2rem] mt-10 overflow-hidden reveal">
+          <div class="flex border-b border-white/5 overflow-x-auto hide-scrollbar">
+            <button class="aiTab flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 border-violet-400 text-white" data-mode="polish">Polish English</button>
+            <button class="aiTab flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 border-transparent text-slate-500" data-mode="prompt">Create Prompt</button>
+            <button class="aiTab flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 border-transparent text-slate-500" data-mode="vocab">Improve Vocabulary</button>
+          </div>
+          <div class="p-6 md:p-8">
+            <textarea id="aiInput" class="w-full h-32 bg-black/20 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-violet-400 resize-none" placeholder="Type a sentence you want to improve..."></textarea>
+            <button id="aiBtn" class="btn-primary w-full mt-4 py-4 rounded-xl text-white font-bold">Generate</button>
+            <div id="aiResult" class="hidden mt-5 p-5 rounded-2xl bg-black/20 border border-white/10 text-slate-200 whitespace-pre-wrap leading-7"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section id="stories" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 reveal">
+          <div><span class="text-emerald-400 text-xs font-extrabold uppercase tracking-[.2em]">Student voice</span><h2 class="text-4xl font-extrabold text-white mt-3">Real learning. Real confidence.</h2></div>
+          <button id="reviewBtn" class="px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold">Share Your Experience</button>
+        </div>
+        <div class="grid md:grid-cols-3 gap-5 mt-10">
+          <article class="card rounded-3xl p-7 reveal"><div class="text-amber-400">★★★★★</div><p class="serif text-slate-300 leading-7 mt-5">“The biggest change was that I stopped being afraid of speaking in front of others.”</p><div class="text-sm font-bold text-white mt-6">Student feedback</div><div class="text-xs text-slate-500 mt-1">Public speaking</div></article>
+          <article class="card rounded-3xl p-7 reveal"><div class="text-amber-400">★★★★★</div><p class="serif text-slate-300 leading-7 mt-5">“The AI sessions made technology feel practical instead of complicated.”</p><div class="text-sm font-bold text-white mt-6">Student feedback</div><div class="text-xs text-slate-500 mt-1">AI & ChatGPT</div></article>
+          <article class="card rounded-3xl p-7 reveal"><div class="text-amber-400">★★★★★</div><p class="serif text-slate-300 leading-7 mt-5">“The regular speaking practice helped me become much more comfortable in conversations.”</p><div class="text-sm font-bold text-white mt-6">Student feedback</div><div class="text-xs text-slate-500 mt-1">Spoken English</div></article>
+        </div>
+        <div id="liveReviews" class="grid md:grid-cols-3 gap-5 mt-5"><div class="md:col-span-3 text-center text-slate-500 py-6">Loading student reviews…</div></div>
+      </div>
+    </section>
+
+
+    <!-- REAL ENGLISHMATES ACTIVITIES -->
+    <section id="gallery" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-5 reveal">
+          <div>
+            <span class="text-amber-400 text-xs font-extrabold uppercase tracking-[.2em]">Inside Englishmates</span>
+            <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Real classrooms. <span class="gradient-text">Real practice.</span></h2>
+            <p class="text-slate-400 mt-4 max-w-2xl leading-7">A glimpse of the learning environment, speaking activities and sessions at Englishmates — using our own institute media.</p>
+          </div>
+          <a href="#enroll" class="text-sm font-bold text-blue-400 hover:text-blue-300 inline-flex items-center gap-2">Join a demo <i data-lucide="arrow-up-right" class="w-4"></i></a>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+          <figure class="lg:col-span-2 lg:row-span-2 group relative overflow-hidden rounded-3xl border border-white/10 bg-black/20 reveal">
+            <img src="activity-public-speaking-ai.png" alt="Englishmates public speaking and classroom activity" class="w-full h-full min-h-[360px] object-cover group-hover:scale-105 transition duration-700">
+            <figcaption class="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black/90 to-transparent pt-16">
+              <div class="text-white font-bold">Public Speaking & Communication</div>
+              <div class="text-xs text-slate-300 mt-1">Learn to speak with clarity and confidence.</div>
+            </figcaption>
+          </figure>
+
+          <figure class="group relative overflow-hidden rounded-3xl border border-white/10 bg-black/20 reveal">
+            <img src="activity-classroom-01.jpg" alt="Englishmates students during a classroom session" class="w-full h-56 object-cover group-hover:scale-105 transition duration-700">
+            <figcaption class="absolute left-3 bottom-3 px-3 py-2 rounded-xl bg-black/65 backdrop-blur text-xs font-bold text-white">Interactive Classroom</figcaption>
+          </figure>
+
+          <figure class="group relative overflow-hidden rounded-3xl border border-white/10 bg-black/20 reveal">
+            <img src="activity-group-discussion.jpg" alt="Englishmates group discussion activity" class="w-full h-56 object-cover group-hover:scale-105 transition duration-700">
+            <figcaption class="absolute left-3 bottom-3 px-3 py-2 rounded-xl bg-black/65 backdrop-blur text-xs font-bold text-white">Group Discussion</figcaption>
+          </figure>
+
+          <figure class="group relative overflow-hidden rounded-3xl border border-white/10 bg-black/20 reveal">
+            <img src="activity-classroom-02.jpg" alt="Englishmates students practising communication" class="w-full h-56 object-cover group-hover:scale-105 transition duration-700">
+            <figcaption class="absolute left-3 bottom-3 px-3 py-2 rounded-xl bg-black/65 backdrop-blur text-xs font-bold text-white">Speaking Practice</figcaption>
+          </figure>
+
+
+          <figure class="group relative overflow-hidden rounded-3xl border border-white/10 bg-black/20 reveal">
+            <img src="activity-batch-july-2025.jpg" alt="Englishmates students in a classroom batch session" class="w-full h-56 object-cover group-hover:scale-105 transition duration-700">
+            <figcaption class="absolute left-3 bottom-3 px-3 py-2 rounded-xl bg-black/65 backdrop-blur text-xs font-bold text-white">Batch Session</figcaption>
+          </figure>
+          <figure class="group relative overflow-hidden rounded-3xl border border-white/10 bg-black/20 reveal">
+            <img src="activity-classroom-03.jpg" alt="Englishmates classroom activity" class="w-full h-56 object-cover group-hover:scale-105 transition duration-700">
+            <figcaption class="absolute left-3 bottom-3 px-3 py-2 rounded-xl bg-black/65 backdrop-blur text-xs font-bold text-white">Learning Together</figcaption>
+          </figure>
+
+          <figure class="group relative overflow-hidden rounded-3xl border border-white/10 bg-black/20 reveal">
+            <img src="activity-batch-community.jpg" alt="Englishmates students during a batch interaction session" class="w-full h-56 object-cover object-center group-hover:scale-105 transition duration-700">
+            <figcaption class="absolute left-3 bottom-3 px-3 py-2 rounded-xl bg-black/65 backdrop-blur text-xs font-bold text-white">Batch Interaction</figcaption>
+          </figure>
+
+          <figure class="group relative overflow-hidden rounded-3xl border border-white/10 bg-black/20 reveal">
+            <img src="activity-student-session.jpg" alt="Englishmates students participating in a classroom session" class="w-full h-56 object-cover object-center group-hover:scale-105 transition duration-700">
+            <figcaption class="absolute left-3 bottom-3 px-3 py-2 rounded-xl bg-black/65 backdrop-blur text-xs font-bold text-white">Student Engagement</figcaption>
+          </figure>
+        </div>
+
+        <div class="mt-12 reveal">
+          <div class="flex items-center gap-3 mb-5"><div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center"><i data-lucide="play"></i></div><h3 class="text-2xl font-extrabold text-white">Sample Videos</h3></div>
+          <div class="grid md:grid-cols-2 gap-6">
+            <article class="card rounded-3xl overflow-hidden">
+              <video controls preload="metadata" playsinline class="w-full aspect-video bg-black object-cover">
+                <source src="video-priya.mp4" type="video/mp4">
+                Your browser does not support video playback.
+              </video>
+              <div class="p-5"><div class="text-white font-bold">How Priya Found Her Voice with Englishmates</div><div class="text-xs text-slate-500 mt-2">Student-story / communication journey</div></div>
+            </article>
+            <article class="card rounded-3xl overflow-hidden">
+              <video controls preload="metadata" playsinline class="w-full aspect-video bg-black object-cover">
+                <source src="video-classroom.mp4" type="video/mp4">
+                Your browser does not support video playback.
+              </video>
+              <div class="p-5"><div class="text-white font-bold">Englishmates Classroom Session</div><div class="text-xs text-slate-500 mt-2">Real classroom learning</div></div>
+            </article>
+            <article class="card rounded-3xl overflow-hidden">
+              <video controls preload="metadata" playsinline class="w-full aspect-video bg-black object-cover">
+                <source src="video-civic-sense.mp4" type="video/mp4">
+                Your browser does not support video playback.
+              </video>
+              <div class="p-5"><div class="text-white font-bold">Civic Sense Workshop</div><div class="text-xs text-slate-500 mt-2">Practical learning beyond the classroom</div></div>
+            </article>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="enroll" class="py-20 px-4 lg:px-8">
+      <div class="max-w-6xl mx-auto rounded-[2rem] overflow-hidden relative border border-violet-400/20 bg-gradient-to-br from-violet-600/15 via-blue-500/10 to-rose-500/10 p-8 md:p-12 reveal">
+        <div class="orb w-72 h-72 bg-violet-500/20 -right-20 -top-20"></div>
+        <div class="relative grid md:grid-cols-[1fr_auto] gap-8 items-center">
+          <div><span class="text-violet-300 text-xs font-extrabold uppercase tracking-[.2em]">Start here</span><h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Ready to speak, learn & grow?</h2><p class="text-slate-400 mt-4 max-w-2xl">Book a demo, tell us your goal, and we'll help you choose the right English or AI program.</p></div>
+          <button id="enrollBtn" class="btn-coral text-white font-extrabold px-8 py-4 rounded-xl whitespace-nowrap">Register / Enquire</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRAINER PHOTO -->
+    <section class="px-4 lg:px-8 pb-20">
+      <div class="max-w-7xl mx-auto grid md:grid-cols-[280px_1fr] gap-6 items-center card rounded-[2rem] p-5 md:p-6 reveal">
+        <img src="bhagirath-dayma-profile.png" alt="Bhagirath Dayma at Englishmates" class="w-full h-64 md:h-56 object-cover object-center rounded-2xl">
+        <div>
+          <span class="text-amber-400 text-xs font-extrabold uppercase tracking-[.2em]">Meet the person behind Englishmates</span>
+          <h2 class="text-2xl md:text-3xl font-extrabold text-white mt-2">Learn from a trainer who teaches communication for the real world.</h2>
+          <p class="text-slate-400 leading-7 mt-3">This is the same professional profile image used across the Englishmates website, creating a consistent personal brand and stronger student trust.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="about" class="py-20 px-4 lg:px-8 bg-[#050916] border-t border-white/5">
+      <div class="max-w-4xl mx-auto text-center reveal">
+        <span class="text-blue-400 text-xs font-extrabold uppercase tracking-[.2em]">Our philosophy</span>
+        <h2 class="text-4xl font-extrabold text-white mt-3">Why I teach differently.</h2>
+        <p class="serif text-slate-300 leading-8 mt-7">Most institutes focus on memorization. Englishmates focuses on using the language and technology. With a background in Computer Science, the teaching approach connects communication skills with practical AI tools.</p>
+      </div>
+    </section>
+  </main>
+
+
+  <!-- ADMIN / COURSE MANAGEMENT -->
+  <section id="adminArea" class="hidden py-16 px-4 lg:px-8 bg-[#02050d] border-y border-violet-500/10">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-5">
+        <div><span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Private dashboard</span>
+          <h2 class="text-4xl font-extrabold text-white mt-2">Englishmates Admissions</h2>
+          <p class="text-slate-400 mt-2">Live course-wise student roster. New registrations appear automatically.</p></div>
+        <div class="flex gap-2"><button id="notifyBtn" class="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold">Enable Notifications</button><button id="logoutBtn" class="px-4 py-3 rounded-xl bg-rose-500/10 text-rose-300 text-sm font-bold">Logout</button></div>
+      </div>
+      <div id="adminStats" class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-8"></div>
+      <section class="card rounded-3xl p-5 md:p-7 mt-8"><div class="flex flex-col md:flex-row md:items-center justify-between gap-4"><div><span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Tutor approvals</span><h3 class="text-2xl font-extrabold text-white mt-2">Review tutor applications</h3><p class="text-sm text-slate-400 mt-1">New verified tutor registrations stay pending until you approve them.</p></div><a href="/tutor-admin.html" class="btn-primary px-5 py-3 rounded-xl text-white font-bold text-center">Open approval queue</a></div></section>
+      <div class="card rounded-3xl p-5 md:p-7 mt-8"><div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-2xl font-extrabold text-white">Course Management</h3><p class="text-sm text-slate-400 mt-1">Add, edit, archive, restore, activate, deactivate, delete or merge courses.</p></div><button id="addCourseBtn" class="btn-primary px-5 py-3 rounded-xl text-white font-bold">+ Add New Course</button></div><div id="courseManagerMsg" class="text-sm mt-3 text-slate-400"></div><div id="courseManagerList" class="grid md:grid-cols-2 gap-4 mt-5"></div><div class="border-t border-white/10 mt-7 pt-6"><h4 class="text-lg font-bold text-white">Merge courses</h4><p class="text-xs text-slate-400 mt-1">Selected courses will be archived and a new combined course will be created. Existing student records will not be changed.</p><div id="mergeCourseChoices" class="grid sm:grid-cols-2 gap-2 mt-4"></div><div class="grid md:grid-cols-3 gap-3 mt-4"><input id="mergeName" placeholder="New combined course name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="mergeFee" placeholder="Combined fee (e.g. ₹5,000)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="mergeDuration" placeholder="Duration" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"></div><textarea id="mergeDescription" placeholder="Combined course description" class="w-full mt-3 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea><button id="mergeCoursesBtn" class="mt-3 px-5 py-3 rounded-xl bg-violet-500/20 text-violet-200 font-bold">Merge Selected Courses</button></div></div>
+      <div id="courseEditor" class="hidden card rounded-3xl p-5 md:p-7 mt-5"><div class="flex justify-between"><h3 id="courseEditorTitle" class="text-xl font-extrabold text-white">Add course</h3><button id="cancelCourseEdit" class="text-slate-400">Close</button></div><form id="courseEditorForm" class="grid md:grid-cols-2 gap-3 mt-5"><input type="hidden" id="editCourseId"><input id="editCourseName" required placeholder="Course name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="editCourseFee" required placeholder="Fee (e.g. ₹4,500)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="editCourseDuration" placeholder="Duration" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><input id="editCourseTag" placeholder="Short tag (e.g. Beginner to Pro)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white"><textarea id="editCourseDescription" required placeholder="Course description" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea><textarea id="editCourseFeatures" placeholder="Features (one per line)" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white"></textarea><label class="text-sm text-slate-300 flex items-center gap-2"><input id="editCourseActive" type="checkbox" checked> Active and visible for registration</label><label class="text-sm text-slate-300 flex items-center gap-2"><input id="editCourseMeet" type="checkbox"> Share Google Meet link after registration</label><div class="md:col-span-2 flex gap-2"><button class="btn-primary px-6 py-3 rounded-xl text-white font-bold">Save Course</button><button type="button" id="cancelCourseEdit2" class="px-6 py-3 rounded-xl bg-white/5 text-white">Cancel</button></div></form></div>
+      <div class="card rounded-3xl p-5 md:p-7 mt-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div><h3 class="text-2xl font-extrabold text-white">Student Management</h3><p class="text-sm text-slate-400 mt-1">Add, search, edit and remove student records.</p></div>
+          <button id="addStudentBtn" class="btn-primary px-5 py-3 rounded-xl text-white font-bold">+ Add Student</button>
+        </div>
+        <div class="grid md:grid-cols-3 gap-3 mt-5">
+          <input id="studentSearch" type="search" placeholder="Search name, phone or email…" class="md:col-span-2 p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <select id="studentCourseFilter" class="p-3 rounded-xl bg-[#10192b] border border-white/10 text-white"><option value="">All courses</option></select>
+        </div>
+        <div id="studentManagerMsg" class="text-sm mt-3 text-slate-400" role="status"></div>
+        <div id="studentManagerList" class="overflow-x-auto mt-4"></div>
+      </div>
+      <div id="studentEditor" class="hidden card rounded-3xl p-5 md:p-7 mt-5">
+        <div class="flex items-center justify-between gap-3"><h3 id="studentEditorTitle" class="text-xl font-extrabold text-white">Add student</h3><button type="button" id="cancelStudentEdit" class="text-slate-400">Close</button></div>
+        <form id="studentEditorForm" class="grid md:grid-cols-2 gap-3 mt-5">
+          <input type="hidden" id="editStudentId">
+          <input id="editStudentName" required maxlength="100" placeholder="Student full name" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <input id="editStudentPhone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <input id="editStudentEmail" type="email" placeholder="Email (optional)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <select id="editStudentCourse" required class="p-3 rounded-xl bg-[#10192b] border border-white/10 text-white"></select>
+          <input id="editStudentFee" placeholder="Fee (e.g. ₹4,500)" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <select id="editStudentPayment" class="p-3 rounded-xl bg-[#10192b] border border-white/10 text-white"><option>Pending</option><option>Paid / Registered</option><option>Partially Paid</option><option>Waived</option></select>
+          <input id="editStudentAdmissionDate" type="date" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <input id="editStudentGoal" placeholder="Goal / Notes" class="p-3 rounded-xl bg-black/20 border border-white/10 text-white">
+          <div class="md:col-span-2 flex flex-wrap gap-2"><button class="btn-primary px-6 py-3 rounded-xl text-white font-bold">Save Student</button><button type="button" id="cancelStudentEdit2" class="px-6 py-3 rounded-xl bg-white/5 text-white">Cancel</button></div>
+        </form>
+      </div>
+      <div id="courseRoster" class="mt-8 space-y-8"></div>
+    </div>
+  </section>
+
+  <!-- ADMIN LOGIN -->
+  <div id="adminLoginModal" class="hidden fixed inset-0 z-[110] modal-backdrop items-center justify-center p-4">
+    <div class="w-full max-w-sm card rounded-3xl p-7 relative">
+      <button class="closeAdmin absolute top-4 right-4 text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
+      <span class="text-violet-400 text-xs font-bold uppercase tracking-widest">Owner access</span>
+      <h2 class="text-2xl font-extrabold text-white mt-2">Admin Login</h2>
+      <p class="text-slate-500 text-sm mt-2">Owner account: <span class="text-violet-300 font-semibold">bddayma12@gmail.com</span>. Your password is only used by Firebase Authentication.</p>
+      <form id="adminLoginForm" class="space-y-4 mt-6">
+        <input id="adminEmail" type="email" required value="bddayma12@gmail.com" autocomplete="username" placeholder="Admin email" class="w-full p-3.5 rounded-xl bg-black/20 border border-white/10 text-white">
+        <input id="adminPassword" type="password" required placeholder="Password" class="w-full p-3.5 rounded-xl bg-black/20 border border-white/10 text-white">
+        <button class="btn-primary w-full py-3.5 rounded-xl text-white font-bold">Login to Dashboard</button>
+        <p id="adminLoginMsg" class="text-sm text-center hidden"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-white/5 bg-[#030611] px-4 lg:px-8 py-12">
+    <div class="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
+      <div><img src="assets/englishmates-logo.jpg" alt="Englishmates logo" class="w-[230px] max-w-full h-auto object-contain"><p class="text-slate-500 text-sm mt-3 max-w-sm">Communication & AI Academy, Ratangarh.</p></div>
+      <div><div class="text-white font-bold">Visit / Contact</div><p class="text-slate-500 text-sm mt-3">Pooja Market, Ratangarh<br>Phone: 9351031200</p></div>
+      <div class="md:text-right"><div class="text-white font-bold">Quick actions</div><div class="flex md:justify-end gap-3 mt-3"><a href="tel:+919351031200" class="px-4 py-2 rounded-lg bg-white/5 text-sm text-slate-300">Call</a><a href="https://wa.me/919351031200?text=Hello%20Englishmates%2C%20I%20want%20to%20know%20about%20your%20courses." target="_blank" rel="noopener" class="px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-300 text-sm">WhatsApp</a></div></div>
+    </div>
+    <div class="max-w-7xl mx-auto mt-10 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between gap-3 text-xs text-slate-600"><button id="adminLink" class="text-slate-500 hover:text-violet-300 text-left">Owner / Admin Login</button><span>© <span id="year"></span> Englishmates Institute. All rights reserved.</span></div>
+  </footer>
+
+  <a href="https://wa.me/919351031200?text=Hello%20Englishmates%2C%20I%20want%20to%20book%20a%20demo." target="_blank" rel="noopener" aria-label="WhatsApp Englishmates" class="fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-2xl hover:scale-105 transition"><i data-lucide="message-circle"></i></a>
+
+  <!-- ENROLL MODAL -->
+  <div id="enrollModal" class="hidden fixed inset-0 z-[100] modal-backdrop items-center justify-center p-4">
+    <div class="w-full max-w-lg max-h-[92vh] overflow-y-auto card rounded-3xl p-6 md:p-8 relative">
+      <button class="closeModal absolute top-4 right-4 text-slate-400 hover:text-white" aria-label="Close"><i data-lucide="x"></i></button>
+      <div class="pr-8"><span class="text-rose-400 text-xs font-bold uppercase tracking-widest">Enquiry / Registration</span><h2 class="text-2xl font-extrabold text-white mt-2">Let's get you started.</h2><p class="text-sm text-slate-500 mt-2">Register once with your mobile number. Existing registrations cannot be submitted again.</p></div>
+      <form id="enrollForm" class="space-y-4 mt-6">
+        <input name="name" required placeholder="Full name" class="w-full p-3.5 rounded-xl bg-black/20 border border-white/10 text-white outline-none focus:border-violet-400">
+        <input name="phone" required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="w-full p-3.5 rounded-xl bg-black/20 border border-white/10 text-white outline-none focus:border-violet-400">
+        <input name="email" type="email" placeholder="Email (optional)" class="w-full p-3.5 rounded-xl bg-black/20 border border-white/10 text-white outline-none focus:border-violet-400">
+        <div class="rounded-xl border border-white/10 bg-white/[.03] p-4"><label class="text-xs text-slate-400 font-bold">Student profile photo (optional)</label><input id="studentPhoto" type="file" accept="image/*" class="w-full mt-2 text-xs text-slate-400"></div>
+        <select name="interest" id="courseSelect" class="w-full p-3.5 rounded-xl bg-[#10192b] border border-white/10 text-white outline-none">
+          
+        </select>
+        <div class="rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-3 flex items-center justify-between gap-3"><span class="text-sm text-slate-300">Course fee</span><strong id="selectedCourseFee" class="text-lg text-white">₹4,500</strong></div>
+        <p id="onlineCourseNote" class="hidden text-xs leading-5 text-emerald-300">Online classes: Monday to Saturday, 30 minutes daily. Sunday holiday. Google Meet link will be shared after registration. Class time will be coordinated with enrolled students.</p>
+        <textarea name="goal" placeholder="What do you want to improve? (optional)" class="w-full h-24 p-3.5 rounded-xl bg-black/20 border border-white/10 text-white outline-none resize-none"></textarea>
+        <div class="rounded-2xl border border-white/10 bg-white/[.03] p-4 text-center">
+          <div class="text-xs font-bold uppercase tracking-widest text-blue-400">Payment for paid enrollment</div>
+          <a href="1000470557.png" download="Englishmates-PhonePe-Payment-QR.png" class="block mx-auto w-fit group" title="Download Englishmates payment QR">
+            <img src="1000470557.png" alt="PhonePe payment QR for Englishmates" class="w-44 h-44 mx-auto my-3 object-contain rounded-lg bg-white border border-white/10 group-hover:scale-[1.02] transition">
+          </a>
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <a href="1000470557.png" download="Englishmates-PhonePe-Payment-QR.png" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 text-xs font-bold border border-blue-400/20">
+              <i data-lucide="download" class="w-4 h-4"></i> Download QR
+            </a>
+            <a href="1000470557.png" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 text-xs font-bold border border-white/10">
+              <i data-lucide="maximize-2" class="w-4 h-4"></i> Open QR
+            </a>
+          </div>
+          <div class="text-xs text-slate-400">UPI: <span class="text-slate-200">9351031200@upi</span></div>
+          <input name="txnId" placeholder="Transaction ID (if already paid)" class="w-full mt-3 p-3 rounded-xl bg-black/20 border border-white/10 text-white text-sm">
+        </div>
+        <button id="submitBtn" class="btn-coral w-full py-4 rounded-xl text-white font-extrabold">Submit Enquiry</button>
+        <p id="formMsg" class="text-sm text-center hidden"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- REVIEW MODAL -->
+  <div id="reviewModal" class="hidden fixed inset-0 z-[100] modal-backdrop items-center justify-center p-4">
+    <div class="w-full max-w-md card rounded-3xl p-6 relative">
+      <button class="closeModal absolute top-4 right-4 text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
+      <h2 class="text-xl font-extrabold text-white">Share your experience</h2>
+      <form id="reviewForm" class="space-y-4 mt-6">
+        <input name="name" required placeholder="Your name" class="w-full p-3.5 rounded-xl bg-black/20 border border-white/10 text-white">
+        <select name="rating" class="w-full p-3.5 rounded-xl bg-[#10192b] border border-white/10 text-white"><option value="5">★★★★★ Excellent</option><option value="4">★★★★ Good</option><option value="3">★★★ Average</option></select>
+        <textarea name="text" required placeholder="Write your experience..." class="w-full h-28 p-3.5 rounded-xl bg-black/20 border border-white/10 text-white resize-none"></textarea>
+        <button class="w-full btn-primary py-3.5 rounded-xl text-white font-bold">Submit Review</button>
+        <p id="reviewMsg" class="text-sm text-center hidden"></p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFuF2PBq09cKOHBuoLDoypEgrI1gSmm4c",
+      authDomain: "englishmates-ratangarh-933f1.firebaseapp.com",
+      projectId: "englishmates-ratangarh-933f1",
+      storageBucket: "englishmates-ratangarh-933f1.firebasestorage.app",
+      messagingSenderId: "501474121790",
+      appId: "1:501474121790:web:5097a43a6be4e7bc07996f6"
+    };
+    // IMPORTANT: use the same email address in firestore.rules.
+    const ADMIN_EMAIL = "bddayma12@gmail.com";
+    const ENGLISHMATES_FCM_VAPID_KEY = "BB49q-PCD2hDUUEK7IjxJmESlU5Fe8px5urKh-SdVjtrZt86rhw1NWTK29zBhOrWtftEE1Tdzw64pplrDVLAHtE";
+    let db=null, auth=null;
+    try{
+      firebase.initializeApp(firebaseConfig);
+      db=firebase.firestore();
+      auth=firebase.auth();
+    }catch(e){console.warn("Firebase unavailable",e)}
+
+    const $ = s => document.querySelector(s);
+    const $$ = s => [...document.querySelectorAll(s)];
+    document.getElementById('year').textContent = new Date().getFullYear();
+    lucide.createIcons();
+
+    // Mobile navigation
+    $('#menuBtn').addEventListener('click',()=>$('#mobileMenu').classList.toggle('hidden'));
+    $$('#mobileMenu a').forEach(a=>a.addEventListener('click',()=>$('#mobileMenu').classList.add('hidden')));
+
+    // Modals
+    const openModal = id => { const el=$(id); el.classList.remove('hidden'); el.classList.add('flex'); document.body.style.overflow='hidden'; };
+    const closeAll = () => { $$('#enrollModal,#reviewModal,#adminLoginModal').forEach(el=>{el.classList.add('hidden');el.classList.remove('flex')});document.body.style.overflow=''; };
+    $$('.closeModal').forEach(b=>b.addEventListener('click',closeAll));
+    $$('.closeAdmin').forEach(b=>b.addEventListener('click',closeAll));
+    let courseCatalog=[];
+    let COURSE_FEES={"Spoken English":"₹4,500","Art of Communication":"₹4,500","Complete AI & ChatGPT":"₹999","Sunday AI Workshop":"₹99","Online Spoken English":"₹699","English + AI (Both)":"Contact for combined fee"};
+    function updateSelectedCourseFee(){ const course=$('#courseSelect').value; const item=courseCatalog.find(c=>c.name===course); $('#selectedCourseFee').textContent=(item&&item.fee)||COURSE_FEES[course]||'Contact us'; $('#onlineCourseNote').classList.toggle('hidden',!(item&&item.requiresMeetLink)); }
+    $('#courseSelect').addEventListener('change',updateSelectedCourseFee);
+    $$('#enrollBtn,.courseBtn').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.course) $('#courseSelect').value=b.dataset.course; updateSelectedCourseFee(); openModal('#enrollModal'); }));
+    updateSelectedCourseFee();
+    $('#reviewBtn').addEventListener('click',()=>openModal('#reviewModal'));
+    window.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
+
+    // Course pricing map — restored from the original Englishmates site.
+
+
+    // Notifications: browser + Firebase Cloud Messaging (FCM)
+    let messaging=null;
+    let fcmToken=null;
+    let fcmRegistration=null;
+
+    function showToast(title,body){
+      const t=document.getElementById('adminToast');
+      if(!t)return;
+      document.getElementById('toastTitle').textContent=title||'Englishmates';
+      document.getElementById('toastBody').textContent=body||'';
+      t.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer=setTimeout(()=>t.classList.add('hidden'),7000);
+    }
+
+    function refreshNotifyStatus(){
+      const status=document.getElementById('notifyStatus');
+      if(!status)return;
+      if(!('Notification' in window)){status.textContent='Alerts: unsupported';return;}
+      const p=Notification.permission;
+      status.textContent='Alerts: '+(p==='granted'?'ON':p==='denied'?'BLOCKED':'OFF');
+      status.className='px-4 py-3 rounded-xl border text-sm '+(p==='granted'?'bg-emerald-500/10 border-emerald-400/20 text-emerald-300':p==='denied'?'bg-rose-500/10 border-rose-400/20 text-rose-300':'bg-amber-500/10 border-amber-400/20 text-amber-300');
+    }
+
+    async function setupFCM(){
+      if(!window.firebase || !firebase.messaging || !('serviceWorker' in navigator) || !('Notification' in window)) return false;
+      if(!auth || !auth.currentUser || auth.currentUser.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase()) return false;
+      if(Notification.permission!=='granted') return false;
+      try{
+        if(!fcmRegistration) fcmRegistration=await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        messaging=messaging || firebase.messaging();
+        fcmToken=await messaging.getToken({vapidKey:ENGLISHMATES_FCM_VAPID_KEY,serviceWorkerRegistration:fcmRegistration});
+        if(!fcmToken) throw new Error('No FCM token returned');
+        const tokenDocId=btoa(fcmToken).replace(/[/+=]/g,'_').slice(0,100);
+        await db.collection('adminDevices').doc(tokenDocId).set({
+          token:fcmToken,email:ADMIN_EMAIL,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),userAgent:navigator.userAgent
+        },{merge:true});
+        messaging.onMessage(payload=>{
+          const title=payload.notification?.title || payload.data?.title || 'New Englishmates Admission';
+          const body=payload.notification?.body || payload.data?.body || 'A new student has registered.';
+          showToast(title,body);
+          try{new Notification(title,{body,tag:'englishmates-admission'});}catch(e){}
+        });
+        showToast('Push alerts ready','This device is registered to receive Englishmates admission notifications.');
+        return true;
+      }catch(err){
+        console.error('FCM setup failed:',err);
+        showToast('Push setup failed','Check Firebase Cloud Messaging configuration.');
+        return false;
+      }
+    }
+
+    async function enableNotifications(){
+      if(!('Notification' in window)){showToast('Notifications unavailable','This browser does not support web notifications.');return false;}
+      if(Notification.permission==='denied'){
+        refreshNotifyStatus();
+        showToast('Notifications are blocked','Allow notifications for Englishmates in browser site settings.');
+        return false;
+      }
+      const permission=await Notification.requestPermission();
+      refreshNotifyStatus();
+      if(permission!=='granted'){
+        showToast('Permission not granted','Allow notifications to receive admission alerts.');
+        return false;
+      }
+      await setupFCM();
+      try{new Notification('Englishmates Alerts ON',{body:'This device is ready for admission notifications.'});}catch(e){}
+      return true;
+    }
+
+    document.getElementById('notifyBtn')?.addEventListener('click',enableNotifications);
+    document.getElementById('testNotifyBtn')?.addEventListener('click',async()=>{
+      if(Notification.permission!=='granted'){const ok=await enableNotifications();if(!ok)return;}
+      showToast('Englishmates Test Alert','Your browser notification setup is working.');
+      try{new Notification('Englishmates Test Alert',{body:'Your browser notification setup is working.'});}catch(e){}
+    });
+    document.getElementById('toastClose')?.addEventListener('click',()=>document.getElementById('adminToast')?.classList.add('hidden'));
+    refreshNotifyStatus();
+
+    // Keep student photos small enough for Firestore; no separate storage bucket is required.
+    function compressImage(file){
+      return new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>{
+          const img=new Image();
+          img.onload=()=>{
+            const max=500, scale=Math.min(1,max/Math.max(img.width,img.height));
+            const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(img.width*scale)); c.height=Math.max(1,Math.round(img.height*scale));
+            c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+            resolve(c.toDataURL('image/jpeg',.68));
+          };
+          img.onerror=reject; img.src=reader.result;
+        };
+        reader.onerror=reject; reader.readAsDataURL(file);
+      });
+    }
+
+    // Admission submission — server-backed and protected against duplicate registrations by mobile number.
+    $('#enrollForm').addEventListener('submit', async e=>{
+      e.preventDefault();
+      const btn=$('#submitBtn'), msg=$('#formMsg');
+      const form=e.target;
+      btn.disabled=true; btn.textContent='Checking registration…';
+      msg.textContent=''; msg.className='text-sm text-center hidden';
+      try{
+        const data=Object.fromEntries(new FormData(form).entries());
+        const phone=String(data.phone||'').replace(/\D/g,'').slice(-10);
+        if(!/^\d{10}$/.test(phone)) throw new Error('Please enter a valid 10-digit mobile number.');
+        data.phone=phone;
+        data.course=data.interest;
+        const selectedCourse=courseCatalog.find(c=>c.name===data.course);
+        data.courseId=selectedCourse?.id||'';
+        data.fee=COURSE_FEES[data.course] || '';
+        const photo=$('#studentPhoto').files[0];
+        if(photo) data.profileUrl=await compressImage(photo); else data.profileUrl='';
+        delete data.interest;
+
+        btn.textContent='Submitting registration…';
+        const response=await fetch('/.netlify/functions/submit-admission',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(data)
+        });
+        let result={};
+        try{result=await response.json();}catch(_){result={};}
+
+        if(response.status===409 || result.duplicate){
+          msg.textContent='⚠️ You are already registered with this mobile number.';
+          msg.className='text-sm text-center text-amber-300 font-bold';
+          return;
+        }
+        if(!response.ok || !result.ok) throw new Error(result.error || 'Registration failed');
+
+        msg.textContent=data.course==='Online Spoken English' ? '✓ Registration successful. Your class time will be coordinated with enrolled students.' : '✓ Registration successful. Englishmates will contact you shortly.';
+        msg.className='text-sm text-center text-emerald-400 font-bold';
+        if(data.course==='Online Spoken English' && result.meetLink){
+          const link=document.createElement('a');
+          link.href=result.meetLink;
+          link.target='_blank';
+          link.rel='noopener noreferrer';
+          link.textContent='Join your Google Meet class';
+          link.className='block mt-2 underline text-emerald-300';
+          msg.appendChild(document.createElement('br'));
+          msg.appendChild(link);
+        } else if(data.course==='Online Spoken English'){
+          msg.textContent += ' The joining link will be provided by the institute.';
+        }
+        form.reset();
+        updateSelectedCourseFee();
+        if(data.course!=='Online Spoken English') setTimeout(closeAll,1500);
+      }catch(err){
+        console.error(err);
+        msg.textContent=err.message==='Please enter a valid 10-digit mobile number.' ? err.message : 'Could not complete registration online. Please contact Englishmates on WhatsApp.';
+        msg.className='text-sm text-center text-rose-400';
+      }finally{
+        btn.disabled=false; btn.textContent='Submit Registration';
+      }
+    });
+
+    // Reviews
+    $('#reviewForm').addEventListener('submit', async e=>{
+      e.preventDefault(); const msg=$('#reviewMsg');
+      try{
+        if(!db) throw new Error('offline');
+        const data=Object.fromEntries(new FormData(e.target).entries());
+        data.createdAt = new Date().toISOString();
+        await db.collection('reviews').add({...data,timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+        msg.textContent='✓ Review submitted and will appear below shortly.'; msg.className='text-sm text-center text-emerald-400';
+        e.target.reset(); setTimeout(closeAll,1400);
+      }catch(err){msg.textContent='Review could not be submitted right now.';msg.className='text-sm text-center text-rose-400'}
+    });
+
+
+    // LIVE REVIEWS — read from Firestore in real time.
+    // We intentionally avoid orderBy(timestamp) so old reviews without a timestamp
+    // don't break the listener or require an extra Firestore index.
+    function renderLiveReviews(docs){
+      const box=$('#liveReviews');
+      if(!docs.length){
+        box.innerHTML='<div class="md:col-span-3 text-center text-slate-600 py-6">No student reviews yet. Be the first to share your experience.</div>';
+        return;
+      }
+      docs.sort((a,b)=>{
+        const ad=a.timestamp && a.timestamp.toDate ? a.timestamp.toDate().getTime() : new Date(a.createdAt||0).getTime();
+        const bd=b.timestamp && b.timestamp.toDate ? b.timestamp.toDate().getTime() : new Date(b.createdAt||0).getTime();
+        return bd-ad;
+      });
+      box.innerHTML=docs.map(r=>{
+        const rating=Math.max(1,Math.min(5,Number(r.rating)||5));
+        const stars='★'.repeat(rating)+'☆'.repeat(5-rating);
+        return `<article class="card rounded-3xl p-6 reveal show">
+          <div class="text-amber-400 tracking-widest">${stars}</div>
+          <p class="serif text-slate-300 leading-7 mt-4">“${esc(r.text)}”</p>
+          <div class="flex items-center justify-between gap-3 mt-5">
+            <div><div class="text-sm font-bold text-white">${esc(r.name)}</div><div class="text-xs text-slate-500 mt-1">Englishmates student</div></div>
+            <div class="text-[10px] text-slate-600">${formatDate(r.timestamp||r.createdAt)}</div>
+          </div>
+        </article>`;
+      }).join('');
+    }
+
+    if(db){
+      db.collection('reviews').onSnapshot(
+        snap => renderLiveReviews(snap.docs.map(d=>({id:d.id,...d.data()}))),
+        err => {
+          console.error('Live reviews listener:',err);
+          $('#liveReviews').innerHTML='<div class="md:col-span-3 text-center text-rose-400 py-6">Reviews are temporarily unavailable. Please try again shortly.</div>';
+        }
+      );
+    } else {
+      $('#liveReviews').innerHTML='<div class="md:col-span-3 text-center text-slate-600 py-6">Reviews will appear here when Firebase is connected.</div>';
+    }
+
+    // ADMIN DASHBOARD — protected by Firebase Email/Password + Firestore rules.
+    let adminUnsubscribe=null, knownStudentIds=new Set(), adminFirstLoad=true;
+    let COURSES=[];
+    const DEFAULT_COURSES=[
+      {id:'spoken-english',name:'Spoken English',fee:'₹4,500',duration:'3 Months',tag:'Beginner to Pro',description:'From hesitation to everyday fluency through guided speaking, vocabulary and conversation.',features:['Daily speaking practice','Interview preparation','Confidence building'],active:true,archived:false,order:1},
+      {id:'art-of-communication',name:'Art of Communication',fee:'₹4,500',duration:'3 Months',tag:'Public Speaking',description:'Public speaking, presentation, body language and the confidence to express ideas clearly.',features:['Public speaking','Presentation skills','Personality development'],active:true,archived:false,order:2},
+      {id:'complete-ai-chatgpt',name:'Complete AI & ChatGPT',fee:'₹999',duration:'3 Months • 12 Sundays',tag:'AI Skills',description:'Learn prompts, research, content creation, productivity and practical AI workflows.',features:['Prompt engineering','AI productivity','Practical projects'],active:true,archived:false,order:3},
+      {id:'sunday-ai-workshop',name:'Sunday AI Workshop',fee:'₹99',duration:'Every Sunday',tag:'Hands-on Workshop',description:'A low-cost way to discover useful AI tools and start applying them immediately.',features:['Hands-on demos','Beginner friendly','Practical AI tools'],active:true,archived:false,order:4},
+      {id:'online-spoken-english',name:'Online Spoken English',fee:'₹699',duration:'1 Month • Live Google Meet',tag:'Online Classes',description:'Build speaking confidence from home with short, live, guided classes.',features:['Monday to Saturday','30 minutes per class','Sunday holiday','Flexible class timing','Google Meet sessions'],active:true,archived:false,order:5,requiresMeetLink:true},
+      {id:'english-ai-both',name:'English + AI (Both)',fee:'Contact for combined fee',duration:'Contact for details',tag:'Combined Program',description:'Combine communication skills with practical AI learning.',features:['English communication','Practical AI tools'],active:true,archived:false,order:6}
+    ];
+    function slugCourse(name){return String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||('course-'+Date.now());}
+    function renderPublicCourses(){
+      const visible=courseCatalog.filter(c=>c.active&&!c.archived).sort((a,b)=>(a.order||999)-(b.order||999));
+      $('#publicCourseGrid').innerHTML=visible.length?visible.map((c,i)=>`<div class="card transition-card rounded-3xl p-7 reveal show"><div class="w-12 h-12 rounded-2xl bg-violet-500/10 text-violet-300 flex items-center justify-center"><i data-lucide="graduation-cap"></i></div><h3 class="text-xl font-bold text-white mt-6">${esc(c.name)}</h3><div class="text-3xl font-extrabold text-white mt-4">${esc(c.fee||'Contact us')}</div><div class="text-xs text-violet-300 font-bold mt-1">${esc(c.duration||c.tag||'Course')}</div><p class="text-slate-400 text-sm leading-6 mt-3">${esc(c.description||'')}</p><div class="mt-5 text-xs text-slate-300 space-y-2">${(c.features||[]).map(f=>`<div>✓ ${esc(f)}</div>`).join('')}</div><button data-course="${esc(c.name)}" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button></div>`).join(''):'<p class="text-slate-400">New courses will be announced soon.</p>';
+      $('#courseSelect').innerHTML=visible.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+      COURSE_FEES={}; visible.forEach(c=>COURSE_FEES[c.name]=c.fee||'Contact us'); COURSES=courseCatalog.filter(c=>!c.archived).map(c=>c.name);
+      $$('.courseBtn').forEach(b=>b.addEventListener('click',()=>{$('#courseSelect').value=b.dataset.course;updateSelectedCourseFee();openModal('#enrollModal')}));
+      if(!visible.some(c=>c.name===$('#courseSelect').value)&&visible.length)$('#courseSelect').value=visible[0].name;
+      updateSelectedCourseFee(); lucide.createIcons();
+    }
+    async function loadCourses(){
+      if(!db){courseCatalog=DEFAULT_COURSES;renderPublicCourses();return;}
+      try{const snap=await db.collection('courses').get();courseCatalog=snap.docs.map(d=>({id:d.id,...d.data()}));if(!courseCatalog.length)courseCatalog=DEFAULT_COURSES;renderPublicCourses();}
+      catch(err){console.warn('Course catalog read failed; using display fallback',err);courseCatalog=DEFAULT_COURSES;renderPublicCourses();}
+    }
+    async function seedDefaultCourses(){const ref=db.collection('courses');const snap=await ref.limit(1).get();if(snap.empty){const batch=db.batch();DEFAULT_COURSES.forEach(c=>{const {id,...data}=c;batch.set(ref.doc(id),{...data,createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()})});await batch.commit();}await loadCourses();}
+    function renderCourseManager(){
+      const active=courseCatalog.filter(c=>!c.archived);$('#courseManagerList').innerHTML=courseCatalog.slice().sort((a,b)=>(a.order||999)-(b.order||999)).map(c=>`<div class="rounded-2xl border border-white/10 bg-white/[.03] p-4"><div class="flex justify-between gap-3"><div><h4 class="font-bold text-white">${esc(c.name)}</h4><p class="text-xs text-slate-400 mt-1">${esc(c.fee||'')} • ${esc(c.duration||'')}</p><p class="text-xs mt-2 ${c.archived?'text-slate-500':c.active?'text-emerald-300':'text-amber-300'}">${c.archived?'Archived':c.active?'Active':'Inactive'}</p></div><button data-edit="${esc(c.id)}" class="text-blue-300 text-sm">Edit</button></div><div class="flex flex-wrap gap-2 mt-4"><button data-toggle="${esc(c.id)}" class="px-3 py-2 rounded-lg bg-white/5 text-xs text-white">${c.active?'Deactivate':'Activate'}</button><button data-archive="${esc(c.id)}" class="px-3 py-2 rounded-lg bg-white/5 text-xs text-white">${c.archived?'Restore':'Archive'}</button><button data-delete="${esc(c.id)}" class="px-3 py-2 rounded-lg bg-rose-500/10 text-xs text-rose-300">Delete</button></div></div>`).join('');
+      $('#mergeCourseChoices').innerHTML=active.map(c=>`<label class="flex gap-2 items-center text-sm text-slate-300"><input type="checkbox" value="${esc(c.id)}" class="mergeChoice">${esc(c.name)}</label>`).join('');
+      $$('[data-edit]').forEach(b=>b.onclick=()=>editCourse(b.dataset.edit));$$('[data-toggle]').forEach(b=>b.onclick=()=>changeCourse(b.dataset.toggle,{active:!courseCatalog.find(c=>c.id===b.dataset.toggle).active}));$$('[data-archive]').forEach(b=>b.onclick=()=>changeCourse(b.dataset.archive,{archived:!courseCatalog.find(c=>c.id===b.dataset.archive).archived}));$$('[data-delete]').forEach(b=>b.onclick=()=>deleteCourse(b.dataset.delete));
+    }
+    function openCourseEditor(c={}){$('#courseEditor').classList.remove('hidden');$('#courseEditorTitle').textContent=c.id?'Edit course':'Add new course';$('#editCourseId').value=c.id||'';$('#editCourseName').value=c.name||'';$('#editCourseFee').value=c.fee||'';$('#editCourseDuration').value=c.duration||'';$('#editCourseTag').value=c.tag||'';$('#editCourseDescription').value=c.description||'';$('#editCourseFeatures').value=(c.features||[]).join('\n');$('#editCourseActive').checked=c.active!==false;$('#editCourseMeet').checked=!!c.requiresMeetLink;$('#courseEditor').scrollIntoView({behavior:'smooth'});}
+    function editCourse(id){openCourseEditor(courseCatalog.find(c=>c.id===id)||{});}
+    async function changeCourse(id,patch){try{await db.collection('courses').doc(id).update({...patch,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await loadCourses();renderCourseManager();$('#courseManagerMsg').textContent='Course updated.';}catch(e){$('#courseManagerMsg').textContent='Could not update course. Check Firestore rules.';}}
+    async function deleteCourse(id){const c=courseCatalog.find(x=>x.id===id);if(!c||!confirm(`Permanently delete “${c.name}” from the course catalog? Existing student records will remain unchanged.`))return;try{await db.collection('courses').doc(id).delete();await loadCourses();renderCourseManager();$('#courseManagerMsg').textContent='Course deleted from catalog. Student history was not changed.';}catch(e){$('#courseManagerMsg').textContent='Delete failed. Check Firestore rules.';}}
+    $('#addCourseBtn').addEventListener('click',()=>openCourseEditor());
+    ['cancelCourseEdit','cancelCourseEdit2'].forEach(id=>document.getElementById(id).addEventListener('click',()=>$('#courseEditor').classList.add('hidden')));
+    $('#courseEditorForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#editCourseId').value;const name=$('#editCourseName').value.trim();const data={name,fee:$('#editCourseFee').value.trim(),duration:$('#editCourseDuration').value.trim(),tag:$('#editCourseTag').value.trim(),description:$('#editCourseDescription').value.trim(),features:$('#editCourseFeatures').value.split('\n').map(x=>x.trim()).filter(Boolean),active:$('#editCourseActive').checked,archived:false,requiresMeetLink:$('#editCourseMeet').checked,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};const docId=id||slugCourse(name);try{if(id)await db.collection('courses').doc(id).update(data);else await db.collection('courses').doc(docId).set({...data,order:courseCatalog.length+1,createdAt:firebase.firestore.FieldValue.serverTimestamp()});$('#courseEditor').classList.add('hidden');await loadCourses();renderCourseManager();$('#courseManagerMsg').textContent='Course saved successfully.';}catch(err){$('#courseManagerMsg').textContent='Save failed. Check Firestore rules and ensure the course name is unique.';}});
+    $('#mergeCoursesBtn').addEventListener('click',async()=>{const ids=$$('.mergeChoice:checked').map(x=>x.value);const name=$('#mergeName').value.trim();if(ids.length<2||!name){$('#courseManagerMsg').textContent='Select at least two courses and enter a new course name.';return;}if(!confirm('Merge selected courses? Source courses will be archived. Existing student records will remain unchanged.'))return;try{const batch=db.batch();ids.forEach(id=>batch.update(db.collection('courses').doc(id),{archived:true,active:false,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),mergedInto:slugCourse(name)}));const id=slugCourse(name);batch.set(db.collection('courses').doc(id),{name,fee:$('#mergeFee').value.trim()||'Contact us',duration:$('#mergeDuration').value.trim(),description:$('#mergeDescription').value.trim(),features:[],active:true,archived:false,order:courseCatalog.length+1,createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await batch.commit();await loadCourses();renderCourseManager();$('#courseManagerMsg').textContent='Merge complete. Original student records were preserved.';}catch(err){$('#courseManagerMsg').textContent='Merge failed. Check Firestore rules.';}});
+    loadCourses();
+    function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+    function formatDate(v){
+      if(!v)return '—';
+      const d=v.toDate?v.toDate():new Date(v);
+      return Number.isNaN(d.getTime())?'—':d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    }
+    function initials(name){return (name||'S').trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
+    function safePhoto(s){return s.profileUrl || `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#334155"/><text x="32" y="39" text-anchor="middle" font-size="22" fill="white">${initials(s.name)}</text></svg>`)}`}
+    let latestAdminStudents=[];
+    function refreshStudentFilters(){
+      const filter=$('#studentCourseFilter'), current=filter.value;
+      filter.innerHTML='<option value="">All courses</option>'+courseCatalog.filter(c=>!c.archived).map(c=>'<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>').join('');
+      if([...filter.options].some(o=>o.value===current))filter.value=current;
+      $('#editStudentCourse').innerHTML=courseCatalog.filter(c=>!c.archived).map(c=>'<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>').join('');
+    }
+    function renderStudentManager(students){
+      latestAdminStudents=students;
+      refreshStudentFilters();
+      const q=$('#studentSearch').value.trim().toLowerCase(), course=$('#studentCourseFilter').value;
+      const rows=students.filter(s=>(!course||s.course===course)&&(!q||[s.name,s.phone,s.email,s.course].some(v=>String(v||'').toLowerCase().includes(q))));
+      $('#studentManagerList').innerHTML=rows.length?'<table class="w-full text-left text-sm min-w-[760px]"><thead><tr class="border-b border-white/10 text-slate-500"><th class="p-3">Student</th><th class="p-3">Phone</th><th class="p-3">Course</th><th class="p-3">Fee</th><th class="p-3">Payment</th><th class="p-3">Actions</th></tr></thead><tbody>'+rows.map(s=>'<tr class="border-b border-white/5"><td class="p-3"><div class="font-bold text-white">'+esc(s.name||'—')+'</div><div class="text-xs text-slate-500">'+esc(s.email||'No email')+'</div></td><td class="p-3 text-slate-300">'+esc(s.phone||'—')+'</td><td class="p-3 text-slate-300">'+esc(s.course||'Unassigned')+'</td><td class="p-3 text-slate-300">'+esc(s.fee||'—')+'</td><td class="p-3 text-slate-300">'+esc(s.paymentStatus||'Pending')+'</td><td class="p-3"><div class="flex gap-2"><button type="button" data-student-edit="'+esc(s.id)+'" class="px-3 py-2 rounded-lg bg-blue-500/10 text-blue-300">Edit</button><button type="button" data-student-delete="'+esc(s.id)+'" class="px-3 py-2 rounded-lg bg-rose-500/10 text-rose-300">Delete</button></div></td></tr>').join('')+'</tbody></table>':'<p class="text-slate-500 p-5 text-center">No matching students found.</p>';
+    }
+    $('#studentManagerList').addEventListener('click',e=>{
+      const edit=e.target.closest('button[data-student-edit]');
+      if(edit){e.preventDefault();openStudentEditor(edit.dataset.studentEdit);return;}
+      const del=e.target.closest('button[data-student-delete]');
+      if(del){e.preventDefault();deleteStudentRecord(del.dataset.studentDelete);}
+    });
+    function dateInputValue(v){
+      if(!v)return '';
+      const d=v.toDate?v.toDate():new Date(v);
+      if(Number.isNaN(d.getTime()))return '';
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }
+    function openStudentEditor(id=''){
+      const s=id?latestAdminStudents.find(x=>x.id===id):{};
+      if(id&&!s)return;
+      refreshStudentFilters();
+      $('#studentEditorTitle').textContent=id?'Edit student':'Add student';
+      $('#editStudentId').value=id;
+      $('#editStudentName').value=s?.name||'';
+      $('#editStudentPhone').value=s?.phone||'';
+      $('#editStudentPhone').readOnly=!!id;
+      $('#editStudentEmail').value=s?.email||'';
+      $('#editStudentCourse').value=s?.course||($('#editStudentCourse').options[0]?.value||'');
+      $('#editStudentFee').value=s?.fee||COURSE_FEES[s?.course]||'';
+      $('#editStudentPayment').value=s?.paymentStatus||'Pending';
+      $('#editStudentAdmissionDate').value=dateInputValue(s?.admissionDate||s?.createdAt)||new Date().toISOString().slice(0,10);
+      $('#editStudentGoal').value=s?.goal||'';
+      $('#studentEditor').classList.remove('hidden');
+      $('#studentEditor').scrollIntoView({behavior:'smooth',block:'center'});
+    }
+    async function deleteStudentRecord(id){
+      const s=latestAdminStudents.find(x=>x.id===id);
+      if(!s||!confirm('Delete '+(s.name||'this student')+' from the student roster? This removes the student record only; the original enquiry/lead history is retained.'))return;
+      try{
+        await db.collection('students').doc(id).delete();
+        $('#studentManagerMsg').textContent='Student record deleted. Original enquiry history was retained.';
+      }catch(err){console.error(err);$('#studentManagerMsg').textContent='Delete failed. Check your owner access and try again.';}
+    }
+    $('#addStudentBtn').addEventListener('click',()=>openStudentEditor());
+    ['cancelStudentEdit','cancelStudentEdit2'].forEach(id=>document.getElementById(id).addEventListener('click',()=>$('#studentEditor').classList.add('hidden')));
+    $('#studentSearch').addEventListener('input',()=>renderStudentManager(latestAdminStudents));
+    $('#studentCourseFilter').addEventListener('change',()=>renderStudentManager(latestAdminStudents));
+    $('#studentEditorForm').addEventListener('submit',async e=>{
+      e.preventDefault();
+      const id=$('#editStudentId').value, phone=$('#editStudentPhone').value.replace(/\D/g,'');
+      const name=$('#editStudentName').value.trim(), course=$('#editStudentCourse').value;
+      const msg=$('#studentManagerMsg');
+      if(!/^\d{10}$/.test(phone)){msg.textContent='Enter a valid 10-digit mobile number.';return;}
+      if(!course){msg.textContent='Please add a course before adding a student.';return;}
+      try{
+        if(!id){
+          const duplicate=await db.collection('students').where('phone','==',phone).limit(1).get();
+          if(!duplicate.empty){msg.textContent='A student with this mobile number already exists.';return;}
+        }
+        const admissionDate=new Date($('#editStudentAdmissionDate').value+'T12:00:00').toISOString();
+        const data={name,phone,email:$('#editStudentEmail').value.trim(),course,courseId:courseCatalog.find(c=>c.name===course)?.id||'',fee:$('#editStudentFee').value.trim()||COURSE_FEES[course]||'Contact us',paymentStatus:$('#editStudentPayment').value,goal:$('#editStudentGoal').value.trim(),admissionDate,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        if(id){
+          const old=latestAdminStudents.find(x=>x.id===id);
+          await db.collection('students').doc(id).update(data);
+          if(old?.leadId)await db.collection('leads').doc(old.leadId).update(data);
+        }else{
+          data.status=data.paymentStatus==='Paid / Registered'?'Enrolled':'Enquiry';
+          data.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+          data.timestamp=firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('students').add(data);
+        }
+        $('#studentEditor').classList.add('hidden');
+        msg.textContent=id?'Student details updated.':'Student added successfully.';
+      }catch(err){console.error(err);msg.textContent='Could not save student. Check Firestore rules and try again.';}
+    });
+    function renderRoster(students){
+      renderStudentManager(students);
+      const counts={}; COURSES.forEach(c=>counts[c]=0);
+      students.forEach(s=>{const c=s.course||'Unassigned';counts[c]=(counts[c]||0)+1});
+      $('#adminStats').innerHTML=`<div class="card rounded-2xl p-4"><div class="text-xs text-slate-500">Total students</div><div class="text-3xl font-extrabold text-white mt-1">${students.length}</div><div class="text-[10px] text-slate-600 mt-1">All courses</div></div>`+
+      COURSES.map(c=>`<div class="card rounded-2xl p-4"><div class="text-xs text-slate-500">${esc(c)}</div><div class="text-2xl font-extrabold text-white mt-1">${counts[c]||0}</div><div class="text-[10px] text-slate-600 mt-1">students</div></div>`).join('');
+
+      $('#courseRoster').innerHTML=COURSES.map(course=>{
+        const rows=students.filter(s=>(s.course||'')===course);
+        return `<div class="reveal show"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4"><div><h3 class="text-xl font-extrabold text-white">${esc(course)}</h3><p class="text-xs text-slate-500">Fee: ${esc(COURSE_FEES[course]||'—')} • ${rows.length} student(s)</p></div></div>
+        <div class="overflow-x-auto card rounded-2xl"><table class="w-full text-left text-sm"><thead><tr class="border-b border-white/5 text-slate-500"><th class="p-4">Student</th><th class="p-4">Phone</th><th class="p-4">Admission date</th><th class="p-4">Fee</th><th class="p-4">Payment</th></tr></thead><tbody>
+        ${rows.length?rows.map(s=>`<tr class="border-b border-white/5 last:border-0"><td class="p-4"><div class="flex items-center gap-3"><img src="${safePhoto(s)}" class="w-11 h-11 rounded-full object-cover border border-white/10" alt="Student profile"><div><div class="font-bold text-white">${esc(s.name)||'—'}</div><div class="text-xs text-slate-500">${esc(s.email)||'No email'}</div></div></div></td><td class="p-4 text-slate-300">${esc(s.phone)||'—'}</td><td class="p-4 text-slate-300">${formatDate(s.admissionDate||s.createdAt)}</td><td class="p-4 font-bold text-white">${esc(s.fee||COURSE_FEES[course]||'—')}</td><td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs ${s.paymentStatus==='Paid / Registered'?'bg-emerald-400/10 text-emerald-300':'bg-amber-400/10 text-amber-300'}">${esc(s.paymentStatus||'Pending')}</span></td></tr>`).join(''):`<tr><td colspan="5" class="p-8 text-center text-slate-600">No students in this course yet.</td></tr>`}
+        </tbody></table></div></div>`;
+      }).join('');
+    }
+    function notifyNewStudent(s){
+      const title='New Englishmates Enrollment';
+      const body=`${s.name||'New student'} joined ${s.course||'a course'} • ${s.fee||''}`;
+      if('Notification' in window && Notification.permission==='granted') new Notification(title,{body});
+      try{
+        const ctx=new (window.AudioContext||window.webkitAudioContext)();
+        const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.setValueAtTime(.04,ctx.currentTime);o.start();o.stop(ctx.currentTime+.35);
+      }catch(e){}
+    }
+    function subscribeAdmin(){
+      if(!db||!auth.currentUser)return;
+      if(adminUnsubscribe)adminUnsubscribe();
+      adminUnsubscribe=db.collection('students').orderBy('createdAt','desc').onSnapshot(snap=>{
+        const students=snap.docs.map(d=>({id:d.id,...d.data()}));
+        renderRoster(students);
+        if(!adminFirstLoad){
+          snap.docChanges().filter(c=>c.type==='added').forEach(c=>{
+            if(knownStudentIds.has(c.doc.id))return;
+            notifyNewStudent(c.doc.data());
+          });
+        }
+        snap.docs.forEach(d=>knownStudentIds.add(d.id));
+        adminFirstLoad=false;
+      },err=>{
+        console.error('Admin student listener:',err);
+        $('#courseRoster').innerHTML='<div class="p-6 rounded-2xl border border-rose-500/20 bg-rose-500/5 text-rose-300">Could not load admissions. Check Firebase Firestore Rules and your admin email configuration.</div>';
+      });
+    }
+    async function showAdmin(){
+      $('#adminArea').classList.remove('hidden'); $('#adminArea').scrollIntoView({behavior:'smooth'});
+      try{await seedDefaultCourses();renderCourseManager();}catch(err){$('#courseManagerMsg').textContent='Course controls need Firestore rules allowing owner access to the courses collection.';}
+      subscribeAdmin();
+    }
+    $('#adminLink').addEventListener('click',()=>auth&&auth.currentUser?showAdmin():openModal('#adminLoginModal'));
+    $('#adminLoginForm').addEventListener('submit',async e=>{
+      e.preventDefault(); const m=$('#adminLoginMsg');
+      if(ADMIN_EMAIL.startsWith('YOUR_ADMIN_EMAIL')){m.textContent='Set your real admin email in index.html before logging in.';m.className='text-sm text-center text-amber-300';return;}
+      try{
+        await auth.signInWithEmailAndPassword($('#adminEmail').value.trim(),$('#adminPassword').value);
+        if((auth.currentUser.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await auth.signOut();throw new Error('not-admin');}
+        closeAll(); showAdmin(); setTimeout(async()=>{ if(Notification.permission==='default') await enableNotifications(); else if(Notification.permission==='granted') await setupFCM(); },400);
+      }catch(err){console.error('Englishmates admin login error:',err.code,err.message);m.textContent=err.message==='not-admin'?'This account is not the Englishmates owner account.':`Login failed (${err.code||'unknown'}). ${err.message||'Check Firebase Authentication.'}`;m.className='text-sm text-center text-rose-400'}
+    });
+    $('#logoutBtn').addEventListener('click',async()=>{if(adminUnsubscribe)adminUnsubscribe();knownStudentIds.clear();adminFirstLoad=true;$('#adminArea').classList.add('hidden');await auth.signOut()});
+    if(auth) auth.onAuthStateChanged(u=>{ if(u && !$('#adminArea').classList.contains('hidden')) subscribeAdmin(); });
+
+    // Lightweight AI demo that works without exposing an API key in the browser.
+    let aiMode='polish';
+    $$('.aiTab').forEach(tab=>tab.addEventListener('click',()=>{
+      aiMode=tab.dataset.mode;
+      $$('.aiTab').forEach(x=>{x.classList.remove('text-white','border-violet-400');x.classList.add('text-slate-500','border-transparent')});
+      tab.classList.add('text-white','border-violet-400');tab.classList.remove('text-slate-500','border-transparent');
+      $('#aiInput').placeholder = aiMode==='polish'?'Type a sentence you want to improve...':aiMode==='prompt'?'Describe what you want AI to do...':'Enter a word or simple sentence...';
+      $('#aiResult').classList.add('hidden');
+    }));
+    $('#aiBtn').addEventListener('click',()=>{
+      const v=$('#aiInput').value.trim(); if(!v)return;
+      let r='';
+      if(aiMode==='polish') r=`Better version:\\n“${v}”\\n\\nTip: Keep your sentence clear, natural and specific. In the full Englishmates AI lab, students can practise rewriting, grammar and professional communication.`;
+      if(aiMode==='prompt') r=`Starter prompt:\\n“Act as an expert assistant. Help me with: ${v}. Ask any important clarifying question first, then give a practical answer with examples.”\\n\\nTip: Good prompts give AI a role, task and desired output.`;
+      if(aiMode==='vocab') r=`Vocabulary practice for “${v}”:\\n• Understand the meaning in context\\n• Learn 2–3 useful alternatives\\n• Make your own sentence\\n• Use the word in tomorrow’s conversation`;
+      $('#aiResult').textContent=r; $('#aiResult').classList.remove('hidden');
+    });
+
+
+    // Student-facing tutor availability and 30-minute booking requests.
+    const tutorList=$('#publicTutorList'), bookingForm=$('#studentBookingForm');
+    let publicTutors=[];
+    const safeTutorPhoto=(url)=>/^https:\/\//i.test(url)?url:'';
+    const safeTutorVideo=(url)=>/^https:\/\/firebasestorage\.googleapis\.com\//i.test(url)?url:'';
+    const tutorIntroDialog=$('#tutorIntroDialog'),tutorIntroVideo=$('#tutorIntroVideo');
+    function closeTutorIntro(){tutorIntroVideo.pause();tutorIntroVideo.removeAttribute('src');tutorIntroVideo.load();if(tutorIntroDialog.open)tutorIntroDialog.close();}
+    function openTutorIntro(tutor){const video=safeTutorVideo(tutor.introVideoUrl);if(!video)return;tutorIntroVideo.src=video;$('#tutorIntroTitle').textContent=tutor.name+' · introduction';tutorIntroDialog.showModal();tutorIntroVideo.play().catch(()=>{});}
+    $('#closeTutorIntro').addEventListener('click',closeTutorIntro);tutorIntroDialog.addEventListener('close',()=>{tutorIntroVideo.pause();tutorIntroVideo.removeAttribute('src');tutorIntroVideo.load();});
+    async function loadPublicTutors(){
+      tutorList.innerHTML='<p class="text-sm text-slate-400">Loading available tutors…</p>';
+      try{
+        const r=await fetch('/.netlify/functions/student-bookings',{cache:'no-store'}),data=await r.json();
+        if(!r.ok||!data.ok)throw new Error(data.error||'Could not load tutors.');
+        publicTutors=data.tutors||[];
+        if(!publicTutors.length){tutorList.innerHTML='<p class="text-sm text-slate-400">No tutor slots are available right now. Please check again later.</p>';return;}
+        tutorList.innerHTML=publicTutors.map(t=>{const photo=safeTutorPhoto(t.photoUrl),intro=safeTutorVideo(t.introVideoUrl),avatar=photo?'<img src="'+esc(photo)+'" alt="" class="w-14 h-14 rounded-xl object-cover">':'<div class="w-14 h-14 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-200 font-bold text-xl">'+esc((t.name||'T').slice(0,1).toUpperCase())+'</div>';return '<article class="rounded-2xl border border-white/10 bg-white/[.025] p-4">'+
+          '<div class="flex items-center gap-3">'+(intro?'<button type="button" data-watch-intro="'+esc(t.id)+'" class="relative shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400" aria-label="Watch '+esc(t.name)+' introduction">'+avatar+'<span class="absolute inset-0 grid place-items-center rounded-xl bg-black/45 text-white text-lg">▶</span></button>':avatar)+
+          '<div><h4 class="font-extrabold text-white">'+esc(t.name)+'</h4><p class="text-xs text-violet-200">'+esc(t.subjects||'Englishmates Tutor')+'</p></div></div>'+
+          (t.bio?'<p class="text-sm text-slate-400 mt-3">'+esc(t.bio)+'</p>':'')+
+          (intro?'<button type="button" data-watch-intro="'+esc(t.id)+'" class="text-sm text-violet-200 font-bold mt-3">▶ Watch '+esc(String(Math.round(t.introVideoDurationSeconds||0)||1))+'-second introduction</button>':'')+
+          '<label class="block text-xs text-slate-400 mt-4">Available 30-minute slots</label><select data-tutor-slot="'+esc(t.id)+'" class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white"><option value="">Choose a date and time</option>'+t.slots.map(s=>'<option value="'+esc(s.date+'|'+s.startTime)+'">'+esc(s.date)+' · '+esc(s.startTime)+'–'+esc(s.endTime)+' IST</option>').join('')+'</select><button type="button" data-book-tutor="'+esc(t.id)+'" class="btn-primary rounded-xl px-4 py-2.5 text-sm font-bold text-white mt-3">Request this tutor</button></article>';}).join('');
+      }catch(e){tutorList.innerHTML='<p class="text-sm text-rose-300">'+esc(e.message)+'</p>';}
+    }
+    tutorList.addEventListener('click',e=>{
+      const intro=e.target.closest('[data-watch-intro]');if(intro){const tutor=publicTutors.find(t=>t.id===intro.dataset.watchIntro);if(tutor)openTutorIntro(tutor);return;}
+      const btn=e.target.closest('[data-book-tutor]');if(!btn)return;
+      const tutor=publicTutors.find(t=>t.id===btn.dataset.bookTutor),select=tutorList.querySelector('[data-tutor-slot="'+btn.dataset.bookTutor+'"]');
+      if(!tutor||!select.value){alert('Please choose an available 30-minute slot first.');return;}
+      const [date,startTime]=select.value.split('|');
+      bookingForm.elements.tutorId.value=tutor.id;bookingForm.elements.date.value=date;bookingForm.elements.startTime.value=startTime;
+      $('#selectedTutorLabel').textContent=tutor.name+' · '+date+' · '+startTime+' IST (30 minutes)';
+      $('#bookingFormMessage').textContent='';bookingForm.classList.remove('hidden');bookingForm.scrollIntoView({behavior:'smooth',block:'center'});
+    });
+    bookingForm.addEventListener('submit',async e=>{
+      e.preventDefault();const btn=$('#sendBookingRequest');btn.disabled=true;$('#bookingFormMessage').textContent='Sending your request…';
+      const payload=Object.fromEntries(new FormData(bookingForm).entries());
+      try{const r=await fetch('/.netlify/functions/student-bookings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not send request.');
+        $('#bookingFormMessage').textContent=data.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-emerald-300';bookingForm.reset();bookingForm.classList.add('hidden');await loadPublicTutors();
+      }catch(err){$('#bookingFormMessage').textContent=err.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-rose-300';await loadPublicTutors();}
+      finally{btn.disabled=false;}
+    });
+    $('#reloadTutorSlots').addEventListener('click',loadPublicTutors);loadPublicTutors();
+
+    // Reveal animations
+    const io=new IntersectionObserver(entries=>entries.forEach(en=>{if(en.isIntersecting){en.target.classList.add('show');io.unobserve(en.target)}}),{threshold:.08});
+    $$('.reveal').forEach(el=>io.observe(el));
+  </script>
+</body>
+</html>
