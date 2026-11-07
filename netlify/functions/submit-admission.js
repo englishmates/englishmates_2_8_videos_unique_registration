@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const crypto = require('crypto');
+const cors = require('../lib/cors');
 
 let initialized = false;
 function initFirebase() {
@@ -171,4 +172,11 @@ exports.handler = async (event) => {
     }
     return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'Registration could not be completed right now.' }) };
   }
+};
+
+const handler = exports.handler;
+exports.handler = async event => {
+  if (event.httpMethod === 'OPTIONS') return cors.options(event);
+  const response = await handler(event);
+  return { ...response, headers: { ...(response.headers || {}), ...cors.headers(event) } };
 };

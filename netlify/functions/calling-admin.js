@@ -2,6 +2,7 @@ const {
   admin, COLLECTIONS, authenticatedUser, audit, clean, iso, reply,
   requireAdmin, store, httpError
 } = require('../lib/calling');
+const cors = require('../lib/cors');
 
 const STATUSES = ['pending', 'approved', 'rejected', 'suspended'];
 
@@ -66,4 +67,11 @@ exports.handler = async event => {
     console.error('Calling admin:', error.message);
     return reply(error.status || 500, { ok: false, error: error.message || 'Request failed.' });
   }
+};
+
+const handler = exports.handler;
+exports.handler = async event => {
+  if (event.httpMethod === 'OPTIONS') return cors.options(event);
+  const response = await handler(event);
+  return { ...response, headers: { ...(response.headers || {}), ...cors.headers(event) } };
 };

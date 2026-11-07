@@ -3,6 +3,7 @@ const {
   consumeLimit, httpError, iso, ownProfile, publicProfile, reply,
   requireEligible, store
 } = require('../lib/calling');
+const cors = require('../lib/cors');
 
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 const TOPICS = ['Daily conversation', 'Interview', 'Public speaking', 'Grammar', 'Vocabulary', 'Travel', 'Personality development'];
@@ -227,4 +228,11 @@ exports.handler = async event => {
     console.error('Calling Community:', error.message);
     return reply(error.status || 500, { ok: false, error: error.message || 'Request failed.' });
   }
+};
+
+const handler = exports.handler;
+exports.handler = async event => {
+  if (event.httpMethod === 'OPTIONS') return cors.options(event);
+  const response = await handler(event);
+  return { ...response, headers: { ...(response.headers || {}), ...cors.headers(event) } };
 };

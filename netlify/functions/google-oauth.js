@@ -21,19 +21,22 @@ exports.handler=async event=>{
  try{
    const oauth=googleOAuthConfig(),query=event.queryStringParameters||{};
   const code=query.code,state=query.state;
-   const origin=oauth.origin;
-  if(query.error)return redirect(origin+'/teacher-dashboard.html?google=denied');
-  if(!code||!state||!/^[a-f0-9]{64}$/.test(state))return redirect(origin+'/teacher-dashboard.html?google=error');
+  const origin=oauth.origin;
+  const fallback=result=>origin+'/teacher-dashboard.html?google='+result;
+  if(query.error)return redirect(fallback('denied'));
+  if(!code||!state||!/^[a-f0-9]{64}$/.test(state))return redirect(fallback('error'));
   const store=db(),suffix=process.env.CONTEXT==='production'?'':'Preview';
   const stateRef=store.collection('googleOAuthStates'+suffix).doc(state),snap=await stateRef.get();
-  if(!snap.exists||Number(snap.data().expiresAt||0)<Date.now())return redirect(origin+'/teacher-dashboard.html?google=expired');
+  if(!snap.exists||Number(snap.data().expiresAt||0)<Date.now())return redirect(fallback('expired'));
   const tutorId=snap.data().tutorId;
+  const returnUrl=String(snap.data().returnUrl||'');
+  const dashboard=result=>{try{const target=new URL(returnUrl);if(target.origin==='https://englishmates.github.io'&&target.pathname.startsWith('/englishmates_2_8_videos_unique_registration/'))return new URL('teacher-dashboard.html?google='+result,target).toString();}catch{}return fallback(result);};
   await stateRef.delete();
    const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({code,client_id:oauth.clientId,client_secret:oauth.clientSecret,redirect_uri:oauth.redirectUri,grant_type:'authorization_code'})});
   const tokens=await tokenRes.json();
   if(!tokenRes.ok||!tokens.refresh_token)throw new Error('Google did not return a refresh token. Please reconnect and grant calendar access.');
   await store.collection('tutorGoogleConnections'+suffix).doc(tutorId).set({refreshToken:encryptToken(tokens.refresh_token),scope:tokens.scope||'',connectedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
-  return redirect(origin+'/teacher-dashboard.html?google=connected');
+  return redirect(dashboard('connected'));
  }catch(error){
   console.error('Google OAuth callback:',error.message);
    let origin='/';try{origin=process.env.GOOGLE_REDIRECT_URI?new URL(String(process.env.GOOGLE_REDIRECT_URI).trim()).origin:'/';}catch{}

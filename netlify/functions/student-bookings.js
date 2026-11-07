@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const crypto = require('crypto');
+const cors = require('../lib/cors');
 
 function store() {
   if (!admin.apps.length) {
@@ -87,4 +88,11 @@ exports.handler=async event=>{
   }catch(e){if(e.message==='SLOT_TAKEN')return reply(409,{ok:false,error:'This slot has just been requested. Please choose another.'});throw e;}
   return reply(200,{ok:true,message:'Your 30-minute class request has been sent. The tutor will contact you to confirm it.'});
  }catch(e){console.error('Student booking:',e.message);return reply(500,{ok:false,error:'We could not process your request. Please try again.'});}
+};
+
+const handler = exports.handler;
+exports.handler = async event => {
+ if(event.httpMethod==='OPTIONS')return cors.options(event);
+ const response=await handler(event);
+ return {...response,headers:{...(response.headers||{}),...cors.headers(event)}};
 };

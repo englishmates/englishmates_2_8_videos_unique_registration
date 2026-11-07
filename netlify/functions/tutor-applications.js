@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const crypto = require('crypto');
+const cors = require('../lib/cors');
 const ADMIN_EMAIL = 'bddayma12@gmail.com';
 function db() {
   if (!admin.apps.length) {
@@ -97,4 +98,11 @@ exports.handler=async event=>{
   }
   return reply(405,{ok:false,error:'Method not allowed.'});
  }catch(e){console.error('Tutor applications:',e.message);return reply(e.status||400,{ok:false,error:e.message||'Request failed.'});}
+};
+
+const handler = exports.handler;
+exports.handler = async event => {
+ if(event.httpMethod==='OPTIONS')return cors.options(event);
+ const response=await handler(event);
+ return {...response,headers:{...(response.headers||{}),...cors.headers(event)}};
 };

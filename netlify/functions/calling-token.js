@@ -1,5 +1,6 @@
 const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
 const { authenticatedUser, consumeLimit, httpError, ownProfile, reply, requireEligible, store } = require('../lib/calling');
+const cors = require('../lib/cors');
 
 exports.handler = async event => {
   try {
@@ -22,4 +23,11 @@ exports.handler = async event => {
     console.error('Calling token:', error.message);
     return reply(error.status || 500, { ok: false, error: error.message || 'Request failed.' });
   }
+};
+
+const handler = exports.handler;
+exports.handler = async event => {
+  if (event.httpMethod === 'OPTIONS') return cors.options(event);
+  const response = await handler(event);
+  return { ...response, headers: { ...(response.headers || {}), ...cors.headers(event) } };
 };

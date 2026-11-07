@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const crypto = require('crypto');
+const cors = require('../lib/cors');
 
 function db() {
   if (!admin.apps.length) {
@@ -27,6 +28,7 @@ const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 const MAX_INTRO_VIDEO_SECONDS = 60;
 function encryptionKey(){const k=process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'';if(!/^[a-f0-9]{64}$/i.test(k))throw new Error('Google Meet integration is not configured: token encryption key is missing.');return Buffer.from(k,'hex');}
 function googleOAuthConfig(){const clientId=clean(process.env.GOOGLE_CLIENT_ID,300),clientSecret=clean(process.env.GOOGLE_CLIENT_SECRET,500),tokenKey=String(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'').trim(),redirectUri=String(process.env.GOOGLE_REDIRECT_URI||'').trim().replace(/\/+$/,'');const missing=[];if(!clientId)missing.push('GOOGLE_CLIENT_ID');if(!clientSecret)missing.push('GOOGLE_CLIENT_SECRET');if(!redirectUri)missing.push('GOOGLE_REDIRECT_URI');if(!/^[a-f0-9]{64}$/i.test(tokenKey))missing.push('GOOGLE_TOKEN_ENCRYPTION_KEY (64 hexadecimal characters)');if(missing.length)throw new Error('Google OAuth configuration is incomplete for this deploy. Missing: '+missing.join(', ')+'.');let parsed;try{parsed=new URL(redirectUri);}catch{throw new Error('GOOGLE_REDIRECT_URI must be a valid HTTPS URL.');}if(parsed.protocol!=='https:'||parsed.pathname!=='/.netlify/functions/google-oauth'||parsed.search||parsed.hash)throw new Error('GOOGLE_REDIRECT_URI must exactly end with /.netlify/functions/google-oauth and must not include a query string or trailing slash.');return {clientId,clientSecret,redirectUri};}
+function publicDashboardUrl(value){try{const url=new URL(String(value||''));if(url.origin!=='https://englishmates.github.io'||!url.pathname.startsWith('/englishmates_2_8_videos_unique_registration/'))return '';return url.href;}catch{return '';}}
 function mediaUrlForTutor(value,uid,label){const url=clean(value,1600);if(!url)return '';try{const parsed=new URL(url),path=decodeURIComponent(parsed.pathname);if(parsed.protocol!=='https:'||parsed.hostname!=='firebasestorage.googleapis.com'||!path.includes('/o/tutor-media/'+uid+'/'))throw new Error();return url;}catch{throw new Error(label+' must be uploaded from your Englishmates profile media form.');}}
 function decryptToken(value){const [iv,tag,data]=String(value||'').split('.');const d=crypto.createDecipheriv('aes-256-gcm',encryptionKey(),Buffer.from(iv,'base64url'));d.setAuthTag(Buffer.from(tag,'base64url'));return Buffer.concat([d.update(Buffer.from(data,'base64url')),d.final()]).toString();}
 async function createMeetEvent(store,tutor,booking,bookingRef){
@@ -119,7 +121,7 @@ exports.handler = async event => {
     if (body.action === 'connect-google') {
       const oauth=googleOAuthConfig();
       const state=crypto.randomBytes(32).toString('hex');
-      await store.collection('googleOAuthStates'+suffix).doc(state).set({tutorId:tutor.id,createdAt:admin.firestore.FieldValue.serverTimestamp(),expiresAt:Date.now()+10*60*1000});
+      await store.collection('googleOAuthStates'+suffix).doc(state).set({tutorId:tutor.id,returnUrl:publicDashboardUrl(body.returnUrl),createdAt:admin.firestore.FieldValue.serverTimestamp(),expiresAt:Date.now()+10*60*1000});
       const params=new URLSearchParams({client_id:oauth.clientId,redirect_uri:oauth.redirectUri,response_type:'code',scope:GOOGLE_SCOPES,access_type:'offline',prompt:'consent',include_granted_scopes:'true',state});
       return reply(200,{ok:true,authUrl:'https://accounts.google.com/o/oauth2/v2/auth?'+params.toString()});
     }
@@ -195,4 +197,11 @@ exports.handler = async event => {
     console.error('Teacher dashboard function:', error.message);
     return reply(error.status || 500, { ok: false, error: error.message || 'Could not load the teacher dashboard.' });
   }
+};
+
+const handler = exports.handler;
+exports.handler = async event => {
+ if(event.httpMethod==='OPTIONS')return cors.options(event);
+ const response=await handler(event);
+ return {...response,headers:{...(response.headers||{}),...cors.headers(event)}};
 };
