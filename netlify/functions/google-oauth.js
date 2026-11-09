@@ -15,7 +15,7 @@ function encryptToken(value){
  const encrypted=Buffer.concat([cipher.update(value,'utf8'),cipher.final()]);
  return [iv.toString('base64url'),cipher.getAuthTag().toString('base64url'),encrypted.toString('base64url')].join('.');
 }
-function googleOAuthConfig(){const clientId=String(process.env.GOOGLE_CLIENT_ID||'').trim(),clientSecret=String(process.env.GOOGLE_CLIENT_SECRET||'').trim(),tokenKey=String(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'').trim(),redirectUri=String(process.env.GOOGLE_REDIRECT_URI||'').trim().replace(/\/+$/,'');const missing=[];if(!clientId)missing.push('GOOGLE_CLIENT_ID');if(!clientSecret)missing.push('GOOGLE_CLIENT_SECRET');if(!redirectUri)missing.push('GOOGLE_REDIRECT_URI');if(!/^[a-f0-9]{64}$/i.test(tokenKey))missing.push('GOOGLE_TOKEN_ENCRYPTION_KEY (64 hexadecimal characters)');if(missing.length)throw new Error('Google OAuth configuration is incomplete for this deploy. Missing: '+missing.join(', ')+'.');let parsed;try{parsed=new URL(redirectUri);}catch{throw new Error('GOOGLE_REDIRECT_URI must be a valid HTTPS URL.');}if(parsed.protocol!=='https:'||parsed.pathname!=='/.netlify/functions/google-oauth'||parsed.search||parsed.hash)throw new Error('GOOGLE_REDIRECT_URI must exactly end with /.netlify/functions/google-oauth and must not include a query string or trailing slash.');return {clientId,clientSecret,redirectUri,origin:parsed.origin};}
+function googleOAuthConfig(){const clientId=String(process.env.GOOGLE_CLIENT_ID||'').trim(),clientSecret=String(process.env.GOOGLE_CLIENT_SECRET||'').trim(),tokenKey=String(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'').trim(),redirectUri=String(process.env.GOOGLE_REDIRECT_URI||(process.env.URL?String(process.env.URL).replace(/\/+$/,'')+'/.netlify/functions/google-oauth':'')).trim().replace(/\/+$/,'');const missing=[];if(!clientId)missing.push('GOOGLE_CLIENT_ID');if(!clientSecret)missing.push('GOOGLE_CLIENT_SECRET');if(!redirectUri)missing.push('GOOGLE_REDIRECT_URI');if(!/^[a-f0-9]{64}$/i.test(tokenKey))missing.push('GOOGLE_TOKEN_ENCRYPTION_KEY (64 hexadecimal characters)');if(missing.length)throw new Error('Google OAuth configuration is incomplete for this deploy. Missing: '+missing.join(', ')+'.');let parsed;try{parsed=new URL(redirectUri);}catch{throw new Error('GOOGLE_REDIRECT_URI must be a valid HTTPS URL.');}if(parsed.protocol!=='https:'||parsed.pathname!=='/.netlify/functions/google-oauth'||parsed.search||parsed.hash)throw new Error('GOOGLE_REDIRECT_URI must exactly end with /.netlify/functions/google-oauth and must not include a query string or trailing slash.');return {clientId,clientSecret,redirectUri,origin:parsed.origin};}
 exports.handler=async event=>{
  const redirect=(url)=>({statusCode:302,headers:{Location:url,'Cache-Control':'no-store'}});
  try{
@@ -30,7 +30,7 @@ exports.handler=async event=>{
   if(!snap.exists||Number(snap.data().expiresAt||0)<Date.now())return redirect(fallback('expired'));
   const tutorId=snap.data().tutorId;
   const returnUrl=String(snap.data().returnUrl||'');
-  const dashboard=result=>{try{const target=new URL(returnUrl);if(target.origin==='https://englishmates.github.io'&&target.pathname.startsWith('/englishmates_2_8_videos_unique_registration/'))return new URL('teacher-dashboard.html?google='+result,target).toString();}catch{}return fallback(result);};
+  const dashboard=result=>{try{const target=new URL(returnUrl);if(target.origin==='https://englishmates.github.io'&&target.pathname.startsWith('/englishmates_2_8_videos_unique_registration/'))return new URL('teacher-dashboard.html?google='+result,target).toString();if(['https://englishmatesratangarh.netlify.app','https://englishmates-ratangarh.netlify.app'].includes(target.origin))return target.origin+'/teacher-dashboard.html?google='+result;}catch{}return fallback(result);};
   await stateRef.delete();
    const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({code,client_id:oauth.clientId,client_secret:oauth.clientSecret,redirect_uri:oauth.redirectUri,grant_type:'authorization_code'})});
   const tokens=await tokenRes.json();
@@ -39,7 +39,7 @@ exports.handler=async event=>{
   return redirect(dashboard('connected'));
  }catch(error){
   console.error('Google OAuth callback:',error.message);
-   let origin='/';try{origin=process.env.GOOGLE_REDIRECT_URI?new URL(String(process.env.GOOGLE_REDIRECT_URI).trim()).origin:'/';}catch{}
+   let origin='/';try{origin=process.env.GOOGLE_REDIRECT_URI?new URL(String(process.env.GOOGLE_REDIRECT_URI).trim()).origin:(process.env.URL?new URL(process.env.URL).origin:'/');}catch{}
    const result=/Google OAuth configuration/.test(error.message)||/GOOGLE_REDIRECT_URI/.test(error.message)?'configuration':'error';
    return redirect(origin+'/teacher-dashboard.html?google='+result);
  }

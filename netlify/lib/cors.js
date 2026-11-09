@@ -2,7 +2,8 @@
 // Only explicitly trusted frontend origins receive CORS permission.
 const ALLOWED_ORIGINS = new Set([
   'https://englishmates.github.io',
-  'https://englishmates-ratangarh.netlify.app'
+  'https://englishmates-ratangarh.netlify.app',
+  'https://englishmatesratangarh.netlify.app'
 ]);
 
 function headers(event = {}) {
