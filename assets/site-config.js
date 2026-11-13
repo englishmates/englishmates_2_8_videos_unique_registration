@@ -8,7 +8,13 @@
 
   // GitHub Pages is static. The existing Netlify deployment remains the protected
   // API service for registrations, tutor approvals, availability and Google Meet.
-  const apiBase = 'https://englishmates-ratangarh.netlify.app/.netlify/functions';
+  // Netlify deploy previews (for example deploy-preview-21--englishmates-ratangarh.netlify.app)
+  // call their OWN functions, so new backend code can be tested before it reaches production.
+  // Every other host keeps using the production API exactly as before.
+  const isDeployPreview = /^deploy-preview-\d+--englishmates-ratangarh\.netlify\.app$/.test(window.location.hostname);
+  const apiBase = isDeployPreview
+    ? `${window.location.origin}/.netlify/functions`
+    : 'https://englishmates-ratangarh.netlify.app/.netlify/functions';
 
   window.Englishmates = Object.freeze({
     pageBase: pageBase.href,
