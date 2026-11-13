@@ -186,6 +186,33 @@
         <div class="card rounded-3xl p-6 md:p-8 mt-6" id="studentTutorBooking">
           <div class="flex flex-wrap justify-between items-start gap-3"><div><span class="text-violet-300 text-xs font-extrabold uppercase tracking-widest">30-minute sessions</span><h3 class="text-2xl font-extrabold text-white mt-2">Find an available tutor</h3><p class="text-sm text-slate-400 mt-2">Choose an approved tutor and request a convenient 30-minute slot.</p></div><button id="reloadTutorSlots" class="text-sm text-violet-200 border border-white/10 rounded-xl px-4 py-2">Refresh slots</button></div>
           <div id="publicTutorList" class="grid md:grid-cols-2 gap-4 mt-6"><p class="text-sm text-slate-400">Loading available tutors…</p></div>
+          <div id="studentAuthBox" class="mt-6 border-t border-white/10 pt-6">
+            <div id="studentSignedOut">
+              <h4 class="font-bold text-white">Sign in to request a class</h4>
+              <p class="text-sm text-slate-400 mt-1">A free student account prevents spam and lets you track your requests.</p>
+              <div class="grid sm:grid-cols-2 gap-3 mt-4">
+                <input id="studentAuthEmail" type="email" autocomplete="email" placeholder="Email address" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
+                <input id="studentAuthPassword" type="password" autocomplete="current-password" placeholder="Password (at least 6 characters)" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
+                <button type="button" id="studentSignInBtn" class="btn-primary rounded-xl p-3 text-white font-bold">Sign in</button>
+                <button type="button" id="studentSignUpBtn" class="rounded-xl p-3 border border-white/10 text-white font-bold hover:bg-white/5">Create account</button>
+                <button type="button" id="studentGoogleBtn" class="sm:col-span-2 rounded-xl p-3 border border-white/10 text-white font-bold hover:bg-white/5">Continue with Google</button>
+              </div>
+              <button type="button" id="studentResetBtn" class="text-xs text-violet-200 mt-3 underline">Forgot password?</button>
+            </div>
+            <div id="studentSignedIn" class="hidden flex flex-wrap items-center justify-between gap-3">
+              <p id="studentWho" class="text-sm text-slate-300"></p>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" id="studentVerifiedBtn" class="hidden text-sm rounded-xl px-4 py-2 border border-white/10 text-white">I have verified my email</button>
+                <button type="button" id="studentResendBtn" class="hidden text-sm rounded-xl px-4 py-2 border border-white/10 text-white">Resend verification email</button>
+                <button type="button" id="studentSignOutBtn" class="text-sm rounded-xl px-4 py-2 border border-white/10 text-slate-300">Sign out</button>
+              </div>
+            </div>
+            <p id="studentAuthMsg" role="status" class="text-sm mt-3"></p>
+          </div>
+          <div id="myBookingsBox" class="hidden mt-6 border-t border-white/10 pt-6">
+            <div class="flex items-center justify-between gap-3"><h4 class="font-bold text-white">My class requests</h4><button type="button" id="refreshMyBookings" class="text-sm text-violet-200 border border-white/10 rounded-xl px-4 py-2">Refresh</button></div>
+            <div id="myBookingsList" class="grid gap-3 mt-4"></div>
+          </div>
           <form id="studentBookingForm" class="hidden mt-6 border-t border-white/10 pt-6 grid sm:grid-cols-2 gap-3">
             <div class="sm:col-span-2"><h4 class="font-bold text-white">Request your class</h4><p id="selectedTutorLabel" class="text-sm text-violet-200 mt-1"></p></div>
             <input type="hidden" name="tutorId"><input type="hidden" name="date"><input type="hidden" name="startTime">
@@ -953,7 +980,7 @@
       try{await seedDefaultCourses();renderCourseManager();}catch(err){$('#courseManagerMsg').textContent='Course controls need Firestore rules allowing owner access to the courses collection.';}
       subscribeAdmin();
     }
-    $('#adminLink').addEventListener('click',()=>auth&&auth.currentUser?showAdmin():openModal('#adminLoginModal'));
+    $('#adminLink').addEventListener('click',()=>auth&&auth.currentUser&&(auth.currentUser.email||'').toLowerCase()===ADMIN_EMAIL.toLowerCase()?showAdmin():openModal('#adminLoginModal'));
     $('#adminLoginForm').addEventListener('submit',async e=>{
       e.preventDefault(); const m=$('#adminLoginMsg');
       if(ADMIN_EMAIL.startsWith('YOUR_ADMIN_EMAIL')){m.textContent='Set your real admin email in index.html before logging in.';m.className='text-sm text-center text-amber-300';return;}
@@ -1014,6 +1041,7 @@
       const btn=e.target.closest('[data-book-tutor]');if(!btn)return;
       const tutor=publicTutors.find(t=>t.id===btn.dataset.bookTutor),select=tutorList.querySelector('[data-tutor-slot="'+btn.dataset.bookTutor+'"]');
       if(!tutor||!select.value){alert('Please choose an available 30-minute slot first.');return;}
+      if(!(auth&&auth.currentUser&&auth.currentUser.emailVerified)){studentMsg('Please sign in with a verified email to request a class.',true);$('#studentAuthBox').scrollIntoView({behavior:'smooth',block:'center'});return;}
       const [date,startTime]=select.value.split('|');
       bookingForm.elements.tutorId.value=tutor.id;bookingForm.elements.date.value=date;bookingForm.elements.startTime.value=startTime;
       $('#selectedTutorLabel').textContent=tutor.name+' · '+date+' · '+startTime+' IST (30 minutes)';
@@ -1022,11 +1050,49 @@
     bookingForm.addEventListener('submit',async e=>{
       e.preventDefault();const btn=$('#sendBookingRequest');btn.disabled=true;$('#bookingFormMessage').textContent='Sending your request…';
       const payload=Object.fromEntries(new FormData(bookingForm).entries());
-      try{const r=await fetch(Englishmates.api('student-bookings'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not send request.');
-        $('#bookingFormMessage').textContent=data.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-emerald-300';bookingForm.reset();bookingForm.classList.add('hidden');await loadPublicTutors();
+      try{if(!(auth&&auth.currentUser))throw new Error('Please sign in first.');const r=await fetch(Englishmates.api('student-bookings'),{method:'POST',headers:await studentHeaders(),body:JSON.stringify(payload)}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not send request.');
+        $('#bookingFormMessage').textContent=data.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-emerald-300';bookingForm.reset();bookingForm.classList.add('hidden');await loadPublicTutors();loadMyBookings();
       }catch(err){$('#bookingFormMessage').textContent=err.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-rose-300';await loadPublicTutors();}
       finally{btn.disabled=false;}
     });
+    // ---- Student account (required for class requests) ----
+    const studentMsg=(t,bad)=>{const m=$('#studentAuthMsg');m.textContent=t||'';m.className='text-sm mt-3 '+(bad?'text-rose-300':'text-emerald-300');};
+    const studentError=e=>({'auth/email-already-in-use':'This email already has an account. Please sign in.','auth/invalid-email':'Enter a valid email address.','auth/weak-password':'Choose a password with at least 6 characters.','auth/invalid-credential':'The email or password is incorrect.','auth/popup-closed-by-user':'Google sign-in was cancelled.','auth/unauthorized-domain':'This website domain is not authorised in Firebase Authentication.'}[e&&e.code]||(e&&e.message)||'Something went wrong. Please try again.');
+    async function studentHeaders(){return {'Content-Type':'application/json',Authorization:'Bearer '+await auth.currentUser.getIdToken()};}
+    function renderStudentAuth(){
+      const u=auth&&auth.currentUser;
+      $('#studentSignedOut').classList.toggle('hidden',!!u);$('#studentSignedIn').classList.toggle('hidden',!u);
+      $('#myBookingsBox').classList.toggle('hidden',!(u&&u.emailVerified));
+      if(!u)return;
+      $('#studentWho').textContent='Signed in as '+u.email+(u.emailVerified?'':' — email not verified yet');
+      $('#studentVerifiedBtn').classList.toggle('hidden',u.emailVerified);$('#studentResendBtn').classList.toggle('hidden',u.emailVerified);
+      if(u.emailVerified){bookingForm.elements.email.value=u.email;bookingForm.elements.email.readOnly=true;if(!bookingForm.elements.studentName.value&&u.displayName)bookingForm.elements.studentName.value=u.displayName;}
+    }
+    async function loadMyBookings(){
+      const list=$('#myBookingsList');if(!(auth&&auth.currentUser&&auth.currentUser.emailVerified))return;
+      try{
+        const r=await fetch(Englishmates.api('student-bookings')+'?mine=1',{headers:await studentHeaders(),cache:'no-store'}),data=await r.json();
+        if(!r.ok||!data.ok)throw new Error(data.error||'Could not load your requests.');
+        const label={pending:'Waiting for tutor',confirmed:'Confirmed',rejected:'Declined',cancelled:'Cancelled'},tone={pending:'text-amber-300',confirmed:'text-emerald-300',rejected:'text-rose-300',cancelled:'text-slate-400'};
+        list.innerHTML=data.bookings.length?data.bookings.map(b=>'<article class="rounded-2xl border border-white/10 bg-white/[.025] p-4 flex flex-wrap items-center justify-between gap-3"><div><p class="font-bold text-white">'+esc(b.tutorName)+'</p><p class="text-sm text-slate-400">'+esc(b.date)+' · '+esc(b.startTime)+'–'+esc(b.endTime)+' IST</p><p class="text-xs font-bold mt-1 '+(tone[b.status]||'text-slate-400')+'">'+esc(label[b.status]||b.status)+'</p></div><div class="flex gap-2">'+(b.status==='confirmed'&&/^https:\/\//i.test(b.meetLink)?'<a href="'+esc(b.meetLink)+'" target="_blank" rel="noopener" class="btn-primary rounded-xl px-4 py-2 text-sm font-bold text-white">Join Google Meet</a>':'')+(b.status==='pending'?'<button type="button" data-cancel-booking="'+esc(b.id)+'" class="rounded-xl px-4 py-2 text-sm border border-white/10 text-slate-300 hover:bg-white/5">Cancel request</button>':'')+'</div></article>').join(''):'<p class="text-sm text-slate-400">You have not requested any classes yet.</p>';
+      }catch(err){list.innerHTML='<p class="text-sm text-rose-300">'+esc(err.message)+'</p>';}
+    }
+    $('#myBookingsList').addEventListener('click',async e=>{
+      const b=e.target.closest('[data-cancel-booking]');if(!b)return;b.disabled=true;
+      try{const r=await fetch(Englishmates.api('student-bookings'),{method:'POST',headers:await studentHeaders(),body:JSON.stringify({action:'cancel',bookingId:b.dataset.cancelBooking})}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not cancel.');studentMsg(data.message);}
+      catch(err){studentMsg(err.message,true);}
+      await loadPublicTutors();loadMyBookings();
+    });
+    $('#refreshMyBookings').addEventListener('click',loadMyBookings);
+    const studentCreds=()=>({email:$('#studentAuthEmail').value.trim(),password:$('#studentAuthPassword').value});
+    $('#studentSignInBtn').addEventListener('click',async()=>{try{const c=studentCreds();await auth.signInWithEmailAndPassword(c.email,c.password);studentMsg('');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentSignUpBtn').addEventListener('click',async()=>{try{const c=studentCreds();const cred=await auth.createUserWithEmailAndPassword(c.email,c.password);await cred.user.sendEmailVerification();studentMsg('Account created. We sent a verification link to '+c.email+'. Open it, then press “I have verified my email”.');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentGoogleBtn').addEventListener('click',async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());studentMsg('');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentResetBtn').addEventListener('click',async()=>{try{const email=$('#studentAuthEmail').value.trim();if(!email)throw new Error('Enter your email address first.');await auth.sendPasswordResetEmail(email);studentMsg('Password reset email sent.');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentResendBtn').addEventListener('click',async()=>{try{await auth.currentUser.sendEmailVerification();studentMsg('Verification email sent again. Check your inbox and spam folder.');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentVerifiedBtn').addEventListener('click',async()=>{try{await auth.currentUser.reload();await auth.currentUser.getIdToken(true);renderStudentAuth();if(auth.currentUser.emailVerified){studentMsg('Email verified. You can request a class now.');loadMyBookings();}else studentMsg('Not verified yet. Open the link in the email first.',true);}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentSignOutBtn').addEventListener('click',async()=>{await auth.signOut();});
+    if(auth)auth.onAuthStateChanged(()=>{renderStudentAuth();loadMyBookings();});
     $('#reloadTutorSlots').addEventListener('click',loadPublicTutors);loadPublicTutors();
 
     // Reveal animations
