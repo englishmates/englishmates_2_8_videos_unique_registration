@@ -28,11 +28,19 @@ const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 const MAX_INTRO_VIDEO_SECONDS = 60;
 function encryptionKey(){const k=process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'';if(!/^[a-f0-9]{64}$/i.test(k))throw new Error('Google Meet integration is not configured: token encryption key is missing.');return Buffer.from(k,'hex');}
 function googleOAuthConfig(){const clientId=clean(process.env.GOOGLE_CLIENT_ID,300),clientSecret=clean(process.env.GOOGLE_CLIENT_SECRET,500),tokenKey=String(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'').trim(),redirectUri=String(process.env.GOOGLE_REDIRECT_URI||'').trim().replace(/\/+$/,'');const missing=[];if(!clientId)missing.push('GOOGLE_CLIENT_ID');if(!clientSecret)missing.push('GOOGLE_CLIENT_SECRET');if(!redirectUri)missing.push('GOOGLE_REDIRECT_URI');if(!/^[a-f0-9]{64}$/i.test(tokenKey))missing.push('GOOGLE_TOKEN_ENCRYPTION_KEY (64 hexadecimal characters)');if(missing.length)throw new Error('Google OAuth configuration is incomplete for this deploy. Missing: '+missing.join(', ')+'.');let parsed;try{parsed=new URL(redirectUri);}catch{throw new Error('GOOGLE_REDIRECT_URI must be a valid HTTPS URL.');}if(parsed.protocol!=='https:'||parsed.pathname!=='/.netlify/functions/google-oauth'||parsed.search||parsed.hash)throw new Error('GOOGLE_REDIRECT_URI must exactly end with /.netlify/functions/google-oauth and must not include a query string or trailing slash.');return {clientId,clientSecret,redirectUri};}
-function publicDashboardUrl(value){try{const url=new URL(String(value||''));if(url.origin!=='https://englishmates.github.io'||!url.pathname.startsWith('/englishmates_2_8_videos_unique_registration/'))return '';return url.href;}catch{return '';}}
+function publicDashboardUrl(value){
+ try{
+  const url=new URL(String(value||'')),path=url.pathname.replace(/\/+$/,'');
+  const githubPages=url.origin==='https://englishmates.github.io'&&path==='/englishmates_2_8_videos_unique_registration/teacher-dashboard.html';
+  const netlifyDashboard=/^https:\/\/(?:englishmates-?ratangarh|deploy-preview-\d+--englishmates-?ratangarh)\.netlify\.app$/i.test(url.origin)&&path==='/teacher-dashboard.html';
+  if(!githubPages&&!netlifyDashboard)return '';
+  return url.origin+path;
+ }catch{return '';}
+}
 function mediaUrlForTutor(value,uid,label){const url=clean(value,1600);if(!url)return '';try{const parsed=new URL(url),path=decodeURIComponent(parsed.pathname);if(parsed.protocol!=='https:'||parsed.hostname!=='firebasestorage.googleapis.com'||!path.includes('/o/tutor-media/'+uid+'/'))throw new Error();return url;}catch{throw new Error(label+' must be uploaded from your Englishmates profile media form.');}}
 function decryptToken(value){const [iv,tag,data]=String(value||'').split('.');const d=crypto.createDecipheriv('aes-256-gcm',encryptionKey(),Buffer.from(iv,'base64url'));d.setAuthTag(Buffer.from(tag,'base64url'));return Buffer.concat([d.update(Buffer.from(data,'base64url')),d.final()]).toString();}
 async function createMeetEvent(store,tutor,booking,bookingRef){
- const conn=await store.collection(GOOGLE_CONNECTIONS).doc(tutor.id).get();if(!conn.exists||!conn.data().refreshToken)throw new Error('Connect your Google Calendar before confirming bookings.');
+ const conn=await store.collection(GOOGLE_CONNECTIONS).doc(tutor.id).get();if(!conn.exists||!conn.data().refreshToken)throw Object.assign(new Error('Connect your Google Calendar before confirming bookings.'),{status:409});
  const refreshToken=decryptToken(conn.data().refreshToken);
  const oauth=googleOAuthConfig();
  const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:oauth.clientId,client_secret:oauth.clientSecret,refresh_token:refreshToken,grant_type:'refresh_token'})});

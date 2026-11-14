@@ -12,7 +12,7 @@ Configure these in the Netlify site environment for the deploy context being tes
 - `GOOGLE_TOKEN_ENCRYPTION_KEY`: 32-byte key encoded as 64 hexadecimal characters. Generate with `openssl rand -hex 32`. Keep private and back it up securely.
 - Existing Firebase variables are also required: `FIREBASE_SERVICE_ACCOUNT_JSON` and `FIREBASE_PROJECT_ID`.
 
-Never commit secrets or paste them into chat. Set variables separately for deploy previews and production as appropriate. Changing the encryption key makes previously stored tutor refresh tokens unreadable; do not rotate it without a migration plan.
+Never commit secrets or paste them into chat. Set these variables in both Production and deploy-preview contexts. Use the same Google client ID, client secret, redirect URI, Firebase project/service account, and token encryption key in both contexts so a preview connection can return through the stable callback. Changing the encryption key makes previously stored tutor refresh tokens unreadable; do not rotate it without a migration plan.
 
 ## Google Cloud configuration
 
@@ -44,8 +44,11 @@ The tutor must reconnect if Google revokes access. Calendar invitations are sent
 
 ## Preview-first verification
 
-- Set the environment variables for the Netlify deploy-preview context.
-- Register the callback URI for that preview host if testing OAuth on the preview host; alternatively use the production callback URI only after the production OAuth client is configured and the app is intentionally being tested there.
+- Set the same Google OAuth variables and token encryption key in the Production and deploy-preview contexts.
+- Keep `GOOGLE_REDIRECT_URI` set to the stable production callback `https://englishmates-ratangarh.netlify.app/.netlify/functions/google-oauth` in both contexts, and register that one callback in Google Cloud. The callback finds the one-time state in the correct Firestore collection and returns the tutor to the exact production or deploy-preview dashboard.
+- The admin tutor-approval page has separate **Live site** and **Deploy preview** sources. Preview registrations stay in the preview list; use the matching source when reviewing applications.
+- Open the teacher dashboard on the same deployment where the tutor account is approved, then click **Connect Google Calendar**, sign in to the tutor's Google account, and allow calendar access. No calendar ID needs to be entered.
+- Make sure the tutor is approved in the same source (Live site or Deploy preview) being tested.
 - Connect a test tutor Google account.
 - Submit a student booking using a test student email.
 - Confirm the booking and verify that the event appears in the tutor's primary Google Calendar, the Meet URL appears in the dashboard, and the student receives the calendar invitation.
