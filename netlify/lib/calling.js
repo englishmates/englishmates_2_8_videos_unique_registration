@@ -124,12 +124,7 @@ async function areBlocked(db, firstUid, secondUid) {
 }
 
 function publicProfile(profile) {
-  return {
-    alias: clean(profile.alias, 32),
-    level: clean(profile.level, 20),
-    topics: Array.isArray(profile.topics) ? profile.topics.slice(0, 5) : [],
-    preferredLanguage: clean(profile.preferredLanguage, 30)
-  };
+  return { alias: clean(profile.alias, 32) };
 }
 
 function audit(db, actor, action, targetUid, details = {}) {
