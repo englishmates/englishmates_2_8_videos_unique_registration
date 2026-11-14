@@ -10,6 +10,7 @@ const TOPICS = ['Daily conversation', 'Interview', 'Public speaking', 'Grammar',
 const LANGUAGES = ['English', 'Hindi + English'];
 const LOCATION_PREFERENCES = ['Same city preferred', 'Same state preferred', 'Anywhere in India'];
 const QUEUE_MS = 5 * 60 * 1000;
+const CHAT_LIMIT = 50;
 const INVITE_MS = 90 * 1000;
 const SESSION_MS = 15 * 60 * 1000;
 
@@ -38,6 +39,12 @@ function profileInput(body) {
     preferredLanguage: allowed(body.preferredLanguage, LANGUAGES, 'practice language'),
     locationPreference: allowed(body.locationPreference || 'Anywhere in India', LOCATION_PREFERENCES, 'location preference')
   };
+}
+
+function containsContactDetails(value) {
+  const text = String(value || '');
+  const digits = text.replace(/\D/g, '');
+  return /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(text) || /0?[6-9]\d{9}/.test(digits);
 }
 
 function sessionFor(userId, session) {
@@ -112,7 +119,7 @@ async function findMatch(db, user) {
       if (matchingScore(ownSnap.data(), otherSnap.data()) < 0) return null;
       const ref = db.collection(COLLECTIONS.sessions).doc();
       const inviteExpiresAt = admin.firestore.Timestamp.fromMillis(now() + INVITE_MS);
-      tx.set(ref, { participants: [user.uid, candidate.uid], status: 'invited', acceptedBy: [], createdAt: admin.firestore.FieldValue.serverTimestamp(), inviteExpiresAt, expiresAt: admin.firestore.Timestamp.fromMillis(now() + SESSION_MS), channelId: ref.id });
+      tx.set(ref, { participants: [user.uid, candidate.uid], status: 'invited', acceptedBy: [], createdAt: admin.firestore.FieldValue.serverTimestamp(), inviteExpiresAt, expiresAt: admin.firestore.Timestamp.fromMillis(now() + SESSION_MS), channelId: ref.id, pausedBy: [] });
       tx.delete(ownQueueRef); tx.delete(otherQueueRef);
       tx.update(ownRef, { activeSessionId: ref.id, availability: 'invited', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
       tx.update(otherRef, { activeSessionId: ref.id, availability: 'invited', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
@@ -133,9 +140,17 @@ async function dashboard(db, user) {
   const waiting = queue.exists && timestampMs(queue.data().expiresAt) > now() ? queue.data() : null;
   if (queue.exists && !waiting) await queue.ref.delete();
   let partner = null;
+  let messages = [];
   if (session) {
     const partnerSnap = await db.collection(COLLECTIONS.profiles).doc(partnerId(user.uid, session)).get();
     if (partnerSnap.exists) partner = publicProfile(partnerSnap.data());
+    if (session.status === 'active') {
+      const messageSnapshot = await ref.collection('messages').orderBy('createdAt', 'desc').limit(CHAT_LIMIT).get();
+      messages = messageSnapshot.docs.reverse().map(doc => {
+        const item = doc.data();
+        return { id: doc.id, fromMe: item.fromUid === user.uid, text: clean(item.text, 1000), createdAt: iso(item.createdAt) };
+      });
+    }
   }
   let recentSession = null;
   if (!session && profile.data?.lastSessionId) {
@@ -144,7 +159,7 @@ async function dashboard(db, user) {
   }
   let onlineLearners = 0;
   try { onlineLearners = (await db.collection(COLLECTIONS.queues).where('status', '==', 'waiting').count().get()).data().count; } catch (_) { /* Aggregate is optional in local emulators. */ }
-  return { ok: true, profile: profile.data ? { fullName: profile.data.fullName, alias: profile.data.alias, email: profile.data.email, emailVerified: true, age: profile.data.age, city: profile.data.city, state: profile.data.state, level: profile.data.level, interests: profile.data.interests, goals: profile.data.goals, preferredLanguage: profile.data.preferredLanguage, locationPreference: profile.data.locationPreference, status: profile.data.status || 'pending', createdAt: iso(profile.data.createdAt), reviewedAt: iso(profile.data.reviewedAt) } : null, queue: waiting ? { expiresAt: iso(waiting.expiresAt) } : null, session: session ? { id: ref.id, status: session.status, acceptedBy: session.acceptedBy || [], inviteExpiresAt: iso(session.inviteExpiresAt), expiresAt: iso(session.expiresAt), partner } : null, recentSession, onlineLearners };
+  return { ok: true, profile: profile.data ? { fullName: profile.data.fullName, alias: profile.data.alias, email: profile.data.email, emailVerified: true, age: profile.data.age, city: profile.data.city, state: profile.data.state, level: profile.data.level, interests: profile.data.interests, goals: profile.data.goals, preferredLanguage: profile.data.preferredLanguage, locationPreference: profile.data.locationPreference, status: profile.data.status || 'pending', createdAt: iso(profile.data.createdAt), reviewedAt: iso(profile.data.reviewedAt) } : null, queue: waiting ? { expiresAt: iso(waiting.expiresAt) } : null, session: session ? { id: ref.id, status: session.status, acceptedByMe: (session.acceptedBy || []).includes(user.uid), inviteExpiresAt: iso(session.inviteExpiresAt), expiresAt: iso(session.expiresAt), pausedByMe: (session.pausedBy || []).includes(user.uid), pausedByPartner: (session.pausedBy || []).includes(partnerId(user.uid, session)), partner, messages } : null, recentSession, onlineLearners };
 }
 
 exports.handler = async event => {
@@ -191,6 +206,32 @@ exports.handler = async event => {
     }
     if (!current.ref || !current.data) throw httpError(404, 'There is no active call invitation.');
     const session = current.data; sessionFor(user.uid, session);
+    if (action === 'pause-call') {
+      if (session.status !== 'active') throw httpError(409, 'Join an active call before pausing it.');
+      const pause = body.paused === true;
+      const currentPaused = (session.pausedBy || []).includes(user.uid);
+      if (pause !== currentPaused) {
+        await current.ref.update({
+          pausedBy: pause ? admin.firestore.FieldValue.arrayUnion(user.uid) : admin.firestore.FieldValue.arrayRemove(user.uid),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+      return reply(200, { ok: true, message: pause ? 'Call audio paused.' : 'Call audio resumed.' });
+    }
+    if (action === 'send-message') {
+      if (session.status !== 'active') throw httpError(409, 'Messages are available after both learners accept the call.');
+      const text = clean(body.message, 1000);
+      if (!text) throw httpError(400, 'Write a message first.');
+      if (containsContactDetails(text)) throw httpError(400, 'Keep your contact details private. Email addresses and phone numbers cannot be sent here.');
+      await consumeLimit(db, user.uid, 'call_message', 30, 60 * 1000);
+      const messageRef = current.ref.collection('messages').doc();
+      await db.runTransaction(async tx => {
+        const snap = await tx.get(current.ref);
+        if (!snap.exists || snap.data().status !== 'active') throw httpError(409, 'This call has ended.');
+        tx.create(messageRef, { fromUid: user.uid, text, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      });
+      return reply(200, { ok: true, message: 'Message sent.' });
+    }
     if (action === 'accept-call') {
       if (!['invited', 'accepted'].includes(session.status) || timestampMs(session.inviteExpiresAt) <= now()) { await closeSession(db, current.ref, 'expired'); throw httpError(410, 'This invitation has expired.'); }
       await db.runTransaction(async tx => {
