@@ -3,7 +3,7 @@
   const config = { apiKey: 'AIzaSyCFuF2PBq09cKOHBuoLDoypEgrI1gSmm4c', authDomain: 'englishmates-ratangarh-933f1.firebaseapp.com', projectId: 'englishmates-ratangarh-933f1', storageBucket: 'englishmates-ratangarh-933f1.firebasestorage.app', messagingSenderId: '501474121790', appId: '1:501474121790:web:5097a43a6be4e7bc07996f6' };
   const ADMIN_EMAIL = 'bddayma12@gmail.com';
   const $ = id => document.getElementById(id);
-  let auth, state = null, poll = null, agoraClient = null, microphone = null;
+  let auth, state = null, poll = null, agoraClient = null, microphone = null, remoteAudioTrack = null, muted = false, callPaused = false, joinedSessionId = null, lastChatKey = '';
 
   function message(id, text, error = false) { const node = $(id); node.textContent = text || ''; node.className = `text-sm mt-3 ${error ? 'text-rose-300' : 'text-emerald-300'}`; }
   function friendly(error) { const code = error?.code || ''; const map = { 'auth/email-already-in-use': 'This email already has an account. Please sign in.', 'auth/invalid-email': 'Enter a valid email address.', 'auth/weak-password': 'Choose a password with at least 6 characters.', 'auth/invalid-credential': 'The email or password is incorrect.', 'auth/unauthorized-domain': 'This website domain is not authorized in Firebase Authentication.', 'auth/popup-closed-by-user': 'Google sign-in was cancelled.' }; return map[code] || error?.message || 'Something went wrong. Please try again.'; }
@@ -21,29 +21,129 @@
     Object.entries(fields).forEach(([key, id]) => { if (profile[key] !== undefined) $(id).value = profile[key] || ''; });
     document.querySelectorAll('#interests input').forEach(input => { input.checked = (profile.interests || []).includes(input.value); }); $('adultConfirm').checked = true; $('saveProfile').textContent = status === 'approved' ? 'Update profile' : 'Save profile for approval';
   }
+  function avatarInitial(name) { return Array.from(String(name || 'P').trim())[0]?.toUpperCase() || 'P'; }
+  function renderMessages(session) {
+    const target = $('chatMessages');
+    const items = Array.isArray(session?.messages) ? session.messages : [];
+    const key = `${session?.id || ''}:${items.map(item => item.id).join(',')}`;
+    if (key === lastChatKey) return;
+    lastChatKey = key;
+    target.replaceChildren();
+    if (!items.length) { target.textContent = 'No messages yet.'; return; }
+    for (const item of items) {
+      const bubble = document.createElement('article');
+      bubble.className = `rounded-xl px-3 py-2 max-w-[90%] ${item.fromMe ? 'ml-auto bg-violet-500/20' : 'mr-auto bg-white/10'}`;
+      const sender = document.createElement('p');
+      sender.className = 'text-[11px] font-bold text-violet-200';
+      sender.textContent = item.fromMe ? 'You' : (session.partner?.alias || 'Partner');
+      const body = document.createElement('p');
+      body.className = 'text-sm text-slate-100 whitespace-pre-wrap break-words';
+      body.textContent = item.text || '';
+      bubble.append(sender, body);
+      target.append(bubble);
+    }
+    target.scrollTop = target.scrollHeight;
+  }
+  function syncCallControls(session) {
+    const joined = joinedSessionId === session.id && !!agoraClient;
+    const ownPaused = !!session.pausedByMe, partnerPaused = !!session.pausedByPartner;
+    callPaused = ownPaused || partnerPaused;
+    if (microphone) microphone.setEnabled(!muted && !callPaused).catch(() => {});
+    if (remoteAudioTrack) remoteAudioTrack.setVolume(callPaused ? 0 : 100);
+    show('startAudio', !joined);
+    show('muteCall', joined);
+    show('pauseCall', joined);
+    $('muteCall').textContent = muted ? 'Unmute microphone' : 'Mute microphone';
+    $('muteCall').setAttribute('aria-pressed', String(muted));
+    $('pauseCall').textContent = ownPaused ? 'Resume call' : partnerPaused ? 'Partner paused' : 'Pause call';
+    $('pauseCall').disabled = partnerPaused && !ownPaused;
+    $('callAudioStatus').textContent = ownPaused ? 'Call paused by you' : partnerPaused ? 'Your partner paused the call' : joined ? 'Connected · audio only' : 'Both accepted · audio only';
+    $('voiceRing').classList.toggle('paused', callPaused);
+  }
   function renderMatching(data) {
     $('onlineCount').textContent = `${data.onlineLearners || 0} learner${data.onlineLearners === 1 ? '' : 's'} currently waiting for a partner.`;
-    const queue = data.queue; const session = data.session; show('leaveQueue', !!queue); $('joinQueue').disabled = !!queue || !!session; $('joinQueue').classList.toggle('opacity-60', !!queue || !!session); show('queueStatus', !!queue); if (queue) $('queueStatus').textContent = 'You are in the matching queue. This request expires in five minutes; keep this page open.';
-    show('callCard', !!session); show('feedbackCard', !!data.recentSession); if (!session) return;
-    const partner = session.partner || {}; $('partnerDetails').textContent = `${partner.alias || 'Your partner'} · ${partner.level || ''} · ${(partner.topics || []).join(', ')}`;
-    const accepted = (session.acceptedBy || []).includes(auth.currentUser.uid); const active = session.status === 'active';
-    $('callTitle').textContent = active ? 'Your audio room is ready' : accepted ? 'Waiting for your partner to accept' : 'You have a practice invitation';
-    $('callTiming').textContent = active ? 'The call has a 15-minute limit. You can leave any time.' : 'Both learners must accept within 90 seconds.';
-    show('inviteActions', session.status === 'invited' && !accepted); show('activeCallActions', active); if (session.status === 'accepted' && !accepted) show('inviteActions', true);
+    const queue = data.queue, session = data.session;
+    show('leaveQueue', !!queue);
+    $('joinQueue').disabled = !!queue || !!session;
+    $('joinQueue').classList.toggle('opacity-60', !!queue || !!session);
+    $('joinQueue').textContent = queue ? 'Searching…' : 'Find a partner';
+    show('queueStatus', !!queue);
+    if (queue) $('queueStatus').textContent = 'You are in the matching queue. This request expires in five minutes; keep this page open.';
+    show('callCard', !!session);
+    show('feedbackCard', !!data.recentSession);
+    if (!session) {
+      lastChatKey = '';
+      $('chatMessages').replaceChildren();
+      if (joinedSessionId) leaveAudio();
+      return;
+    }
+    const partner = session.partner || {};
+    const alias = partner.alias || 'Practice partner';
+    $('partnerDetails').textContent = alias;
+    $('partnerAvatar').textContent = avatarInitial(alias);
+    $('callAvatar').textContent = avatarInitial(alias);
+    $('callPartnerName').textContent = alias;
+    const accepted = !!session.acceptedByMe, active = session.status === 'active';
+    $('callTitle').textContent = active ? 'Your audio call is ready' : accepted ? 'Waiting for your partner to accept' : 'You have a practice invitation';
+    $('callTiming').textContent = active ? 'You can pause or end the call at any time.' : 'Both learners must accept within 90 seconds.';
+    show('partnerIdentity', !active);
+    show('inviteActions', !active && ['invited', 'accepted'].includes(session.status) && !accepted);
+    show('activeCallActions', active);
+    if (active) { syncCallControls(session); renderMessages(session); }
   }
   async function refreshDashboard() {
     if (!auth?.currentUser?.emailVerified) return;
     try { state = await api('GET'); renderProfile(state.profile); if (state.profile?.status === 'approved') renderMatching(state); }
     catch (error) { if (error.status === 404) { state = { profile: null }; renderProfile(null); return; } message('profileMessage', error.message, true); }
   }
-  function startPolling() { clearInterval(poll); poll = setInterval(() => refreshDashboard(), 8000); }
+  function startPolling() { clearInterval(poll); poll = setInterval(() => refreshDashboard(), 4000); }
   async function sendVerification(user) { await user.sendEmailVerification({ url: `${location.origin}/community-profile.html`, handleCodeInApp: false }); }
-  async function signOut() { await leaveAudio(); clearInterval(poll); await auth.signOut(); }
-  async function action(actionName, extra = {}) { const result = await api('POST', { action: actionName, ...extra }); message('matchingMessage', result.message); await refreshDashboard(); return result; }
+  async function signOut() { try { if (state?.session) await api('POST', { action: 'end-call' }); else if (state?.queue) await api('POST', { action: 'leave-queue' }); } catch (_) {} await leaveAudio(); clearInterval(poll); await auth.signOut(); }
+  async function action(actionName, extra = {}) { const result = await api('POST', { action: actionName, ...extra }); if (actionName !== 'pause-call') message('matchingMessage', result.message); await refreshDashboard(); return result; }
   async function loadAgora() { if (window.AgoraRTC) return window.AgoraRTC; await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = 'https://download.agora.io/sdk/release/AgoraRTC_N-4.23.2.js'; script.onload = resolve; script.onerror = () => reject(new Error('The audio service could not load.')); document.head.appendChild(script); }); return window.AgoraRTC; }
-  async function leaveAudio() { if (microphone) { microphone.stop(); microphone.close(); microphone = null; } if (agoraClient) { await agoraClient.leave().catch(() => {}); agoraClient = null; } }
+  async function leaveAudio() { if (microphone) { microphone.stop(); microphone.close(); microphone = null; } if (agoraClient) { await agoraClient.leave().catch(() => {}); agoraClient = null; } remoteAudioTrack = null; joinedSessionId = null; muted = false; callPaused = false; show('startAudio', true); show('muteCall', false); show('pauseCall', false); $('startAudio').disabled = false; $('startAudio').textContent = 'Join audio call'; $('muteCall').textContent = 'Mute microphone'; $('pauseCall').textContent = 'Pause call'; }
   async function audioCredentials(sessionId) { const response = await fetch(Englishmates.api('calling-token'), { method: 'POST', headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }) }); const data = await response.json(); if (!response.ok || !data.ok) throw new Error(data.error || 'Audio could not start.'); return data; }
-  async function joinAudio() { try { const session = state?.session; if (!session || session.status !== 'active') throw new Error('The call is not ready yet.'); $('startAudio').disabled = true; $('startAudio').textContent = 'Connecting…'; const AgoraRTC = await loadAgora(); const data = await audioCredentials(session.id); agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' }); agoraClient.on('user-published', async (remoteUser, mediaType) => { await agoraClient.subscribe(remoteUser, mediaType); if (mediaType === 'audio') remoteUser.audioTrack.play(); }); agoraClient.on('token-privilege-will-expire', async () => { try { const renewed = await audioCredentials(session.id); await agoraClient.renewToken(renewed.token); } catch (_) { message('matchingMessage', 'Audio token renewal failed. Please end the call and try again.', true); } }); await agoraClient.join(data.appId, data.channel, data.token, null); microphone = await AgoraRTC.createMicrophoneAudioTrack(); await agoraClient.publish([microphone]); $('startAudio').textContent = 'Audio connected'; message('matchingMessage', 'Audio is connected. Keep this page open during your call.'); } catch (error) { await leaveAudio(); $('startAudio').disabled = false; $('startAudio').textContent = 'Enable microphone & join audio'; message('matchingMessage', error.message, true); } }
+  async function joinAudio() {
+    try {
+      const session = state?.session;
+      if (!session || session.status !== 'active') throw new Error('The call is not ready yet.');
+      if (joinedSessionId === session.id) return;
+      $('startAudio').disabled = true;
+      $('startAudio').textContent = 'Connecting…';
+      const AgoraRTC = await loadAgora();
+      const data = await audioCredentials(session.id);
+      agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+      agoraClient.on('user-published', async (remoteUser, mediaType) => {
+        await agoraClient.subscribe(remoteUser, mediaType);
+        if (mediaType === 'audio') {
+          remoteAudioTrack = remoteUser.audioTrack;
+          remoteAudioTrack.play();
+          remoteAudioTrack.setVolume(callPaused ? 0 : 100);
+        }
+      });
+      agoraClient.on('user-unpublished', (remoteUser, mediaType) => {
+        if (mediaType === 'audio' && remoteAudioTrack === remoteUser.audioTrack) remoteAudioTrack = null;
+      });
+      agoraClient.on('user-left', () => { remoteAudioTrack = null; message('matchingMessage', 'Your partner disconnected. You can wait or end the call.'); });
+      agoraClient.on('token-privilege-will-expire', async () => {
+        try { const renewed = await audioCredentials(session.id); await agoraClient.renewToken(renewed.token); }
+        catch (_) { message('matchingMessage', 'Audio token renewal failed. Please end the call and try again.', true); }
+      });
+      await agoraClient.join(data.appId, data.channel, data.token, null);
+      microphone = await AgoraRTC.createMicrophoneAudioTrack();
+      await agoraClient.publish([microphone]);
+      joinedSessionId = session.id;
+      $('startAudio').disabled = false;
+      $('startAudio').textContent = 'Audio connected';
+      syncCallControls(state?.session || session);
+      message('matchingMessage', 'Audio call connected. Your microphone and speaker controls are ready.');
+    } catch (error) {
+      await leaveAudio();
+      $('startAudio').disabled = false;
+      $('startAudio').textContent = 'Join audio call';
+      message('matchingMessage', error.message, true);
+    }
+  }
 
   async function initialise() {
     try { if (!firebase.apps.length) firebase.initializeApp(config); auth = firebase.auth(); } catch (error) { message('authMessage', 'Firebase could not start. Please check the site configuration.', true); return; }
@@ -56,9 +156,19 @@
     $('refreshVerification').addEventListener('click', async () => { try { await auth.currentUser.reload(); if (auth.currentUser.emailVerified) { setViews(auth.currentUser); await refreshDashboard(); } else message('verifyMessage', 'We cannot see verification yet. Open the link in your email, then try again.', true); } catch (error) { message('verifyMessage', friendly(error), true); } });
     document.querySelectorAll('.signOut').forEach(button => button.addEventListener('click', signOut));
     $('profileForm').addEventListener('submit', async event => { event.preventDefault(); if (!$('adultConfirm').checked) return message('profileMessage', 'You must confirm that you are 18 or older and in India.', true); try { const profile = { fullName: $('fullName').value, alias: $('alias').value, age: $('age').value, city: $('city').value, state: $('state').value, level: $('level').value, preferredLanguage: $('language').value, locationPreference: $('locationPreference').value, interests: checkedInterests(), goals: $('goals').value }; const result = await api('POST', { action: state?.profile ? 'update-profile' : 'register-profile', profile }); message('profileMessage', result.message); await refreshDashboard(); } catch (error) { message('profileMessage', error.message, true); } });
-    $('joinQueue').addEventListener('click', () => action('join-queue').catch(error => message('matchingMessage', error.message, true))); $('leaveQueue').addEventListener('click', () => action('leave-queue').catch(error => message('matchingMessage', error.message, true))); $('acceptCall').addEventListener('click', () => action('accept-call').catch(error => message('matchingMessage', error.message, true))); $('declineCall').addEventListener('click', () => action('decline-call').catch(error => message('matchingMessage', error.message, true))); $('endCall').addEventListener('click', async () => { await leaveAudio(); action('end-call').catch(error => message('matchingMessage', error.message, true)); }); $('startAudio').addEventListener('click', joinAudio);
-    $('blockPartner').addEventListener('click', async () => { if (confirm('Block this learner and end the call?')) { await leaveAudio(); action('block-current-partner').catch(error => message('matchingMessage', error.message, true)); } }); $('reportPartner').addEventListener('click', () => action('report-current-partner', { reason: $('reportReason').value, details: $('reportDetails').value }).catch(error => message('matchingMessage', error.message, true))); $('sendFeedback').addEventListener('click', () => action('submit-feedback', { rating: $('feedbackRating').value, note: $('feedbackNote').value }).catch(error => message('matchingMessage', error.message, true)));
-    auth.onAuthStateChanged(async user => { if (user) await user.reload(); setViews(user); if (!user) return; $('identity').textContent = user.email || ''; if ((user.email || '').toLowerCase() === ADMIN_EMAIL) show('adminLink', true); if (user.emailVerified) { await refreshDashboard(); startPolling(); } });
+    $('joinQueue').addEventListener('click', () => action('join-queue').catch(error => message('matchingMessage', error.message, true)));
+    $('leaveQueue').addEventListener('click', () => action('leave-queue').catch(error => message('matchingMessage', error.message, true)));
+    $('acceptCall').addEventListener('click', () => action('accept-call').catch(error => message('matchingMessage', error.message, true)));
+    $('declineCall').addEventListener('click', () => action('decline-call').catch(error => message('matchingMessage', error.message, true)));
+    $('endCall').addEventListener('click', async () => { $('endCall').disabled = true; await leaveAudio(); try { await action('end-call'); } catch (error) { message('matchingMessage', error.message, true); } finally { $('endCall').disabled = false; } });
+    $('startAudio').addEventListener('click', joinAudio);
+    $('muteCall').addEventListener('click', async () => { muted = !muted; try { if (microphone) await microphone.setEnabled(!muted && !callPaused); $('muteCall').textContent = muted ? 'Unmute microphone' : 'Mute microphone'; $('muteCall').setAttribute('aria-pressed', String(muted)); message('matchingMessage', muted ? 'Microphone muted.' : 'Microphone on.'); } catch (error) { message('matchingMessage', error.message, true); } });
+    $('pauseCall').addEventListener('click', () => { const session = state?.session; if (!session) return; action('pause-call', { paused: !session.pausedByMe }).catch(error => message('matchingMessage', error.message, true)); });
+    $('chatForm').addEventListener('submit', async event => { event.preventDefault(); const input = $('chatInput'), text = input.value.trim(), button = $('sendChat'); if (!text) return; button.disabled = true; try { await api('POST', { action: 'send-message', message: text }); input.value = ''; message('chatStatus', 'Message sent.'); await refreshDashboard(); } catch (error) { message('chatStatus', error.message, true); } finally { button.disabled = false; input.focus(); } });
+    $('blockPartner').addEventListener('click', async () => { if (confirm('Block this learner and end the call?')) { await leaveAudio(); action('block-current-partner').catch(error => message('matchingMessage', error.message, true)); } });
+    $('reportPartner').addEventListener('click', () => action('report-current-partner', { reason: $('reportReason').value, details: $('reportDetails').value }).catch(error => message('matchingMessage', error.message, true)));
+    $('sendFeedback').addEventListener('click', () => action('submit-feedback', { rating: $('feedbackRating').value, note: $('feedbackNote').value }).catch(error => message('matchingMessage', error.message, true)));
+    auth.onAuthStateChanged(async user => { if (user) await user.reload(); setViews(user); if (!user) return; $('identity').textContent = user.emailVerified ? 'Verified Englishmates learner' : 'Email verification required'; if ((user.email || '').toLowerCase() === ADMIN_EMAIL) show('adminLink', true); if (user.emailVerified) { await refreshDashboard(); startPolling(); } });
   }
   initialise();
 })();
