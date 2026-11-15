@@ -47,6 +47,12 @@ service cloud.firestore {
     match /callingReports/{reportId} { allow read, write: if false; }
     match /callingModerationAudit/{auditId} { allow read, write: if false; }
     match /callingRateLimits/{limitId} { allow read, write: if false; }
+    match /callingPartnerRequests/{requestId} { allow read, write: if false; }
+    match /callingPartnerConnections/{connectionId} { allow read, write: if false; }
+    match /callingFailures/{failureId} { allow read, write: if false; }
+    match /callingPartnerRequestsPreview/{requestId} { allow read, write: if false; }
+    match /callingPartnerConnectionsPreview/{connectionId} { allow read, write: if false; }
+    match /callingFailuresPreview/{failureId} { allow read, write: if false; }
 
     // Default-deny for all other collections, including tutor service data that
     // is accessed only through Netlify Functions using Firebase Admin SDK.

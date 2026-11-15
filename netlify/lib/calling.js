@@ -11,7 +11,10 @@ const COLLECTIONS = Object.freeze({
   blocks: `callingBlocks${suffix}`,
   reports: `callingReports${suffix}`,
   audit: `callingModerationAudit${suffix}`,
-  limits: `callingRateLimits${suffix}`
+  limits: `callingRateLimits${suffix}`,
+  partnerRequests: `callingPartnerRequests${suffix}`,
+  connections: `callingPartnerConnections${suffix}`,
+  failures: `callingFailures${suffix}`
 });
 
 function store() {
@@ -54,6 +57,23 @@ function asArray(value, allowed, max = 8) {
 
 function iso(value) {
   return value?.toDate?.().toISOString?.() || null;
+}
+
+function containsContactDetails(value) {
+  const text = String(value || '');
+  const digits = text.replace(/\D/g, '');
+  return /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(text) || /0?[6-9]\d{9}/.test(digits);
+}
+
+function safeAvatar(value) {
+  const text = String(value || '').trim();
+  if (text.length <= 30000 && /^data:image\/(?:webp|png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(text)) return text;
+  try {
+    const url = new URL(text);
+    const host = url.hostname.toLowerCase();
+    const allowed = host === 'googleusercontent.com' || host.endsWith('.googleusercontent.com') || host === 'firebasestorage.googleapis.com';
+    return url.protocol === 'https:' && allowed ? url.href.slice(0, 1000) : null;
+  } catch (_) { return null; }
 }
 
 async function authenticatedUser(event) {
@@ -124,7 +144,8 @@ async function areBlocked(db, firstUid, secondUid) {
 }
 
 function publicProfile(profile) {
-  return { alias: clean(profile.alias, 32) };
+  const alias = clean(profile.alias, 32);
+  return { alias: containsContactDetails(alias) ? 'English learner' : alias || 'English learner', avatarURL: safeAvatar(profile.avatarURL) };
 }
 
 function audit(db, actor, action, targetUid, details = {}) {
@@ -148,12 +169,14 @@ module.exports = {
   authenticatedUser,
   blockId,
   clean,
+  containsContactDetails,
   consumeLimit,
   httpError,
   iso,
   ownProfile,
   publicProfile,
   reply,
+  safeAvatar,
   requireAdmin,
   requireEligible,
   store

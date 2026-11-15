@@ -3,7 +3,7 @@
   const config = { apiKey: 'AIzaSyCFuF2PBq09cKOHBuoLDoypEgrI1gSmm4c', authDomain: 'englishmates-ratangarh-933f1.firebaseapp.com', projectId: 'englishmates-ratangarh-933f1', storageBucket: 'englishmates-ratangarh-933f1.firebasestorage.app', messagingSenderId: '501474121790', appId: '1:501474121790:web:5097a43a6be4e7bc07996f6' };
   const ADMIN_EMAIL = 'bddayma12@gmail.com';
   const $ = id => document.getElementById(id);
-  let auth, state = null, poll = null, agoraClient = null, microphone = null, remoteAudioTrack = null, muted = false, callPaused = false, joinedSessionId = null, lastChatKey = '';
+  let auth, state = null, poll = null, agoraClient = null, microphone = null, remoteAudioTrack = null, muted = false, callPaused = false, joinedSessionId = null, lastChatKey = '', avatarPreviewUrl = null;
 
   function message(id, text, error = false) { const node = $(id); node.textContent = text || ''; node.className = `text-sm mt-3 ${error ? 'text-rose-300' : 'text-emerald-300'}`; }
   function friendly(error) { const code = error?.code || ''; const map = { 'auth/email-already-in-use': 'This email already has an account. Please sign in.', 'auth/invalid-email': 'Enter a valid email address.', 'auth/weak-password': 'Choose a password with at least 6 characters.', 'auth/invalid-credential': 'The email or password is incorrect.', 'auth/unauthorized-domain': 'This website domain is not authorized in Firebase Authentication.', 'auth/popup-closed-by-user': 'Google sign-in was cancelled.' }; return map[code] || error?.message || 'Something went wrong. Please try again.'; }
@@ -13,15 +13,33 @@
   async function api(method, body) { const response = await fetch(Englishmates.api('calling-community'), { method, headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }); let data = {}; try { data = await response.json(); } catch (_) {} if (!response.ok || !data.ok) { const error = new Error(data.error || 'Request failed.'); error.status = response.status; throw error; } return data; }
   function setViews(user) { show('signedOut', !user); show('verifyEmail', !!user && !user.emailVerified); show('communityApp', !!user && !!user.emailVerified); }
   function checkedInterests() { return [...document.querySelectorAll('#interests input:checked')].map(input => input.value); }
+  async function compressAvatar() {
+    const file = $('avatarInput').files[0];
+    if (!file) return null;
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Choose a PNG, JPEG, or WebP image under 5 MB.');
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement('canvas');
+    let edge = 128;
+    const draw = () => { const scale = Math.min(edge / bitmap.width, edge / bitmap.height, 1); canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale)); canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height); };
+    const encode = (type, quality) => new Promise(resolve => canvas.toBlob(resolve, type, quality));
+    draw();
+    let blob = await encode('image/webp', 0.72);
+    if (!blob) blob = await encode('image/jpeg', 0.72);
+    if (blob.size > 20000) { edge = 96; draw(); blob = await encode('image/webp', 0.62) || await encode('image/jpeg', 0.62); }
+    bitmap.close?.();
+    if (!blob || blob.size > 20000) throw new Error('That picture is too detailed. Choose a smaller or simpler image.');
+    return await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error('The picture could not be prepared.')); reader.readAsDataURL(blob); });
+  }
   function statusCopy(status) { return { pending: 'Your profile is awaiting an Englishmates administrator review. Matching is locked until approval.', approved: 'Your profile is approved. You can safely enter the partner-matching queue.', rejected: 'Your profile needs changes before it can be approved. Update it and submit it again.', suspended: 'Community access is suspended. Please contact Englishmates if you need help.' }[status] || 'Complete your profile to request approval.'; }
   function renderProfile(profile) {
     const status = profile?.status || 'new'; show('statusBox', true); $('statusBox').textContent = statusCopy(status); $('statusBox').className = `rounded-2xl p-4 mt-6 text-sm ${status === 'approved' ? 'bg-emerald-500/10 text-emerald-100' : status === 'suspended' || status === 'rejected' ? 'bg-rose-500/10 text-rose-100' : 'bg-amber-500/10 text-amber-100'}`;
     show('matchingPanel', status === 'approved'); if (!profile) return;
-    const fields = { fullName: 'fullName', alias: 'alias', age: 'age', city: 'city', state: 'state', level: 'level', preferredLanguage: 'language', locationPreference: 'locationPreference', goals: 'goals' };
+    const fields = { fullName: 'fullName', alias: 'alias', age: 'age', city: 'city', state: 'state', level: 'level', preferredLanguage: 'language', locationPreference: 'locationPreference', goals: 'goals', intro: 'intro' };
     Object.entries(fields).forEach(([key, id]) => { if (profile[key] !== undefined) $(id).value = profile[key] || ''; });
-    document.querySelectorAll('#interests input').forEach(input => { input.checked = (profile.interests || []).includes(input.value); }); $('adultConfirm').checked = true; $('saveProfile').textContent = status === 'approved' ? 'Update profile' : 'Save profile for approval';
+    document.querySelectorAll('#interests input').forEach(input => { input.checked = (profile.interests || []).includes(input.value); }); $('adultConfirm').checked = true; $('saveProfile').textContent = status === 'approved' ? 'Update profile' : 'Save profile for approval'; if (profile.avatarURL) { $('avatarPreview').src = profile.avatarURL; show('avatarPreviewWrap', true); }
   }
   function avatarInitial(name) { return Array.from(String(name || 'P').trim())[0]?.toUpperCase() || 'P'; }
+  function setAvatar(id, name, url) { const node = $(id); node.replaceChildren(); const safe = /^data:image\/(?:webp|png|jpeg);base64,/i.test(url || '') || /^https:\/\/(?:[^/]+\.)?googleusercontent\.com\//i.test(url || '') || /^https:\/\/firebasestorage\.googleapis\.com\//i.test(url || ''); if (safe) { const image = document.createElement('img'); image.src = url; image.alt = ''; image.className = 'h-full w-full rounded-full object-cover'; node.append(image); } else node.textContent = avatarInitial(name); }
   function renderMessages(session) {
     const target = $('chatMessages');
     const items = Array.isArray(session?.messages) ? session.messages : [];
@@ -80,8 +98,8 @@
     const partner = session.partner || {};
     const alias = partner.alias || 'Practice partner';
     $('partnerDetails').textContent = alias;
-    $('partnerAvatar').textContent = avatarInitial(alias);
-    $('callAvatar').textContent = avatarInitial(alias);
+    setAvatar('partnerAvatar', alias, partner.avatarURL);
+    setAvatar('callAvatar', alias, partner.avatarURL);
     $('callPartnerName').textContent = alias;
     const accepted = !!session.acceptedByMe, active = session.status === 'active';
     $('callTitle').textContent = active ? 'Your audio call is ready' : accepted ? 'Waiting for your partner to accept' : 'You have a practice invitation';
@@ -96,9 +114,10 @@
     try { state = await api('GET'); renderProfile(state.profile); if (state.profile?.status === 'approved') renderMatching(state); }
     catch (error) { if (error.status === 404) { state = { profile: null }; renderProfile(null); return; } message('profileMessage', error.message, true); }
   }
-  function startPolling() { clearInterval(poll); poll = setInterval(() => refreshDashboard(), 4000); }
+  async function pollDashboard() { await refreshDashboard(); poll = setTimeout(pollDashboard, state?.session || state?.queue ? 6000 : 30000); }
+  function startPolling() { clearTimeout(poll); pollDashboard(); }
   async function sendVerification(user) { await user.sendEmailVerification({ url: `${location.origin}/community-profile.html`, handleCodeInApp: false }); }
-  async function signOut() { try { if (state?.session) await api('POST', { action: 'end-call' }); else if (state?.queue) await api('POST', { action: 'leave-queue' }); } catch (_) {} await leaveAudio(); clearInterval(poll); await auth.signOut(); }
+  async function signOut() { try { if (state?.session) await api('POST', { action: 'end-call' }); else if (state?.queue) await api('POST', { action: 'leave-queue' }); } catch (_) {} await leaveAudio(); clearTimeout(poll); await auth.signOut(); }
   async function action(actionName, extra = {}) { const result = await api('POST', { action: actionName, ...extra }); if (actionName !== 'pause-call') message('matchingMessage', result.message); await refreshDashboard(); return result; }
   async function loadAgora() { if (window.AgoraRTC) return window.AgoraRTC; await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = 'https://download.agora.io/sdk/release/AgoraRTC_N-4.23.2.js'; script.onload = resolve; script.onerror = () => reject(new Error('The audio service could not load.')); document.head.appendChild(script); }); return window.AgoraRTC; }
   async function leaveAudio() { if (microphone) { microphone.stop(); microphone.close(); microphone = null; } if (agoraClient) { await agoraClient.leave().catch(() => {}); agoraClient = null; } remoteAudioTrack = null; joinedSessionId = null; muted = false; callPaused = false; show('startAudio', true); show('muteCall', false); show('pauseCall', false); $('startAudio').disabled = false; $('startAudio').textContent = 'Join audio call'; $('muteCall').textContent = 'Mute microphone'; $('pauseCall').textContent = 'Pause call'; }
@@ -138,6 +157,11 @@
       syncCallControls(state?.session || session);
       message('matchingMessage', 'Audio call connected. Your microphone and speaker controls are ready.');
     } catch (error) {
+      const failedSessionId = state?.session?.id;
+      if (failedSessionId) {
+        const category = error?.name === 'NotAllowedError' || /microphone|permission/i.test(error.message) ? 'microphone-permission' : /token/i.test(error.message) ? 'token' : /service|load/i.test(error.message) ? 'audio-service' : 'audio-network';
+        fetch(Englishmates.api('calling-partners'), { method: 'POST', headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'record-call-failure', sessionId: failedSessionId, category }), keepalive: true }).catch(() => {});
+      }
       await leaveAudio();
       $('startAudio').disabled = false;
       $('startAudio').textContent = 'Join audio call';
@@ -155,7 +179,8 @@
     $('resendVerification').addEventListener('click', async () => { try { await sendVerification(auth.currentUser); message('verifyMessage', 'A new verification email was sent.'); } catch (error) { message('verifyMessage', friendly(error), true); } });
     $('refreshVerification').addEventListener('click', async () => { try { await auth.currentUser.reload(); if (auth.currentUser.emailVerified) { setViews(auth.currentUser); await refreshDashboard(); } else message('verifyMessage', 'We cannot see verification yet. Open the link in your email, then try again.', true); } catch (error) { message('verifyMessage', friendly(error), true); } });
     document.querySelectorAll('.signOut').forEach(button => button.addEventListener('click', signOut));
-    $('profileForm').addEventListener('submit', async event => { event.preventDefault(); if (!$('adultConfirm').checked) return message('profileMessage', 'You must confirm that you are 18 or older and in India.', true); try { const profile = { fullName: $('fullName').value, alias: $('alias').value, age: $('age').value, city: $('city').value, state: $('state').value, level: $('level').value, preferredLanguage: $('language').value, locationPreference: $('locationPreference').value, interests: checkedInterests(), goals: $('goals').value }; const result = await api('POST', { action: state?.profile ? 'update-profile' : 'register-profile', profile }); message('profileMessage', result.message); await refreshDashboard(); } catch (error) { message('profileMessage', error.message, true); } });
+    $('avatarInput').addEventListener('change', () => { const file = $('avatarInput').files[0]; if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); if (!file) return; avatarPreviewUrl = URL.createObjectURL(file); $('avatarPreview').src = avatarPreviewUrl; show('avatarPreviewWrap', true); });
+    $('profileForm').addEventListener('submit', async event => { event.preventDefault(); if (!$('adultConfirm').checked) return message('profileMessage', 'You must confirm that you are 18 or older and in India.', true); try { const profile = { fullName: $('fullName').value, alias: $('alias').value, age: $('age').value, city: $('city').value, state: $('state').value, level: $('level').value, preferredLanguage: $('language').value, locationPreference: $('locationPreference').value, interests: checkedInterests(), goals: $('goals').value, intro: $('intro').value }; const avatarDataUrl = await compressAvatar(); if (avatarDataUrl) profile.avatarDataUrl = avatarDataUrl; const result = await api('POST', { action: state?.profile ? 'update-profile' : 'register-profile', profile }); message('profileMessage', result.message); await refreshDashboard(); } catch (error) { message('profileMessage', error.message, true); } });
     $('joinQueue').addEventListener('click', () => action('join-queue').catch(error => message('matchingMessage', error.message, true)));
     $('leaveQueue').addEventListener('click', () => action('leave-queue').catch(error => message('matchingMessage', error.message, true)));
     $('acceptCall').addEventListener('click', () => action('accept-call').catch(error => message('matchingMessage', error.message, true)));
