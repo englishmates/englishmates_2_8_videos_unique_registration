@@ -13,7 +13,7 @@
 <body>
 <header class="border-b border-white/10 bg-slate-950/80"><nav class="max-w-7xl mx-auto px-4 py-5 flex justify-between"><a href="./" class="font-black text-xl">ENGLISHMATES</a><a href="./courses.html" class="text-sm text-violet-300">View course marketplace</a></nav></header>
 <main class="max-w-7xl mx-auto px-4 py-8 md:py-12">
-<div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Restricted administration</p><h1 class="text-3xl md:text-4xl font-black mt-2">LMS course and enrollment manager</h1><p class="muted mt-3">Manage courses, YouTube lessons, enrollments and manual payment reviews.</p></div>
+<div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Restricted administration</p><h1 class="text-3xl md:text-4xl font-black mt-2">LMS course and enrollment manager</h1><p class="muted mt-3">Manage courses, protected video lessons, enrollments and manual payment reviews.</p></div>
 <section id="loginPanel" class="panel rounded-2xl p-6 max-w-xl mt-7"><h2 class="text-xl font-black">Admin sign in</h2><p class="muted text-sm mt-2">Use the verified Englishmates owner account.</p><form id="loginForm" class="grid gap-3 mt-5"><input id="adminEmail" type="email" required placeholder="Admin email" class="field rounded-xl px-3 py-3"><input id="adminPassword" type="password" required placeholder="Password" class="field rounded-xl px-3 py-3"><button class="btn rounded-xl px-4 py-3 font-bold">Sign in</button></form><p id="loginMessage" class="text-sm mt-3" role="status"></p></section>
 <section id="adminPanel" class="hidden mt-7">
 <div class="panel rounded-2xl p-4 flex justify-between items-center"><div><p class="text-xs muted">SIGNED IN AS</p><p id="identity" class="font-bold mt-1"></p></div><button id="logout" class="rounded-xl border border-white/10 px-4 py-2">Sign out</button></div>
@@ -48,7 +48,7 @@
 <textarea name="syllabus" rows="2" placeholder="Public syllabus summary (one per line)" class="field rounded-xl px-3 py-3 md:col-span-2"></textarea>
 <textarea name="requirements" rows="2" placeholder="Requirements" class="field rounded-xl px-3 py-3 md:col-span-2"></textarea>
 <textarea name="faqs" rows="2" placeholder="FAQs, one per line: Question | Answer" class="field rounded-xl px-3 py-3 md:col-span-2"></textarea>
-<input name="demoVideoId" placeholder="Public demo YouTube video ID (optional)" class="field rounded-xl px-3 py-3">
+<input name="demoVideoId" placeholder="Public teaser video ID only (never a full lesson)" class="field rounded-xl px-3 py-3">
 <input name="order" type="number" min="1" value="1" placeholder="Display order" class="field rounded-xl px-3 py-3">
 <input name="popularity" type="number" min="0" value="0" placeholder="Popularity score" class="field rounded-xl px-3 py-3">
 <label class="flex items-center gap-2 text-sm md:col-span-2"><input name="published" type="checkbox" class="w-4 h-4"> Publish in the marketplace</label>
@@ -56,34 +56,37 @@
 </form>
 </section>
 <section class="panel rounded-2xl p-5 md:p-6">
-<h2 class="text-xl font-black">Add a course video (YouTube Unlisted)</h2>
-<p class="muted text-sm mt-1">Upload the video to your YouTube channel, set its visibility to <strong class="text-white">Unlisted</strong>, then paste its link below. The lesson appears inside the course only for students with an active enrollment.</p>
-<div class="rounded-xl border border-violet-400/20 bg-violet-500/5 p-4 mt-4 text-sm">
-  <p class="font-bold text-violet-200">How to add a video</p>
+<h2 class="text-xl font-black">Protected lesson videos</h2>
+<p class="muted text-sm mt-1">Upload each lesson directly to secure video hosting. Students receive a temporary playback token only after the server confirms their active course enrollment.</p>
+<div class="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-4 mt-4 text-sm">
+  <p class="font-bold text-emerald-200">How to add a protected video</p>
   <ol class="list-decimal pl-5 mt-2 space-y-1 muted">
-    <li><a href="https://studio.youtube.com/" target="_blank" rel="noopener noreferrer" class="text-violet-300 underline">Open YouTube Studio</a> and upload your video.</li>
-    <li>In Visibility, choose <strong class="text-white">Unlisted</strong> (not Private), save, and make sure embedding is allowed.</li>
-    <li>Select the course and module below, enter a lesson title, and paste the YouTube link.</li>
-    <li>Keep “Publish lesson to enrolled students” checked and press “Save lesson”.</li>
+    <li>Choose the course and module, then add the lesson title and video length.</li>
+    <li>Select a video file (up to 200 MB). It uploads directly to Cloudflare Stream over a one-time upload link.</li>
+    <li>Press “Upload & save secure lesson”. The video is then available in the learning room after processing.</li>
   </ol>
-  <p class="text-amber-200 mt-3"><strong>Link-sharing note:</strong> Unlisted videos do not appear in YouTube search, but anyone who gets the link can forward it. Enrollment protects the lesson page in Englishmates; YouTube Unlisted cannot prevent someone from sharing the video link. Use a secure video host if you need stronger access control.</p>
+  <p class="text-emerald-100 mt-3">Video links are signed, short-lived and restricted to the Englishmates site. This prevents normal link forwarding to another site. A viewer can still record a screen with another device, so no browser player can promise zero copying.</p>
+  <p class="text-amber-200 mt-2">The secure video account must be connected to this Netlify preview before uploads can start. YouTube links are not accepted for paid lessons.</p>
 </div>
 <form id="lessonForm" class="grid md:grid-cols-2 gap-3 mt-4">
-<select name="courseId" id="lessonCourse" required class="field rounded-xl px-3 py-3"><option value="">Choose a course</option></select>
-<input name="moduleTitle" required placeholder="Module title" class="field rounded-xl px-3 py-3">
-<input name="moduleId" placeholder="Module ID (optional)" class="field rounded-xl px-3 py-3">
-<input name="moduleOrder" type="number" min="1" value="1" placeholder="Module order" class="field rounded-xl px-3 py-3">
-<input name="title" required placeholder="Lesson title" class="field rounded-xl px-3 py-3">
-<input name="lessonId" placeholder="Lesson ID when editing (optional)" class="field rounded-xl px-3 py-3">
-<input name="youtubeUrl" type="url" required placeholder="Paste the Unlisted YouTube link (https://youtu.be/...)" class="field rounded-xl px-3 py-3 md:col-span-2" aria-label="Unlisted YouTube video link">
-<input name="durationMinutes" type="number" min="0" placeholder="Duration (minutes)" class="field rounded-xl px-3 py-3">
-<input name="order" type="number" min="1" value="1" placeholder="Lesson order" class="field rounded-xl px-3 py-3">
-<textarea name="description" rows="2" placeholder="Lesson description" class="field rounded-xl px-3 py-3 md:col-span-2"></textarea>
-<textarea name="notes" rows="2" placeholder="Lesson notes (optional)" class="field rounded-xl px-3 py-3"></textarea>
-<textarea name="assignment" rows="2" placeholder="Practice or assignment (optional)" class="field rounded-xl px-3 py-3"></textarea>
-<input name="resourceUrl" type="url" placeholder="Notes/resources URL (optional)" class="field rounded-xl px-3 py-3 md:col-span-2">
-<label class="flex items-center gap-2 text-sm md:col-span-2"><input name="published" type="checkbox" checked class="w-4 h-4"> Publish lesson to enrolled students</label>
-<button class="btn rounded-xl px-5 py-3 font-bold md:col-span-2">Save lesson for enrolled students</button>
+  <select name="courseId" id="lessonCourse" required class="field rounded-xl px-3 py-3"><option value="">Choose a course</option></select>
+  <input name="moduleTitle" required placeholder="Module title (e.g. Week 1)" class="field rounded-xl px-3 py-3">
+  <input name="moduleId" placeholder="Module ID (optional)" class="field rounded-xl px-3 py-3">
+  <input name="moduleOrder" type="number" min="1" value="1" placeholder="Module order" class="field rounded-xl px-3 py-3">
+  <input name="title" required placeholder="Lesson title" class="field rounded-xl px-3 py-3">
+  <input name="lessonId" placeholder="Lesson ID when editing (optional)" class="field rounded-xl px-3 py-3">
+  <label class="text-sm md:col-span-2">Select video file
+    <input name="videoFile" type="file" accept="video/*" required class="field rounded-xl px-3 py-3 mt-2">
+  </label>
+  <input name="durationMinutes" type="number" min="1" max="180" required placeholder="Video length in minutes (1–180)" class="field rounded-xl px-3 py-3">
+  <input name="order" type="number" min="1" value="1" placeholder="Lesson order" class="field rounded-xl px-3 py-3">
+  <textarea name="description" rows="2" placeholder="Lesson description" class="field rounded-xl px-3 py-3 md:col-span-2"></textarea>
+  <textarea name="notes" rows="2" placeholder="Lesson notes (optional)" class="field rounded-xl px-3 py-3"></textarea>
+  <textarea name="assignment" rows="2" placeholder="Practice or assignment (optional)" class="field rounded-xl px-3 py-3"></textarea>
+  <input name="resourceUrl" type="url" placeholder="Notes/resources URL (optional)" class="field rounded-xl px-3 py-3 md:col-span-2">
+  <label class="flex items-center gap-2 text-sm md:col-span-2"><input name="published" type="checkbox" checked class="w-4 h-4"> Publish lesson to enrolled students</label>
+  <progress id="videoUploadProgress" class="hidden w-full md:col-span-2 h-2" value="0" max="100"></progress>
+  <button id="uploadLessonBtn" class="btn rounded-xl px-5 py-3 font-bold md:col-span-2">Upload &amp; save secure lesson</button>
 </form>
 </section>
 <section class="panel rounded-2xl p-5 md:p-6">
@@ -198,18 +201,53 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (e) { setMessage(e.message, true); }
   });
   $('announcementForm').addEventListener('submit', async event => { event.preventDefault(); const f = event.currentTarget.elements; try { const result = await LMS.api('publish-announcement', { courseId: f.courseId.value, title: f.title.value, message: f.message.value }); setMessage('Announcement sent to ' + result.recipients + ' active student(s).', false); event.currentTarget.reset(); } catch (e) { setMessage(e.message, true); } });
+  function uploadSecureVideo(uploadUrl, file, progress) {
+    return new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('POST', uploadUrl);
+      request.upload.onprogress = event => {
+        if (event.lengthComputable && progress) progress.value = Math.round((event.loaded / event.total) * 100);
+      };
+      request.onload = () => request.status >= 200 && request.status < 300
+        ? resolve()
+        : reject(new Error('Secure video upload failed. Please retry with a smaller video file.'));
+      request.onerror = () => reject(new Error('Video upload was interrupted. Check your connection and retry.'));
+      const form = new FormData();
+      form.append('file', file, file.name);
+      request.send(form);
+    });
+  }
   $('lessonForm').addEventListener('submit', async event => {
     event.preventDefault();
-    const f = event.currentTarget.elements;
+    const form = event.currentTarget;
+    const f = form.elements;
+    const file = f.videoFile.files && f.videoFile.files[0];
+    const button = $('uploadLessonBtn');
+    const progress = $('videoUploadProgress');
     try {
+      if (!file || !file.type.startsWith('video/')) throw new Error('Choose a video file.');
+      if (file.size > 200 * 1024 * 1024) throw new Error('This upload supports videos up to 200 MB. Compress the file and try again.');
+      if (!f.courseId.value) throw new Error('Choose a course first.');
+      button.disabled = true;
+      progress.value = 0; progress.classList.remove('hidden');
+      setMessage('Preparing a secure one-time upload…', false);
+      const upload = await LMS.api('create-stream-upload', { durationMinutes: Number(f.durationMinutes.value || 0) });
+      setMessage('Uploading video securely… keep this page open until it finishes.', false);
+      await uploadSecureVideo(upload.uploadURL, file, progress);
+      setMessage('Saving lesson details…', false);
       await LMS.api('save-lesson', {
+        videoUid: upload.uid,
         courseId: f.courseId.value, moduleTitle: f.moduleTitle.value, moduleId: f.moduleId.value,
         moduleOrder: Number(f.moduleOrder.value || 1), title: f.title.value, lessonId: f.lessonId.value,
-        youtubeUrl: f.youtubeUrl.value, durationMinutes: Number(f.durationMinutes.value || 0),
-        order: Number(f.order.value || 1), description: f.description.value, notes: f.notes.value, assignment: f.assignment.value, resourceUrl: f.resourceUrl.value, published: f.published.checked
+        durationMinutes: Number(f.durationMinutes.value || 0), order: Number(f.order.value || 1),
+        description: f.description.value, notes: f.notes.value, assignment: f.assignment.value,
+        resourceUrl: f.resourceUrl.value, published: f.published.checked
       });
-      setMessage('Lesson saved.', false); event.currentTarget.reset(); f.moduleOrder.value = '1'; f.order.value = '1'; f.published.checked = true;
+      setMessage('Secure lesson saved. The video will play after Cloudflare finishes processing it.', false);
+      form.reset(); f.moduleOrder.value = '1'; f.order.value = '1'; f.published.checked = true;
+      progress.value = 0; progress.classList.add('hidden');
     } catch (e) { setMessage(e.message, true); }
+    finally { button.disabled = false; }
   });
   $('studentSearch').addEventListener('input', () => { const q = $('studentSearch').value.trim().toLowerCase(); document.querySelectorAll('[data-enrollment-row]').forEach(row => { row.classList.toggle('hidden', !row.dataset.search.includes(q)); }); });
   $('exportCsv').addEventListener('click', () => {

@@ -69,6 +69,46 @@ function validImageBytes(buffer, contentType) {
   return false;
 }
 
+function streamConfig() {
+  const accountId = process.env.CLOUDFLARE_STREAM_ACCOUNT_ID;
+  const apiToken = process.env.CLOUDFLARE_STREAM_API_TOKEN;
+  const customerHost = String(process.env.CLOUDFLARE_STREAM_CUSTOMER_HOST || '').trim().toLowerCase();
+  if (!accountId || !apiToken || !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.cloudflarestream\.com$/.test(customerHost)) {
+    throw fail(503, 'Secure video hosting is not configured. Add the Cloudflare Stream settings in Netlify.');
+  }
+  return { accountId, apiToken, customerHost };
+}
+
+function streamAllowedOrigins() {
+  const raw = process.env.CONTEXT === 'production'
+    ? [process.env.URL]
+    : [process.env.DEPLOY_PRIME_URL || process.env.URL];
+  return Array.from(new Set(raw.map(value => {
+    try { return new URL(value).hostname.toLowerCase(); } catch (_) { return ''; }
+  }).filter(Boolean)));
+}
+
+async function streamApi(path, options = {}) {
+  const config = streamConfig();
+  const headers = { Authorization: 'Bearer ' + config.apiToken };
+  let body;
+  if (options.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    body = JSON.stringify(options.body);
+  }
+  const result = await fetch('https://api.cloudflare.com/client/v4/accounts/' +
+    encodeURIComponent(config.accountId) + '/stream' + path, {
+      method: options.method || 'GET', headers, body
+    });
+  let payload = {};
+  try { payload = await result.json(); } catch (_) {}
+  if (!result.ok || payload.success !== true) {
+    console.error('Cloudflare Stream API error:', result.status, Array.isArray(payload.errors) ? payload.errors.map(x => x.code).join(',') : '');
+    throw fail(502, 'Secure video provider could not complete the request.');
+  }
+  return payload.result || {};
+}
+
 function timestampValue(value) {
   return value && typeof value.toDate === 'function' ? value.toDate().toISOString() : value || null;
 }
@@ -217,7 +257,7 @@ async function getContent(courseId) {
           notes: clean(lesson.notes, 3000),
           resourceUrl: clean(lesson.resourceUrl, 700),
           assignment: clean(lesson.assignment, 1600),
-          youtubeId: clean(lesson.youtubeId, 20),
+          hasVideo: Boolean(lesson.videoUid),
           durationMinutes: Number(lesson.durationMinutes || 0),
           order: Number(lesson.order || 0),
           preview: lesson.preview === true
@@ -560,6 +600,40 @@ async function handle(event) {
       })() });
     }
 
+    if (action === 'lesson-playback') {
+      const user = await userFromEvent(event);
+      const courseId = clean(body.courseId, 120);
+      const moduleId = clean(body.moduleId, 120);
+      const lessonId = clean(body.lessonId, 120);
+      if (!courseId || !moduleId || !lessonId) throw fail(400, 'Choose a course lesson.');
+      const isAdmin = String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase();
+      if (!isAdmin && !await hasActiveEnrollment(user.uid, courseId)) {
+        throw fail(403, 'An active enrollment is required to play this lesson.');
+      }
+      const lessonSnap = await col('lmsCourseContent').doc(courseId).collection('modules').doc(moduleId).collection('lessons').doc(lessonId).get();
+      if (!lessonSnap.exists || lessonSnap.data().published === false) throw fail(404, 'Published lesson not found.');
+      const lesson = lessonSnap.data();
+      const videoUid = clean(lesson.videoUid, 80);
+      if (!videoUid || lesson.videoProvider !== 'cloudflare-stream') throw fail(409, 'This lesson must be re-uploaded to secure video hosting before it can play.');
+      const video = await streamApi('/' + encodeURIComponent(videoUid));
+      if (video.requireSignedURLs !== true) throw fail(503, 'This video is not protected by signed playback. Ask the admin to re-upload it.');
+      if (video.readyToStream !== true) throw fail(409, 'This lesson is still being prepared. Please try again in a minute.');
+      const tokenResult = await streamApi('/' + encodeURIComponent(videoUid) + '/token', {
+        method: 'POST',
+        body: {
+          exp: Math.floor(Date.now() / 1000) + Math.max(20 * 60, Math.min(4 * 60 * 60, (Number(lesson.durationMinutes || 30) + 15) * 60)),
+          downloadable: false
+        }
+      });
+      const token = clean(tokenResult.token, 4096);
+      if (!token) throw fail(502, 'Secure video provider did not return a playback token.');
+      const { customerHost } = streamConfig();
+      return response(event, 200, {
+        ok: true,
+        playbackUrl: 'https://' + customerHost + '/' + encodeURIComponent(token) + '/iframe'
+      });
+    }
+
     if (action === 'track-lesson') {
       const user = await userFromEvent(event);
       const courseId = clean(body.courseId, 120);
@@ -692,28 +766,63 @@ async function handle(event) {
       return response(event, 200, { ok: true });
     }
 
+    if (action === 'create-stream-upload') {
+      const actor = await requireAdmin(event);
+      const origins = streamAllowedOrigins();
+      if (!origins.length) throw fail(503, 'Netlify must provide the site URL before secure video uploads can be enabled.');
+      const minutes = Number(body.durationMinutes || 0);
+      if (!Number.isFinite(minutes) || minutes < 1 || minutes > 180) throw fail(400, 'Enter a lesson length from 1 to 180 minutes.');
+      const created = await streamApi('/direct_upload', {
+        method: 'POST',
+        body: {
+          maxDurationSeconds: Math.min(10800, Math.round(minutes * 60 + 120)),
+          expiry: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+          requireSignedURLs: true,
+          allowedOrigins: origins
+        }
+      });
+      const uid = clean(created.uid, 80);
+      const uploadURL = clean(created.uploadURL, 500);
+      if (!/^[a-f0-9]{24,64}$/i.test(uid) || !uploadURL.startsWith('https://upload.videodelivery.net/')) {
+        throw fail(502, 'Secure video provider returned an invalid upload session.');
+      }
+      await col('lmsVideoUploads').doc(uid).set({
+        uid, creatorUid: actor.uid, allowedOrigins: origins,
+        createdAt: now(), expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+      });
+      return response(event, 200, { ok: true, uid, uploadURL });
+    }
+
     if (action === 'save-lesson') {
       const actor = await requireAdmin(event);
       const courseId = clean(body.courseId, 120);
       const moduleTitle = clean(body.moduleTitle, 120);
       const title = clean(body.title, 180);
       const description = clean(body.description, 1200);
-      const url = clean(body.youtubeUrl, 500);
-      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([A-Za-z0-9_-]{11})/);
-      if (!courseId || moduleTitle.length < 2 || title.length < 2 || !match) throw fail(400, 'Enter a course, module, lesson title and valid YouTube URL.');
+      const videoUid = clean(body.videoUid, 80);
+      if (!courseId || moduleTitle.length < 2 || title.length < 2 || !/^[a-f0-9]{24,64}$/i.test(videoUid)) {
+        throw fail(400, 'Upload a secure course video, then enter the course, module and lesson title.');
+      }
       const courseSnap = await col('lmsCourses').doc(courseId).get();
       if (!courseSnap.exists) throw fail(404, 'Save or import this LMS course before adding lessons.');
+      const pendingRef = col('lmsVideoUploads').doc(videoUid);
+      const pendingSnap = await pendingRef.get();
+      const pending = pendingSnap.exists ? pendingSnap.data() : null;
+      if (!pending || pending.creatorUid !== actor.uid || Date.parse(pending.expiresAt || '') < Date.now()) {
+        throw fail(403, 'This secure upload expired or was not created by your admin session. Upload the video again.');
+      }
       const moduleId = slug(body.moduleId || moduleTitle);
       const lessonId = slug(body.lessonId || title);
       const moduleRef = col('lmsCourseContent').doc(courseId).collection('modules').doc(moduleId);
       await moduleRef.set({ title: moduleTitle, order: Math.max(1, Number(body.moduleOrder || 1)), updatedAt: now() }, { merge: true });
       await moduleRef.collection('lessons').doc(lessonId).set({
-        title, description, youtubeId: match[1],
-        durationMinutes: Math.max(0, Number(body.durationMinutes || 0)),
+        title, description, videoUid, videoProvider: 'cloudflare-stream', youtubeId: null,
+        durationMinutes: Math.max(1, Math.min(180, Number(body.durationMinutes || 1))),
         order: Math.max(1, Number(body.order || 1)),
-        preview: body.preview === true, published: body.published !== false,
+        preview: false, published: body.published !== false,
         notes: clean(body.notes, 3000), resourceUrl: clean(body.resourceUrl, 700), assignment: clean(body.assignment, 1600), updatedAt: now()
       }, { merge: true });
+      await pendingRef.delete();
       const moduleDocs = await col('lmsCourseContent').doc(courseId).collection('modules').get();
       let lectureCount = 0;
       for (const m of moduleDocs.docs) {
@@ -721,10 +830,9 @@ async function handle(event) {
         lectureCount += lessons.docs.filter(d => d.data().published !== false).length;
       }
       await courseSnap.ref.set({ lectureCount, updatedAt: now() }, { merge: true });
-      await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'save-lesson', courseId, moduleId, lessonId, published: body.published !== false, createdAt: now() });
+      await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'save-lesson', courseId, moduleId, lessonId, videoProvider: 'cloudflare-stream', published: body.published !== false, createdAt: now() });
       return response(event, 200, { ok: true, moduleId, lessonId, lectureCount });
     }
-
     if (action === 'publish-announcement') {
       const actor = await requireAdmin(event);
       const courseId = clean(body.courseId, 120);

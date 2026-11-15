@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function flatLessons() { return modules.flatMap(m => m.lessons.map(l => ({ module: m, lesson: l }))); }
   function moveLesson(offset) { const all = flatLessons(); const index = all.findIndex(x => x.lesson.id === (selected && selected.lesson.id)); const next = all[index + offset]; if (next) selectLesson(next.module, next.lesson); }
   $('previousBtn').addEventListener('click', () => moveLesson(-1)); $('nextBtn').addEventListener('click', () => moveLesson(1));
-  function selectLesson(module, lesson) {
+  async function selectLesson(module, lesson) {
     selected = { module, lesson };
     $('previousBtn').disabled = flatLessons().findIndex(x => x.lesson.id === lesson.id) <= 0;
     $('nextBtn').disabled = flatLessons().findIndex(x => x.lesson.id === lesson.id) >= flatLessons().length - 1;
@@ -70,16 +70,35 @@ document.addEventListener('DOMContentLoaded', function () {
     $('lessonAssignment').textContent = lesson.assignment || '';
     $('assignmentPanel').classList.toggle('hidden', !lesson.assignment && !lesson.resourceUrl);
     if (lesson.resourceUrl) { $('resourceLink').href = lesson.resourceUrl; $('resourceLink').classList.remove('hidden'); } else $('resourceLink').classList.add('hidden');
-    LMS.api('track-lesson', { courseId, lessonId: lesson.id }).catch(e => { $('learningMessage').textContent = e.message; });
     $('moduleName').textContent = module.title;
     $('lessonTitle').textContent = lesson.title;
     $('lessonDescription').textContent = lesson.description || '';
-    $('video').src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(lesson.youtubeId) + '?rel=0';
-    $('video').classList.remove('hidden'); $('videoPlaceholder').classList.add('hidden');
-    $('completeBtn').classList.remove('hidden');
-    $('completeBtn').textContent = lesson.completed ? 'Completed ✓' : 'Mark complete';
-    $('completeBtn').disabled = !!lesson.completed;
     $('learningMessage').textContent = '';
+    $('completeBtn').classList.add('hidden');
+    $('video').removeAttribute('src');
+    $('video').classList.add('hidden');
+    $('videoPlaceholder').classList.remove('hidden');
+    $('videoPlaceholder').textContent = 'Checking your course access…';
+    if (!lesson.hasVideo) {
+      $('videoPlaceholder').textContent = 'This lesson is waiting for its secure video upload. Please contact your instructor.';
+      return;
+    }
+    $('videoPlaceholder').textContent = 'Preparing secure playback…';
+    try {
+      const result = await LMS.api('lesson-playback', { courseId, moduleId: module.id, lessonId: lesson.id });
+      if (!selected || selected.module.id !== module.id || selected.lesson.id !== lesson.id) return;
+      $('video').src = result.playbackUrl;
+      $('video').setAttribute('referrerpolicy', 'strict-origin');
+      $('video').classList.remove('hidden');
+      $('videoPlaceholder').classList.add('hidden');
+      $('completeBtn').classList.remove('hidden');
+      $('completeBtn').textContent = lesson.completed ? 'Completed ✓' : 'Mark complete';
+      $('completeBtn').disabled = !!lesson.completed;
+      LMS.api('track-lesson', { courseId, lessonId: lesson.id }).catch(e => { $('learningMessage').textContent = e.message; });
+    } catch (e) {
+      if (!selected || selected.module.id !== module.id || selected.lesson.id !== lesson.id) return;
+      $('videoPlaceholder').textContent = e.message || 'Secure video playback could not start. Please try again.';
+    }
   }
   $('completeBtn').addEventListener('click', async () => {
     if (!selected) return;
