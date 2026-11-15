@@ -138,10 +138,11 @@ function publicCourse(id, c, source) {
 }
 
 async function findCourse(courseId) {
-  let snap = await col('lmsCourses').doc(courseId).get();
-  if (snap.exists) return { id: snap.id, data: snap.data(), source: 'lms' };
-  snap = await db().collection('courses').doc(courseId).get();
-  if (snap.exists) return { id: snap.id, data: snap.data(), source: 'legacy' };
+  const lmsSnap = await col('lmsCourses').doc(courseId).get();
+  if (lmsSnap.exists && lmsSnap.data().status !== 'draft') return { id: lmsSnap.id, data: lmsSnap.data(), source: 'lms' };
+  const legacySnap = await db().collection('courses').doc(courseId).get();
+  if (legacySnap.exists) return { id: legacySnap.id, data: legacySnap.data(), source: 'legacy' };
+  if (lmsSnap.exists) return { id: lmsSnap.id, data: lmsSnap.data(), source: 'lms' };
   return null;
 }
 
@@ -235,7 +236,7 @@ async function hasActiveEnrollment(uid, courseId) {
 
 async function adminDashboard() {
   const [courses, enrollments, payments] = await Promise.all([
-    col('lmsCourses').limit(200).get(),
+    col('lmsCourses').get(),
     col('enrollments').limit(300).get(),
     col('payments').limit(300).get()
   ]);
@@ -402,7 +403,6 @@ async function handle(event) {
       if (!course) throw fail(404, 'Course not found.');
       const p = publicCourse(course.id, course.data, course.source);
       if (p.status !== 'published') throw fail(400, 'This course is not open for enrollment.');
-      if (course.source !== 'lms') throw fail(400, 'This course uses the existing registration form. Please register from the main website.');
       const amount = priceFromCourse(course.data);
       if (p.enrollmentDeadline && /^\d{4}-\d{2}-\d{2}$/.test(p.enrollmentDeadline) && p.enrollmentDeadline < new Date().toISOString().slice(0, 10)) throw fail(400, 'Enrollment for this course has closed.');
       const profile = await ensureProfile(user.uid, user, { name, phone, qualification, city, state });

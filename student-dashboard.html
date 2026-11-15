@@ -55,11 +55,11 @@ document.addEventListener('DOMContentLoaded', function () {
   LMS.bindAuth();
   async function loadCatalog() {
     const result = await LMS.api('public-courses');
-    const eligible = result.courses.filter(c => c.source === 'lms');
+    const eligible = result.courses.filter(c => c.pricePaise !== null);
     $('courseSelect').innerHTML = '<option value="">Choose an LMS course</option>' + eligible.map(c =>
       '<option value="' + LMS.escape(c.id) + '">' + LMS.escape(c.title) + ' · ' + (c.pricePaise == null ? 'Fee on request' : LMS.formatMoney(c.pricePaise)) + '</option>').join('');
     if (requestedCourse && eligible.some(c => c.id === requestedCourse)) $('courseSelect').value = requestedCourse;
-    if (!eligible.length) $('pageMessage').textContent = 'The existing catalog is visible on the website. New LMS enrollments appear here after an admin publishes a course.';
+    if (!eligible.length) $('pageMessage').textContent = 'No course with a confirmed fee is available for LMS enrollment yet. Contact Englishmates or check back later.';
   }
   async function refreshEnrollments() {
     $('pageMessage').textContent = 'Loading your courses…';

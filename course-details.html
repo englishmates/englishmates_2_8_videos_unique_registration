@@ -62,7 +62,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     $('level').textContent = c.level; $('duration').textContent = c.duration || 'To be announced';
     $('language').textContent = c.language; $('instructor').textContent = c.instructorName;
     $('price').textContent = c.pricePaise == null ? 'Fee on request' : LMS.formatMoney(c.pricePaise);
-    if (c.source === 'legacy') { $('enrollNow').textContent = 'Register on main website'; $('enrollHint').textContent = 'This course still uses the existing Englishmates registration flow.'; $('enrollNow').addEventListener('click', () => { location.href = './#enroll'; }); } else { $('enrollNow').addEventListener('click', () => { $('enrollmentPanel').classList.remove('hidden'); $('enrollmentPanel').scrollIntoView({ behavior: 'smooth' }); }); }
+    if (c.pricePaise === null) {
+      $('enrollNow').textContent = 'Contact for course fee'; $('enrollNow').disabled = true;
+      $('enrollHint').textContent = 'Please contact Englishmates to confirm this course fee.';
+    } else {
+      if (c.source === 'legacy') $('enrollHint').textContent = 'This course is from the current Englishmates catalog. After enrollment and payment review, the admin can add its LMS lessons.';
+      $('enrollNow').addEventListener('click', () => { $('enrollmentPanel').classList.remove('hidden'); $('enrollmentPanel').scrollIntoView({ behavior: 'smooth' }); });
+    }
     $('originalPrice').textContent = c.originalPricePaise && c.originalPricePaise > c.pricePaise ? 'Original price: ' + LMS.formatMoney(c.originalPricePaise) : '';
     $('dates').textContent = [c.startDate && ('Starts ' + c.startDate), c.endDate && ('Ends ' + c.endDate), c.enrollmentDeadline && ('Enroll by ' + c.enrollmentDeadline)].filter(Boolean).join(' · ') || 'Course dates will be shared after enrollment.';
     $('requirements').textContent = c.requirements || 'No prior experience is required unless stated by the instructor.';
