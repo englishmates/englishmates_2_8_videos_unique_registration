@@ -54,6 +54,29 @@ service cloud.firestore {
     match /callingPartnerConnectionsPreview/{connectionId} { allow read, write: if false; }
     match /callingFailuresPreview/{failureId} { allow read, write: if false; }
 
+    // LMS content and student/payment records are accessed only by Netlify Functions.
+    // Admin SDK operations are authenticated and authorized in the LMS API.
+    match /lmsCourses/{courseId} { allow read, write: if false; }
+    match /lmsCoursesPreview/{courseId} { allow read, write: if false; }
+    match /lmsCourseContent/{courseId}/{document=**} { allow read, write: if false; }
+    match /lmsCourseContentPreview/{courseId}/{document=**} { allow read, write: if false; }
+    match /userProfiles/{uid} { allow read, write: if false; }
+    match /userProfilesPreview/{uid} { allow read, write: if false; }
+    match /enrollments/{enrollmentId} { allow read, write: if false; }
+    match /enrollmentsPreview/{enrollmentId} { allow read, write: if false; }
+    match /payments/{paymentId} { allow read, write: if false; }
+    match /paymentsPreview/{paymentId} { allow read, write: if false; }
+    match /studentProgress/{progressId} { allow read, write: if false; }
+    match /studentProgressPreview/{progressId} { allow read, write: if false; }
+    match /adminLogs/{logId} { allow read, write: if false; }
+    match /adminLogsPreview/{logId} { allow read, write: if false; }
+    match /courseReviews/{reviewId} { allow read, write: if false; }
+    match /courseReviewsPreview/{reviewId} { allow read, write: if false; }
+    match /userNotifications/{notificationId} { allow read, write: if false; }
+    match /userNotificationsPreview/{notificationId} { allow read, write: if false; }
+    match /certificates/{certificateId} { allow read, write: if false; }
+    match /certificatesPreview/{certificateId} { allow read, write: if false; }
+
     // Default-deny for all other collections, including tutor service data that
     // is accessed only through Netlify Functions using Firebase Admin SDK.
     match /{document=**} { allow read, write: if false; }

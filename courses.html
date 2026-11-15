@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Courses | Englishmates</title>
+<meta name="description" content="Explore Englishmates courses and learning programs.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="assets/site-config.js"></script>
+<script src="assets/lms.js" defer></script>
+<style>
+body{background:#070b17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.panel{background:#10192b;border:1px solid #26344e}.field{background:#080f1e;border:1px solid #334155;color:#fff}.muted{color:#9aa9c0}.card{background:linear-gradient(145deg,#111b30,#0b1221);border:1px solid #273650}.card:hover{border-color:#8b5cf6;transform:translateY(-3px)}.btn{background:linear-gradient(135deg,#2563eb,#7c3aed)}
+</style>
+</head>
+<body>
+<header class="border-b border-white/10 bg-slate-950/80">
+  <nav class="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between gap-4">
+    <a href="./" class="font-black text-xl text-white">ENGLISHMATES</a>
+    <div class="flex items-center gap-4 text-sm"><a class="text-violet-300" href="./">Home</a><a class="text-slate-300 hover:text-white" href="./student-dashboard.html">Student dashboard</a><a class="text-slate-300 hover:text-white" href="./admin-lms.html">Admin</a></div>
+  </nav>
+</header>
+<main class="max-w-7xl mx-auto px-4 py-10 md:py-16">
+  <div class="max-w-3xl"><p class="text-xs uppercase tracking-[.2em] text-violet-300 font-bold">Learn with Englishmates</p><h1 class="text-4xl md:text-5xl font-black mt-3">Find the course that moves you forward.</h1><p class="muted mt-4 text-lg">Explore practical programs, compare course details and continue learning from your personal dashboard.</p></div>
+  <section class="panel rounded-2xl p-4 mt-8 grid md:grid-cols-[1fr_230px_210px] gap-3">
+    <input id="search" class="field rounded-xl px-4 py-3" type="search" placeholder="Search courses, skills or instructor">
+    <select id="category" class="field rounded-xl px-4 py-3"><option value="">All categories</option></select>
+    <select id="sort" class="field rounded-xl px-4 py-3"><option value="recommended">Recommended</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="latest">Latest courses</option><option value="popular">Popularity</option></select>
+  </section>
+  <p id="status" class="muted text-sm mt-5" role="status">Loading courses…</p>
+  <section id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-4"></section>
+</main>
+<footer class="border-t border-white/10 mt-16 py-8 text-center muted text-sm">Englishmates · Master English. Unlock Your Future.</footer>
+<script>
+document.addEventListener('DOMContentLoaded', async function () {
+  const $ = id => document.getElementById(id);
+  let courses = [];
+  function render() {
+    const term = $('search').value.trim().toLowerCase();
+    const category = $('category').value;
+    let list = courses.filter(c => (!category || c.category === category) &&
+      (!term || [c.title,c.description,c.category,c.instructorName,c.level].join(' ').toLowerCase().includes(term)));
+    const mode = $('sort').value;
+    if (mode === 'price-low') list.sort((a,b) => (a.pricePaise || 0) - (b.pricePaise || 0));
+    if (mode === 'price-high') list.sort((a,b) => (b.pricePaise || 0) - (a.pricePaise || 0));
+    if (mode === 'latest') list.sort((a,b) => String(b.createdAt || b.startDate || '').localeCompare(String(a.createdAt || a.startDate || ''))); if (mode === 'popular') list.sort((a,b) => (b.popularity || 0) - (a.popularity || 0));
+    $('grid').innerHTML = list.length ? list.map(c => {
+      const image = c.thumbnailUrl ? '<img src="' + LMS.escape(c.thumbnailUrl) + '" alt="" class="w-full h-48 object-cover rounded-t-2xl">' :
+        '<div class="w-full h-48 rounded-t-2xl bg-gradient-to-br from-blue-600/30 via-violet-600/30 to-rose-500/20 flex items-center justify-center text-5xl">✦</div>';
+      const price = c.pricePaise === null ? 'Fee on request' : LMS.formatMoney(c.pricePaise);
+      return '<article class="card rounded-2xl overflow-hidden transition"><a href="./course-details.html?id=' + encodeURIComponent(c.id) + '" class="block">' + image +
+        '<div class="p-5"><div class="flex items-center justify-between gap-2"><span class="text-xs text-violet-200 bg-violet-400/10 rounded-full px-3 py-1">' + LMS.escape(c.category) + '</span><span class="text-xs muted">' + LMS.escape(c.level) + '</span></div>' +
+        '<h2 class="text-xl font-bold mt-4">' + LMS.escape(c.title) + '</h2>' + (c.reviewCount ? '<p class="text-amber-200 text-xs mt-1">★ ' + Number(c.ratingAverage).toFixed(1) + ' · ' + c.reviewCount + ' reviews</p>' : '') + '<p class="muted text-sm mt-2 min-h-10">' + LMS.escape(c.shortDescription || c.description || '') + '</p>' +
+        '<div class="flex items-end justify-between mt-5"><div><p class="text-xs muted">Instructor</p><p class="font-semibold text-sm mt-1">' + LMS.escape(c.instructorName) + '</p></div><div class="text-right"><p class="text-xs muted">' + LMS.escape(c.duration || '') + '</p><p class="text-lg font-black text-white mt-1">' + price + '</p></div></div>' +
+        '<span class="inline-flex btn rounded-xl px-4 py-3 font-bold mt-5 w-full justify-center">View course</span></div></a></article>';
+    }).join('') : '<div class="panel rounded-2xl p-8 md:col-span-3 text-center"><h2 class="font-bold text-xl">No courses found</h2><p class="muted mt-2">Try another search, or check back when the next course is published.</p></div>';
+    $('status').textContent = list.length + (list.length === 1 ? ' course' : ' courses');
+  }
+  ['search','category','sort'].forEach(id => $(id).addEventListener('input', render));
+  try {
+    const result = await LMS.api('public-courses');
+    courses = result.courses || [];
+    const cats = Array.from(new Set(courses.map(c => c.category).filter(Boolean))).sort();
+    $('category').innerHTML = '<option value="">All categories</option>' + cats.map(c => '<option>' + LMS.escape(c) + '</option>').join('');
+    render();
+  } catch (e) {
+    $('status').textContent = e.message;
+    $('grid').innerHTML = '<div class="panel rounded-2xl p-8 text-center text-rose-200">' + LMS.escape(e.message) + '</div>';
+  }
+});
+</script>
+</body>
+</html>
