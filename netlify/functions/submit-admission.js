@@ -143,8 +143,8 @@ exports.handler = async (event) => {
       profileUrl: String(body.profileUrl || ''),
       fee: officialFee,
       admissionDate: now,
-      paymentStatus: body.txnId ? 'Paid / Registered' : 'Pending',
-      status: body.txnId ? 'Enrolled' : 'Enquiry',
+      paymentStatus: body.txnId ? 'Submitted for Verification' : 'Pending',
+      status: 'Enquiry',
       registrationId: lockId,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       createdAt: admin.firestore.FieldValue.serverTimestamp()
