@@ -12,6 +12,11 @@
 <script src="assets/lms.js" defer></script>
 <style>
 body{background:#070b17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.panel{background:#10192b;border:1px solid #26344e}.field{background:#080f1e;border:1px solid #334155;color:#fff}.muted{color:#9aa9c0}.card{background:linear-gradient(145deg,#111b30,#0b1221);border:1px solid #273650}.card:hover{border-color:#8b5cf6;transform:translateY(-3px)}.btn{background:linear-gradient(135deg,#2563eb,#7c3aed)}
+.card{transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}.card:hover{box-shadow:0 18px 40px -18px rgba(124,58,237,.55)}
+.card .thumb{transition:transform .6s ease}.card:hover .thumb{transform:scale(1.06)}
+.chip{border:1px solid #334155;color:#cbd5e1;border-radius:999px;padding:.5rem 1rem;font-size:.875rem;font-weight:700;transition:all .2s}.chip:hover{border-color:#8b5cf6}.chip[aria-pressed=true]{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.skeleton{background:linear-gradient(90deg,#10192b,#18243b,#10192b);background-size:200% 100%;animation:sk 1.4s linear infinite}@keyframes sk{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.card,.card .thumb{transition:none}.card:hover{transform:none}.card:hover .thumb{transform:none}.skeleton{animation:none}}
 </style>
 </head>
 <body>
@@ -22,8 +27,9 @@ body{background:#070b17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.pa
   </nav>
 </header>
 <main class="max-w-7xl mx-auto px-4 py-10 md:py-16">
-  <div class="max-w-3xl"><p class="text-xs uppercase tracking-[.2em] text-violet-300 font-bold">Learn with Englishmates</p><h1 class="text-4xl md:text-5xl font-black mt-3">Find the course that moves you forward.</h1><p class="muted mt-4 text-lg">Explore practical programs, compare course details and continue learning from your personal dashboard.</p></div>
-  <section class="panel rounded-2xl p-4 mt-8 grid md:grid-cols-[1fr_230px_210px] gap-3">
+  <div class="max-w-3xl"><h1 class="text-4xl md:text-6xl font-black leading-[1.05]">Learn spoken English at your own pace.</h1><p class="muted mt-5 text-lg">Short recorded classes you can watch any time. Start with a free demo lesson, and unlock the full course when you are ready.</p></div>
+  <div id="levelChips" class="flex flex-wrap gap-2 mt-8" role="group" aria-label="Filter by level"><button class="chip" data-level="" aria-pressed="true">All levels</button><button class="chip" data-level="beginner" aria-pressed="false">Beginner</button><button class="chip" data-level="intermediate" aria-pressed="false">Intermediate</button><button class="chip" data-level="advanced" aria-pressed="false">Advanced</button></div>
+  <section class="panel rounded-2xl p-4 mt-4 grid md:grid-cols-[1fr_230px_210px] gap-3">
     <input id="search" class="field rounded-xl px-4 py-3" type="search" placeholder="Search courses, skills or instructor">
     <select id="category" class="field rounded-xl px-4 py-3"><option value="">All categories</option></select>
     <select id="sort" class="field rounded-xl px-4 py-3"><option value="recommended">Recommended</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="latest">Latest courses</option><option value="popular">Popularity</option></select>
@@ -36,28 +42,48 @@ body{background:#070b17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.pa
 document.addEventListener('DOMContentLoaded', async function () {
   const $ = id => document.getElementById(id);
   let courses = [];
+  let level = '';
   function render() {
     const term = $('search').value.trim().toLowerCase();
     const category = $('category').value;
-    let list = courses.filter(c => (!category || c.category === category) &&
+    let list = courses.filter(c => (!category || c.category === category) && (!level || String(c.level || '').toLowerCase() === level || String(c.level || '').toLowerCase() === 'all levels') &&
       (!term || [c.title,c.description,c.category,c.instructorName,c.level].join(' ').toLowerCase().includes(term)));
     const mode = $('sort').value;
     if (mode === 'price-low') list.sort((a,b) => (a.pricePaise || 0) - (b.pricePaise || 0));
     if (mode === 'price-high') list.sort((a,b) => (b.pricePaise || 0) - (a.pricePaise || 0));
     if (mode === 'latest') list.sort((a,b) => String(b.createdAt || b.startDate || '').localeCompare(String(a.createdAt || a.startDate || ''))); if (mode === 'popular') list.sort((a,b) => (b.popularity || 0) - (a.popularity || 0));
+    const levelColor = { beginner: 'from-emerald-500/40 to-teal-500/10 text-emerald-200', intermediate: 'from-amber-500/40 to-orange-500/10 text-amber-200', advanced: 'from-rose-500/40 to-fuchsia-500/10 text-rose-200' };
     $('grid').innerHTML = list.length ? list.map(c => {
-      const image = c.thumbnailUrl ? '<img src="' + LMS.escape(c.thumbnailUrl) + '" alt="" class="w-full h-48 object-cover rounded-t-2xl">' :
-        '<div class="w-full h-48 rounded-t-2xl bg-gradient-to-br from-blue-600/30 via-violet-600/30 to-rose-500/20 flex items-center justify-center text-5xl">✦</div>';
+      const key = String(c.level || '').toLowerCase();
+      const tone = levelColor[key] || 'from-blue-500/40 to-violet-500/10 text-violet-200';
       const price = c.pricePaise === null ? 'Fee on request' : LMS.formatMoney(c.pricePaise);
-      return '<article class="card rounded-2xl overflow-hidden transition"><a href="./course-details.html?id=' + encodeURIComponent(c.id) + '" class="block">' + image +
-        '<div class="p-5"><div class="flex items-center justify-between gap-2"><span class="text-xs text-violet-200 bg-violet-400/10 rounded-full px-3 py-1">' + LMS.escape(c.category) + '</span><span class="text-xs muted">' + LMS.escape(c.level) + '</span></div>' +
-        '<h2 class="text-xl font-bold mt-4">' + LMS.escape(c.title) + '</h2>' + (c.reviewCount ? '<p class="text-amber-200 text-xs mt-1">★ ' + Number(c.ratingAverage).toFixed(1) + ' · ' + c.reviewCount + ' reviews</p>' : '') + '<p class="muted text-sm mt-2 min-h-10">' + LMS.escape(c.shortDescription || c.description || '') + '</p>' +
-        '<div class="flex items-end justify-between mt-5"><div><p class="text-xs muted">Instructor</p><p class="font-semibold text-sm mt-1">' + LMS.escape(c.instructorName) + '</p></div><div class="text-right"><p class="text-xs muted">' + LMS.escape(c.duration || '') + '</p><p class="text-lg font-black text-white mt-1">' + price + '</p></div></div>' +
-        '<span class="inline-flex btn rounded-xl px-4 py-3 font-bold mt-5 w-full justify-center">View course</span></div></a></article>';
-    }).join('') : '<div class="panel rounded-2xl p-8 md:col-span-3 text-center"><h2 class="font-bold text-xl">No courses found</h2><p class="muted mt-2">Try another search, or check back when the next course is published.</p></div>';
+      const off = c.pricePaise != null && c.originalPricePaise && c.originalPricePaise > c.pricePaise ? Math.round((1 - c.pricePaise / c.originalPricePaise) * 100) : 0;
+      const hours = c.totalMinutes ? (c.totalMinutes >= 60 ? (Math.round(c.totalMinutes / 6) / 10) + ' hours' : c.totalMinutes + ' min') : '';
+      const image = c.thumbnailUrl
+        ? '<img src="' + LMS.escape(c.thumbnailUrl) + '" alt="" loading="lazy" class="thumb absolute inset-0 w-full h-full object-cover">'
+        : '<div class="absolute inset-0 bg-gradient-to-br ' + tone + ' flex items-center justify-center"><span class="thumb text-8xl font-black opacity-80">' + LMS.escape((c.title || 'E').trim().charAt(0).toUpperCase()) + '</span></div>';
+      const facts = [c.duration ? '🗓 ' + c.duration : '', c.lectureCount ? '🎬 ' + c.lectureCount + ' videos' : '', hours ? '⏱ ' + hours : ''].filter(Boolean).map(t => '<span>' + LMS.escape(t) + '</span>').join('');
+      return '<article class="card rounded-2xl overflow-hidden hover:-translate-y-1"><a href="./course-details.html?id=' + encodeURIComponent(c.id) + '" class="block">' +
+        '<div class="relative h-48 overflow-hidden bg-[#0b1221]">' + image +
+          '<span class="absolute top-3 left-3 text-xs font-bold bg-black/55 backdrop-blur rounded-full px-3 py-1">' + LMS.escape(c.level) + '</span>' +
+          (off ? '<span class="absolute top-3 right-3 text-xs font-black bg-amber-400 text-black rounded-full px-3 py-1">' + off + '% off</span>' : '') +
+          (c.previewCount ? '<span class="absolute bottom-3 left-3 text-xs font-bold bg-emerald-400 text-black rounded-full px-3 py-1">🔓 Free demo lesson</span>' : '') +
+        '</div>' +
+        '<div class="p-5"><h2 class="text-xl font-bold">' + LMS.escape(c.title) + '</h2>' +
+        (c.reviewCount ? '<p class="text-amber-200 text-xs mt-1">★ ' + Number(c.ratingAverage).toFixed(1) + ' (' + c.reviewCount + ' reviews)</p>' : '') +
+        '<p class="muted text-sm mt-2 min-h-10">' + LMS.escape(c.shortDescription || c.description || '') + '</p>' +
+        (facts ? '<div class="flex flex-wrap gap-x-4 gap-y-1 text-xs muted mt-4">' + facts + '</div>' : '') +
+        '<div class="flex items-end justify-between mt-5"><div><p class="text-2xl font-black text-white">' + price + '</p>' + (off ? '<p class="text-xs muted line-through">' + LMS.formatMoney(c.originalPricePaise) + '</p>' : '') + '</div><span class="btn rounded-xl px-4 py-2.5 font-bold text-sm">' + (c.previewCount ? 'Start free demo' : 'View course') + '</span></div></div></a></article>';
+    }).join('') : '<div class="panel rounded-2xl p-8 sm:col-span-2 lg:col-span-3 text-center"><h2 class="font-bold text-xl">No courses found</h2><p class="muted mt-2">Try another search or level, or check back when the next course is published.</p></div>';
     $('status').textContent = list.length + (list.length === 1 ? ' course' : ' courses');
   }
   ['search','category','sort'].forEach(id => $(id).addEventListener('input', render));
+  document.querySelectorAll('[data-level]').forEach(chip => chip.addEventListener('click', () => {
+    level = chip.dataset.level;
+    document.querySelectorAll('[data-level]').forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+    render();
+  }));
+  $('grid').innerHTML = Array.from({ length: 3 }, () => '<div class="skeleton rounded-2xl h-96"></div>').join('');
   try {
     const result = await LMS.api('public-courses');
     courses = result.courses || [];

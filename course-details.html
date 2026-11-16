@@ -23,7 +23,11 @@
           <div class="grid sm:grid-cols-3 gap-3 mt-7"><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Level</p><p id="level" class="font-bold mt-1"></p></div><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Duration</p><p id="duration" class="font-bold mt-1"></p></div><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Language</p><p id="language" class="font-bold mt-1"></p></div></div>
         </div>
       </div>
-      <aside class="panel rounded-3xl p-6 md:p-8 h-fit lg:sticky lg:top-6"><p class="muted text-sm">Course fee</p><p id="price" class="text-3xl font-black mt-1"></p><p id="originalPrice" class="text-sm muted mt-1"></p><p id="dates" class="text-sm text-slate-300 mt-5"></p><div class="border-t border-white/10 mt-6 pt-6"><p class="muted text-sm">Instructor</p><div class="flex items-center gap-3 mt-3"><img id="instructorPhoto" class="hidden w-12 h-12 rounded-full object-cover" alt=""><div id="instructorInitial" class="w-12 h-12 rounded-full bg-violet-500/20 text-violet-200 flex items-center justify-center font-black">E</div><p id="instructor" class="font-bold"></p></div><button id="enrollNow" class="btn rounded-xl w-full py-4 font-extrabold mt-7">Enroll now</button><p id="enrollHint" class="muted text-xs mt-3">Enrollment is confirmed after payment review.</p></div></aside>
+      <aside class="panel rounded-3xl p-6 md:p-8 h-fit lg:sticky lg:top-6"><p class="muted text-sm">Course fee</p><p id="price" class="text-3xl font-black mt-1"></p><p id="originalPrice" class="text-sm muted mt-1"></p><p id="dates" class="text-sm text-slate-300 mt-5"></p><div class="border-t border-white/10 mt-6 pt-6"><p class="muted text-sm">Instructor</p><div class="flex items-center gap-3 mt-3"><img id="instructorPhoto" class="hidden w-12 h-12 rounded-full object-cover" alt=""><div id="instructorInitial" class="w-12 h-12 rounded-full bg-violet-500/20 text-violet-200 flex items-center justify-center font-black">E</div><p id="instructor" class="font-bold"></p></div><button id="enrollNow" class="btn rounded-xl w-full py-4 font-extrabold mt-7">Enroll now</button><a id="demoLink" href="#" class="hidden rounded-xl border border-emerald-300/30 text-emerald-200 w-full py-3 font-bold mt-3 inline-flex justify-center">▶ Try a free demo lesson</a><p id="enrollHint" class="muted text-xs mt-3">Enrollment is confirmed after payment review.</p></div></aside>
+    </section>
+    <section id="curriculum" class="hidden panel rounded-3xl p-6 md:p-8 mt-6">
+      <div class="flex flex-wrap items-end justify-between gap-3"><div><h2 class="text-2xl font-black">Course videos</h2><p id="curriculumSummary" class="muted text-sm mt-1"></p></div><a id="curriculumDemo" href="#" class="hidden btn rounded-xl px-5 py-3 font-bold text-white">▶ Watch the free demo</a></div>
+      <div id="curriculumList" class="grid gap-2 mt-5 max-h-[28rem] overflow-y-auto pr-1"></div>
     </section>
     <section class="grid lg:grid-cols-2 gap-6 mt-6">
       <div class="panel rounded-2xl p-6"><h2 class="text-xl font-black">What you will learn</h2><ul id="outcomes" class="muted list-disc pl-5 space-y-2 mt-4"></ul></div>
@@ -52,6 +56,27 @@ document.addEventListener('DOMContentLoaded', async function () {
   const $ = id => document.getElementById(id);
   const courseId = new URLSearchParams(location.search).get('id') || '';
   LMS.bindAuth();
+  function renderCurriculum(modules) {
+    const rows = modules.flatMap(m => m.lessons);
+    if (!rows.length) return;
+    const minutes = rows.reduce((n, l) => n + (l.durationMinutes || 0), 0);
+    const free = rows.filter(l => l.preview).length;
+    const hours = minutes >= 60 ? Math.floor(minutes / 60) + ' h ' + (minutes % 60) + ' min' : minutes + ' min';
+    $('curriculumSummary').textContent = rows.length + ' videos · ' + hours + (free ? ' · ' + free + ' free demo' : '') + ' · the rest unlock when you enroll';
+    $('curriculumList').innerHTML = rows.map((l, i) =>
+      '<' + (l.preview ? 'a href="./learning-room.html?courseId=' + encodeURIComponent(courseId) + '"' : 'button type="button" data-locked="1"') + ' class="text-left flex items-center gap-4 rounded-xl border p-3.5 ' + (l.preview ? 'border-emerald-300/30 bg-emerald-400/5 hover:bg-emerald-400/10' : 'border-white/5 bg-white/[.03] hover:bg-white/[.07]') + '">' +
+        '<span class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm font-black ' + (l.preview ? 'bg-emerald-400/20 text-emerald-200' : 'bg-white/5 text-slate-300') + '">' + (l.preview ? '▶' : (i + 1)) + '</span>' +
+        '<span class="min-w-0 flex-1"><span class="block font-semibold text-sm">' + LMS.escape(l.title) + '</span><span class="text-xs muted">' + (l.durationMinutes ? l.durationMinutes + ' min' : 'Video') + '</span></span>' +
+        '<span class="shrink-0 text-xs font-bold ' + (l.preview ? 'text-emerald-200' : 'text-slate-400') + '">' + (l.preview ? '🔓 Free demo' : '🔒 Locked') + '</span>' +
+      '</' + (l.preview ? 'a' : 'button') + '>').join('');
+    $('curriculum').classList.remove('hidden');
+    $('curriculumList').querySelectorAll('[data-locked]').forEach(b => b.addEventListener('click', () => { $('enrollNow').click(); }));
+    if (free) {
+      const url = './learning-room.html?courseId=' + encodeURIComponent(courseId);
+      $('curriculumDemo').href = url; $('curriculumDemo').classList.remove('hidden');
+      $('demoLink').href = url; $('demoLink').classList.remove('hidden');
+    }
+  }
   function list(id, values) { $(id).innerHTML = (values || []).length ? values.map(v => '<li>' + LMS.escape(v) + '</li>').join('') : '<li>Course information will be announced soon.</li>'; }
   try {
     const result = await LMS.api('public-course', { courseId });
@@ -76,6 +101,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (c.instructorPhoto) { $('instructorPhoto').src = c.instructorPhoto; $('instructorPhoto').classList.remove('hidden'); $('instructorInitial').classList.add('hidden'); }
     if (c.demoVideoId) { $('demo').src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(c.demoVideoId); $('demoWrap').classList.remove('hidden'); }
     list('outcomes', c.outcomes); list('features', c.features); list('syllabus', c.syllabus);
+    LMS.api('public-lessons', { courseId }).then(res => renderCurriculum(res.modules || [])).catch(() => {});
     $('ratingSummary').textContent = c.reviewCount ? Number(c.ratingAverage).toFixed(1) + ' / 5 · ' + c.reviewCount + ' review(s)' : 'No reviews yet';
     async function loadReviews() { const res = await LMS.api('course-reviews', { courseId }); $('reviewsList').innerHTML = res.reviews.length ? res.reviews.map(r => '<article class="rounded-xl bg-white/[.03] p-4"><p class="font-bold">' + LMS.escape(r.name) + ' · ' + '★'.repeat(Math.max(1, Math.min(5, r.rating))) + '</p><p class="muted text-sm mt-2">' + LMS.escape(r.text) + '</p></article>').join('') : '<p class="muted text-sm">Be the first student to review this course.</p>'; }
     loadReviews().catch(e => $('reviewsList').textContent = e.message);

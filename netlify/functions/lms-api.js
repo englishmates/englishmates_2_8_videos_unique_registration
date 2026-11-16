@@ -168,6 +168,8 @@ function publicCourse(id, c, source) {
     })) : [],
     demoVideoId: clean(c.demoVideoId, 20),
     lectureCount: Number(c.lectureCount || 0),
+    previewCount: Number(c.previewCount || 0),
+    totalMinutes: Number(c.totalMinutes || 0),
     popularity: Number(c.popularity || c.enrollmentCount || 0),
     ratingAverage: Number(c.ratingAverage || 0),
     reviewCount: Number(c.reviewCount || 0),
@@ -266,6 +268,21 @@ async function getContent(courseId) {
     }));
   }
   return modules;
+}
+
+async function recountCourse(courseId) {
+  const modules = await col('lmsCourseContent').doc(courseId).collection('modules').get();
+  let lectureCount = 0, previewCount = 0, totalMinutes = 0;
+  for (const m of modules.docs) {
+    const lessons = await m.ref.collection('lessons').get();
+    lessons.docs.filter(d => d.data().published !== false).forEach(d => {
+      lectureCount++;
+      if (d.data().preview === true) previewCount++;
+      totalMinutes += Number(d.data().durationMinutes || 0);
+    });
+  }
+  await col('lmsCourses').doc(courseId).set({ lectureCount, previewCount, totalMinutes, updatedAt: now() }, { merge: true });
+  return { lectureCount, previewCount, totalMinutes };
 }
 
 async function hasActiveEnrollment(uid, courseId) {
@@ -579,25 +596,42 @@ async function handle(event) {
       return response(event, 200, { ok: true, message: 'Payment details sent to the admin for review.' });
     }
 
+    if (action === 'public-lessons') {
+      // Public outline: titles, lengths and which lessons are free. Never includes video IDs or notes.
+      const courseId = clean(body.courseId, 120);
+      if (!courseId) throw fail(400, 'Choose a course.');
+      const found = await findCourse(courseId);
+      if (!found || publicCourse(found.id, found.data, found.source).status !== 'published') throw fail(404, 'Course not found.');
+      const content = await getContent(courseId);
+      return response(event, 200, { ok: true, modules: content.map(m => ({
+        id: m.id, title: m.title,
+        lessons: m.lessons.map(l => ({ id: l.id, title: l.title, durationMinutes: l.durationMinutes, preview: l.preview, hasVideo: l.hasVideo, locked: !l.preview }))
+      })) });
+    }
+
     if (action === 'lesson-list') {
       const user = await userFromEvent(event);
       const courseId = clean(body.courseId, 120);
       if (!courseId) throw fail(400, 'Choose a course.');
-      let activeEnrollment = null;
-      if (String(user.email).toLowerCase() !== String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase()) {
-        activeEnrollment = await hasActiveEnrollment(user.uid, courseId);
-        if (!activeEnrollment) throw fail(403, 'An active enrollment is required to view these lessons.');
-      }
+      const isAdmin = String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase();
+      const activeEnrollment = isAdmin ? null : await hasActiveEnrollment(user.uid, courseId);
+      const hasAccess = isAdmin || Boolean(activeEnrollment);
       const course = await findCourse(courseId);
       if (!course) throw fail(404, 'Course not found.');
-      return response(event, 200, { ok: true, lastLessonId: activeEnrollment ? String(activeEnrollment.data.lastLessonId || '') : '', course: publicCourse(course.id, course.data, course.source), modules: await (async () => {
-        const content = await getContent(courseId);
-        if (String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase()) return content;
-        const active = await hasActiveEnrollment(user.uid, courseId);
-        const progress = active ? await col('studentProgress').where('enrollmentId', '==', active.id).get() : { docs: [] };
-        const completed = new Set(progress.docs.filter(p => p.data().completed === true).map(p => p.data().lessonId));
-        return content.map(m => Object.assign({}, m, { lessons: m.lessons.map(l => Object.assign({}, l, { completed: completed.has(l.id) })) }));
-      })() });
+      const content = await getContent(courseId);
+      const progress = activeEnrollment ? await col('studentProgress').where('enrollmentId', '==', activeEnrollment.id).get() : { docs: [] };
+      const completed = new Set(progress.docs.filter(p => p.data().completed === true).map(p => p.data().lessonId));
+      const modules = content.map(m => Object.assign({}, m, { lessons: m.lessons.map(l => {
+        const locked = !hasAccess && !l.preview;
+        const lesson = Object.assign({}, l, { locked, completed: completed.has(l.id) });
+        if (locked) { lesson.notes = ''; lesson.assignment = ''; lesson.resourceUrl = ''; }
+        return lesson;
+      }) }));
+      return response(event, 200, {
+        ok: true, enrolled: hasAccess,
+        lastLessonId: activeEnrollment ? String(activeEnrollment.data.lastLessonId || '') : '',
+        course: publicCourse(course.id, course.data, course.source), modules
+      });
     }
 
     if (action === 'lesson-playback') {
@@ -607,12 +641,13 @@ async function handle(event) {
       const lessonId = clean(body.lessonId, 120);
       if (!courseId || !moduleId || !lessonId) throw fail(400, 'Choose a course lesson.');
       const isAdmin = String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase();
-      if (!isAdmin && !await hasActiveEnrollment(user.uid, courseId)) {
-        throw fail(403, 'An active enrollment is required to play this lesson.');
-      }
       const lessonSnap = await col('lmsCourseContent').doc(courseId).collection('modules').doc(moduleId).collection('lessons').doc(lessonId).get();
       if (!lessonSnap.exists || lessonSnap.data().published === false) throw fail(404, 'Published lesson not found.');
       const lesson = lessonSnap.data();
+      // Free demo lessons are open to any signed-in, verified student; everything else needs an active enrollment.
+      if (!isAdmin && lesson.preview !== true && !await hasActiveEnrollment(user.uid, courseId)) {
+        throw fail(403, 'Enroll in this course to unlock this lesson.');
+      }
       const videoUid = clean(lesson.videoUid, 80);
       if (!videoUid || lesson.videoProvider !== 'cloudflare-stream') throw fail(409, 'This lesson must be re-uploaded to secure video hosting before it can play.');
       const video = await streamApi('/' + encodeURIComponent(videoUid));
@@ -796,7 +831,7 @@ async function handle(event) {
     if (action === 'save-lesson') {
       const actor = await requireAdmin(event);
       const courseId = clean(body.courseId, 120);
-      const moduleTitle = clean(body.moduleTitle, 120);
+      const moduleTitle = clean(body.moduleTitle, 120) || 'Course videos';
       const title = clean(body.title, 180);
       const description = clean(body.description, 1200);
       const videoUid = clean(body.videoUid, 80);
@@ -812,27 +847,49 @@ async function handle(event) {
         throw fail(403, 'This secure upload expired or was not created by your admin session. Upload the video again.');
       }
       const moduleId = slug(body.moduleId || moduleTitle);
-      const lessonId = slug(body.lessonId || title);
       const moduleRef = col('lmsCourseContent').doc(courseId).collection('modules').doc(moduleId);
       await moduleRef.set({ title: moduleTitle, order: Math.max(1, Number(body.moduleOrder || 1)), updatedAt: now() }, { merge: true });
+      // Lesson number: use the one given, otherwise add after the last lesson in this module.
+      let lessonOrder = Math.round(Number(body.order));
+      if (!Number.isFinite(lessonOrder) || lessonOrder < 1) {
+        const existing = await moduleRef.collection('lessons').get();
+        lessonOrder = existing.docs.reduce((max, d) => Math.max(max, Number(d.data().order || 0)), 0) + 1;
+      }
+      const lessonId = body.lessonId ? slug(body.lessonId) : (slug(title) + '-' + lessonOrder).slice(0, 80);
       await moduleRef.collection('lessons').doc(lessonId).set({
         title, description, videoUid, videoProvider: 'cloudflare-stream', youtubeId: null,
         durationMinutes: Math.max(1, Math.min(180, Number(body.durationMinutes || 1))),
-        order: Math.max(1, Number(body.order || 1)),
-        preview: false, published: body.published !== false,
+        order: lessonOrder,
+        preview: body.preview === true, published: body.published !== false,
         notes: clean(body.notes, 3000), resourceUrl: clean(body.resourceUrl, 700), assignment: clean(body.assignment, 1600), updatedAt: now()
       }, { merge: true });
       await pendingRef.delete();
-      const moduleDocs = await col('lmsCourseContent').doc(courseId).collection('modules').get();
-      let lectureCount = 0;
-      for (const m of moduleDocs.docs) {
-        const lessons = await m.ref.collection('lessons').get();
-        lectureCount += lessons.docs.filter(d => d.data().published !== false).length;
-      }
-      await courseSnap.ref.set({ lectureCount, updatedAt: now() }, { merge: true });
+      const { lectureCount } = await recountCourse(courseId);
       await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'save-lesson', courseId, moduleId, lessonId, videoProvider: 'cloudflare-stream', published: body.published !== false, createdAt: now() });
-      return response(event, 200, { ok: true, moduleId, lessonId, lectureCount });
+      return response(event, 200, { ok: true, moduleId, lessonId, order: lessonOrder, lectureCount });
     }
+    if (action === 'admin-lessons') {
+      await requireAdmin(event);
+      const courseId = clean(body.courseId, 120);
+      if (!courseId) throw fail(400, 'Choose a course.');
+      return response(event, 200, { ok: true, modules: await getContent(courseId) });
+    }
+
+    if (action === 'set-lesson-preview') {
+      const actor = await requireAdmin(event);
+      const courseId = clean(body.courseId, 120);
+      const moduleId = clean(body.moduleId, 120);
+      const lessonId = clean(body.lessonId, 120);
+      if (!courseId || !moduleId || !lessonId) throw fail(400, 'Choose a lesson.');
+      const ref = col('lmsCourseContent').doc(courseId).collection('modules').doc(moduleId).collection('lessons').doc(lessonId);
+      const snap = await ref.get();
+      if (!snap.exists) throw fail(404, 'Lesson not found.');
+      await ref.set({ preview: body.preview === true, updatedAt: now() }, { merge: true });
+      await recountCourse(courseId);
+      await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'set-lesson-preview', courseId, moduleId, lessonId, preview: body.preview === true, createdAt: now() });
+      return response(event, 200, { ok: true, preview: body.preview === true });
+    }
+
     if (action === 'publish-announcement') {
       const actor = await requireAdmin(event);
       const courseId = clean(body.courseId, 120);
