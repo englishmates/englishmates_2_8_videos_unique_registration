@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LMS Admin | Englishmates</title>
-<script src="assets/ui-feedback.js"></script>
+<script src="./ui-feedback.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -70,7 +70,7 @@
 <div class="mt-4"><p class="text-sm font-bold">YouTube videos (unlisted)</p>
 <textarea id="ytLinks" rows="4" placeholder="One per line:&#10;Lesson 1 | https://youtu.be/XXXXXXXXXXX&#10;Lesson 2 | https://youtu.be/XXXXXXXXXXX | 25   (minutes optional)" class="field rounded-xl px-3 py-3 mt-2 text-sm"></textarea>
 <p class="muted text-xs mt-1">Set each video to <b>Unlisted</b> on YouTube. Students get the video only after they log in and are enrolled. Tap a badge below to make one a free demo.</p>
-<button id="addYoutube" type="button" class="btn rounded-xl px-5 py-3 font-bold mt-3">Add YouTube videos</button></div>
+<button id="addYoutube" type="button" class="btn cursor-pointer rounded-xl px-5 py-3 font-bold mt-3">Add YouTube videos</button><p id="videoMessage" class="text-sm mt-2" role="status" aria-live="polite"></p></div>
 <details class="mt-6 rounded-xl border border-white/10 p-4"><summary class="cursor-pointer text-sm muted">Secure video upload (Cloudflare Stream — set up later)</summary>
 <label id="dropZone" class="mt-4 flex flex-col items-center justify-center text-center rounded-2xl border-2 border-dashed border-violet-400/40 bg-violet-500/5 hover:bg-violet-500/10 p-8 cursor-pointer">
   <span class="text-3xl" aria-hidden="true">🎬</span>
@@ -270,29 +270,39 @@ document.addEventListener('DOMContentLoaded', function () {
     return result.materials;
   }
 
+  function setVideoMessage(message, error) {
+    const target = $('videoMessage');
+    target.textContent = message || '';
+    target.className = 'text-sm mt-2 ' + (error ? 'text-rose-300' : 'text-emerald-300');
+  }
+
   // ---- YouTube (unlisted) videos ----
   $('addYoutube').addEventListener('click', async () => {
+    const button = $('addYoutube');
     const courseId = $('lessonCourse').value;
-    if (!courseId) { setMessage('Choose a course first.', true); return; }
+    if (!courseId) { setVideoMessage('Choose a course first.', true); return; }
     const lines = $('ytLinks').value.split('\n').map(x => x.trim()).filter(Boolean);
-    if (!lines.length) { setMessage('Paste at least one YouTube link.', true); return; }
-    const done = EMUI.busy($('addYoutube'), 'Adding videos…');
+    if (!lines.length) { setVideoMessage('Paste at least one YouTube link.', true); return; }
+    let done = () => {};
     let saved = 0; const failed = [];
     try {
+      if (window.EMUI) done = window.EMUI.busy(button, 'Adding videos…');
       for (let i = 0; i < lines.length; i++) {
         const parts = lines[i].split('|').map(x => x.trim());
         const withTitle = parts.length > 1;
         const url = withTitle ? parts[1] : parts[0];
         const title = withTitle ? parts[0] : 'Lesson ' + (existingCount + saved + 1);
         const minutes = withTitle && parts[2] ? Number(parts[2]) : 0;
-        setMessage('Adding video ' + (i + 1) + ' of ' + lines.length + '…', false);
+        setVideoMessage('Adding video ' + (i + 1) + ' of ' + lines.length + '…', false);
         try { await LMS.api('save-lesson', { courseId, title, youtubeUrl: url, durationMinutes: minutes, preview: false, published: true }); saved++; }
         catch (e) { failed.push('Line ' + (i + 1) + ': ' + e.message); }
       }
       $('ytLinks').value = failed.length ? lines.filter((_, i) => failed.some(f => f.startsWith('Line ' + (i + 1) + ':'))).join('\n') : '';
-      setMessage(saved + ' video(s) added.' + (failed.length ? ' ' + failed.join(' ') : ''), failed.length > 0);
-      if (saved) EMUI.toast(saved + ' video(s) added');
+      setVideoMessage(saved + ' video(s) added.' + (failed.length ? ' ' + failed.join(' ') : ''), failed.length > 0);
+      if (saved && window.EMUI) window.EMUI.toast(saved + ' video(s) added');
       await refreshLessons();
+    } catch (e) {
+      setVideoMessage(e.message || 'Could not add videos. Please try again.', true);
     } finally { done(); }
   });
 
