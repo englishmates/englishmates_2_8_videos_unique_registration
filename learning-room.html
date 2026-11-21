@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Learning room | Englishmates</title>
+<script src="assets/ui-feedback.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -18,7 +19,8 @@
     <div class="flex flex-wrap justify-between items-end gap-3"><div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Learning room</p><h1 id="courseTitle" class="text-3xl md:text-4xl font-black mt-2"></h1><p id="authIdentity2" class="muted text-sm mt-2"></p></div><button id="logoutBtn" class="rounded-xl border border-white/10 px-4 py-2 text-sm">Sign out</button></div>
     <div id="accessBanner" class="hidden rounded-2xl border border-violet-400/30 bg-gradient-to-r from-violet-500/15 to-blue-500/10 p-5 mt-6 flex flex-wrap items-center justify-between gap-4"><div><p class="font-black text-lg" id="bannerTitle"></p><p class="muted text-sm mt-1" id="bannerText"></p></div><a id="bannerCta" class="btn rounded-xl px-5 py-3 font-bold text-white" href="#">Enroll to unlock</a></div>
     <div class="grid lg:grid-cols-[320px_1fr] gap-5 mt-6">
-      <aside class="panel rounded-2xl p-4 h-fit"><h2 class="font-black text-lg">Course lessons</h2><div id="lessonMenu" class="space-y-4 mt-4"></div></aside>
+      <aside class="panel rounded-2xl p-4 h-fit"><h2 class="font-black text-lg">Course lessons</h2><div id="lessonMenu" class="space-y-4 mt-4"></div>
+        <div id="filesPanel" class="hidden mt-6 border-t border-white/10 pt-4"><h3 class="font-black">Practice files</h3><p class="muted text-xs mt-1">Open and practise at your own pace.</p><div id="filesList" class="grid gap-2 mt-3"></div></div></aside>
       <section class="panel rounded-2xl overflow-hidden">
         <div id="videoPlaceholder" class="aspect-video bg-black flex items-center justify-center p-6 text-center muted">Choose a lesson from the course outline.</div>
         <iframe id="video" class="hidden w-full aspect-video bg-black" title="Englishmates course lesson" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
@@ -63,6 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (lesson) selectLesson(module, lesson);
     }));
     $('authPanel').classList.add('hidden'); $('learning').classList.remove('hidden');
+    loadFiles();
     if (enrolled && data.lastLessonId) {
       for (const module of modules) {
         const lesson = module.lessons.find(l => l.id === data.lastLessonId);
@@ -72,6 +75,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const all = modules.flatMap(m => m.lessons.map(l => ({ module: m, lesson: l })));
     const first = enrolled ? all[0] : (all.find(x => x.lesson.preview) || all[0]);
     if (first) selectLesson(first.module, first.lesson);
+  }
+  const fileLabels = { workbook: ['📘', 'Workbook'], pdf: ['📄', 'PDF file'] };
+  async function loadFiles() {
+    $('filesPanel').classList.add('hidden'); $('filesList').innerHTML = '';
+    if (!enrolled) return;
+    try {
+      const result = await LMS.api('course-materials', { courseId });
+      const kinds = Object.keys(result.files || {});
+      if (!kinds.length) return;
+      $('filesList').innerHTML = kinds.map(k => '<button type="button" data-file="' + k + '" class="btn rounded-xl px-4 py-3 text-sm font-bold text-white text-left pr-10">' + fileLabels[k][0] + ' ' + fileLabels[k][1] + '<span class="block text-xs font-normal opacity-80 truncate">' + LMS.escape(result.files[k].name) + '</span></button>').join('');
+      $('filesPanel').classList.remove('hidden');
+      document.querySelectorAll('[data-file]').forEach(btn => btn.addEventListener('click', async () => {
+        const win = window.open('about:blank', '_blank');
+        try { const fresh = await LMS.api('course-materials', { courseId }); const f = fresh.files[btn.dataset.file]; if (!f) throw new Error('File not available.'); if (win) win.location = f.url; else location.href = f.url; }
+        catch (e) { if (win) win.close(); $('learningMessage').textContent = e.message; EMUI.toast(e.message, 'error'); }
+      }));
+    } catch (_) { /* practice files are optional */ }
   }
   function flatLessons() { return modules.flatMap(m => m.lessons.map(l => ({ module: m, lesson: l }))); }
   function moveLesson(offset) { const all = flatLessons(); const index = all.findIndex(x => x.lesson.id === (selected && selected.lesson.id)); const next = all[index + offset]; if (next) selectLesson(next.module, next.lesson); }
