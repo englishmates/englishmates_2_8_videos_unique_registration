@@ -114,12 +114,13 @@ document.addEventListener('DOMContentLoaded', function () {
   $('saveProfileBtn').addEventListener('click', async () => { const user = LMS.auth.currentUser; if (!user || !user.emailVerified) { LMS.setMessage('authMessage', 'Sign in and verify your email first.', true); return; } const f = $('enrollForm').elements; try { const result = await LMS.api('save-profile', { profile: { name: f.name.value, phone: f.phone.value, qualification: f.qualification.value, city: f.city.value, state: f.state.value } }); $('studentId').textContent = 'Student ID: ' + result.profile.studentId; LMS.setMessage('profileMessage', 'Profile saved.', false); } catch (e) { LMS.setMessage('profileMessage', e.message, true); } });
   $('enrollForm').addEventListener('submit', async event => {
     event.preventDefault();
+    const form = event.currentTarget;
     const user = LMS.auth.currentUser;
     if (!user) { LMS.setMessage('authMessage', 'Sign in or create an account first.', true); return; }
     await user.reload();
     if (!user.emailVerified) { LMS.setMessage('authMessage', 'Verify your email before enrolling.', true); return; }
     try {
-      const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+      const data = Object.fromEntries(new FormData(form).entries());
       const result = await LMS.api('enroll', data);
       LMS.setMessage('profileMessage', result.existing ? 'This course is already on your account.' : 'Enrollment saved.', false);
       await refreshEnrollments();
