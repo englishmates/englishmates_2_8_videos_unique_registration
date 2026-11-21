@@ -259,7 +259,7 @@ async function getContent(courseId) {
           notes: clean(lesson.notes, 3000),
           resourceUrl: clean(lesson.resourceUrl, 700),
           assignment: clean(lesson.assignment, 1600),
-          hasVideo: Boolean(lesson.videoUid),
+          hasVideo: Boolean(lesson.videoUid || lesson.youtubeId),
           durationMinutes: Number(lesson.durationMinutes || 0),
           order: Number(lesson.order || 0),
           preview: lesson.preview === true
@@ -285,6 +285,22 @@ async function recountCourse(courseId) {
   return { lectureCount, previewCount, totalMinutes };
 }
 
+const materialsRoot = suffix ? 'course-materials-preview' : 'course-materials';
+const MATERIAL_KINDS = ['workbook', 'pdf'];
+const MATERIAL_MAX_BYTES = 25 * 1024 * 1024;
+const YT_ID = /^[A-Za-z0-9_-]{11}$/;
+
+function youtubeIdFrom(value) {
+  const text = clean(value, 300);
+  if (YT_ID.test(text)) return text;
+  const m = text.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
+
+function materialMeta(file) {
+  return file && file.path ? { name: clean(file.name, 140), size: Number(file.size || 0) } : null;
+}
+
 async function hasActiveEnrollment(uid, courseId) {
   const id = crypto.createHash('sha256').update(uid + ':' + courseId).digest('hex').slice(0, 40);
   const snap = await col('enrollments').doc(id).get();
@@ -308,7 +324,12 @@ async function adminDashboard() {
   });
   const sortRecent = a => a.sort((x, y) => String(y.createdAt || '').localeCompare(String(x.createdAt || '')));
   return {
-    courses: courses.docs.map(serialize),
+    courses: courses.docs.map(d => {
+      const item = serialize(d);
+      const m = item.materials || {};
+      item.materials = { workbook: materialMeta(m.workbook), pdf: materialMeta(m.pdf) };
+      return item;
+    }),
     enrollments: sortRecent(enrollmentRows),
     payments: sortRecent(payments.docs.map(serialize))
   };
@@ -648,6 +669,13 @@ async function handle(event) {
       if (!isAdmin && lesson.preview !== true && !await hasActiveEnrollment(user.uid, courseId)) {
         throw fail(403, 'Enroll in this course to unlock this lesson.');
       }
+      if (lesson.videoProvider === 'youtube' && YT_ID.test(String(lesson.youtubeId || ''))) {
+        // Unlisted YouTube video: the ID is released only after login + enrollment (or free-demo) checks.
+        return response(event, 200, {
+          ok: true, provider: 'youtube',
+          playbackUrl: 'https://www.youtube-nocookie.com/embed/' + lesson.youtubeId + '?rel=0&modestbranding=1&playsinline=1'
+        });
+      }
       const videoUid = clean(lesson.videoUid, 80);
       if (!videoUid || lesson.videoProvider !== 'cloudflare-stream') throw fail(409, 'This lesson must be re-uploaded to secure video hosting before it can play.');
       const video = await streamApi('/' + encodeURIComponent(videoUid));
@@ -834,17 +862,21 @@ async function handle(event) {
       const moduleTitle = clean(body.moduleTitle, 120) || 'Course videos';
       const title = clean(body.title, 180);
       const description = clean(body.description, 1200);
-      const videoUid = clean(body.videoUid, 80);
-      if (!courseId || moduleTitle.length < 2 || title.length < 2 || !/^[a-f0-9]{24,64}$/i.test(videoUid)) {
-        throw fail(400, 'Upload a secure course video, then enter the course, module and lesson title.');
+      const youtubeId = body.youtubeUrl || body.youtubeId ? youtubeIdFrom(body.youtubeUrl || body.youtubeId) : '';
+      if ((body.youtubeUrl || body.youtubeId) && !youtubeId) throw fail(400, 'That is not a valid YouTube link.');
+      const videoUid = youtubeId ? '' : clean(body.videoUid, 80);
+      if (!courseId || moduleTitle.length < 2 || title.length < 2 || (!youtubeId && !/^[a-f0-9]{24,64}$/i.test(videoUid))) {
+        throw fail(400, 'Add a YouTube link or upload a secure course video, then enter the course and lesson title.');
       }
       const courseSnap = await col('lmsCourses').doc(courseId).get();
       if (!courseSnap.exists) throw fail(404, 'Save or import this LMS course before adding lessons.');
-      const pendingRef = col('lmsVideoUploads').doc(videoUid);
-      const pendingSnap = await pendingRef.get();
-      const pending = pendingSnap.exists ? pendingSnap.data() : null;
-      if (!pending || pending.creatorUid !== actor.uid || Date.parse(pending.expiresAt || '') < Date.now()) {
-        throw fail(403, 'This secure upload expired or was not created by your admin session. Upload the video again.');
+      const pendingRef = youtubeId ? null : col('lmsVideoUploads').doc(videoUid);
+      if (pendingRef) {
+        const pendingSnap = await pendingRef.get();
+        const pending = pendingSnap.exists ? pendingSnap.data() : null;
+        if (!pending || pending.creatorUid !== actor.uid || Date.parse(pending.expiresAt || '') < Date.now()) {
+          throw fail(403, 'This secure upload expired or was not created by your admin session. Upload the video again.');
+        }
       }
       const moduleId = slug(body.moduleId || moduleTitle);
       const moduleRef = col('lmsCourseContent').doc(courseId).collection('modules').doc(moduleId);
@@ -857,17 +889,76 @@ async function handle(event) {
       }
       const lessonId = body.lessonId ? slug(body.lessonId) : (slug(title) + '-' + lessonOrder).slice(0, 80);
       await moduleRef.collection('lessons').doc(lessonId).set({
-        title, description, videoUid, videoProvider: 'cloudflare-stream', youtubeId: null,
-        durationMinutes: Math.max(1, Math.min(180, Number(body.durationMinutes || 1))),
+        title, description,
+        videoUid: youtubeId ? null : videoUid,
+        videoProvider: youtubeId ? 'youtube' : 'cloudflare-stream',
+        youtubeId: youtubeId || null,
+        durationMinutes: youtubeId
+          ? Math.max(0, Math.min(180, Math.round(Number(body.durationMinutes || 0))))
+          : Math.max(1, Math.min(180, Number(body.durationMinutes || 1))),
         order: lessonOrder,
         preview: body.preview === true, published: body.published !== false,
         notes: clean(body.notes, 3000), resourceUrl: clean(body.resourceUrl, 700), assignment: clean(body.assignment, 1600), updatedAt: now()
       }, { merge: true });
-      await pendingRef.delete();
+      if (pendingRef) await pendingRef.delete();
       const { lectureCount } = await recountCourse(courseId);
-      await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'save-lesson', courseId, moduleId, lessonId, videoProvider: 'cloudflare-stream', published: body.published !== false, createdAt: now() });
+      await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'save-lesson', courseId, moduleId, lessonId, videoProvider: youtubeId ? 'youtube' : 'cloudflare-stream', published: body.published !== false, createdAt: now() });
       return response(event, 200, { ok: true, moduleId, lessonId, order: lessonOrder, lectureCount });
     }
+    if (action === 'save-course-files') {
+      // Admin uploads the file straight to Firebase Storage from the browser, then records it here.
+      const actor = await requireAdmin(event);
+      const courseId = slug(body.courseId);
+      if (!courseId) throw fail(400, 'Choose a course.');
+      const ref = col('lmsCourses').doc(courseId);
+      const courseSnap = await ref.get();
+      if (!courseSnap.exists) throw fail(404, 'Save the course before adding files.');
+      const current = (courseSnap.data().materials) || {};
+      const next = Object.assign({}, current);
+      const bucket = admin.storage().bucket();
+      const toDelete = [];
+      for (const kind of MATERIAL_KINDS) {
+        if (!(kind in (body.files || {}))) continue;
+        const incoming = body.files[kind];
+        if (incoming === null) { if (current[kind] && current[kind].path) toDelete.push(current[kind].path); delete next[kind]; continue; }
+        const path = clean(incoming && incoming.path, 300);
+        if (!path.startsWith(materialsRoot + '/' + courseId + '/' + kind + '/') || path.includes('..')) throw fail(400, 'Invalid file location.');
+        const [exists] = await bucket.file(path).exists();
+        if (!exists) throw fail(400, 'The uploaded file could not be found. Please upload it again.');
+        const [meta] = await bucket.file(path).getMetadata();
+        if (Number(meta.size) > MATERIAL_MAX_BYTES) { await bucket.file(path).delete().catch(() => {}); throw fail(413, 'File must be 25 MB or smaller.'); }
+        if (current[kind] && current[kind].path && current[kind].path !== path) toDelete.push(current[kind].path);
+        next[kind] = { path, name: clean(incoming.name, 140) || 'file', size: Number(meta.size || 0), updatedAt: new Date().toISOString() };
+      }
+      await ref.set({ materials: next, updatedAt: now() }, { merge: true });
+      await Promise.all(toDelete.map(p => bucket.file(p).delete().catch(() => {})));
+      await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'save-course-files', courseId, createdAt: now() });
+      return response(event, 200, { ok: true, materials: { workbook: materialMeta(next.workbook), pdf: materialMeta(next.pdf) } });
+    }
+
+    if (action === 'course-materials') {
+      // Workbook / PDF: only for an enrolled student (or the admin). Links expire in 20 minutes.
+      const user = await userFromEvent(event);
+      const courseId = clean(body.courseId, 120);
+      if (!courseId) throw fail(400, 'Choose a course.');
+      const isAdmin = String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase();
+      if (!isAdmin && !await hasActiveEnrollment(user.uid, courseId)) throw fail(403, 'Enroll in this course to open its practice files.');
+      const found = await col('lmsCourses').doc(courseId).get();
+      const materials = found.exists ? (found.data().materials || {}) : {};
+      const bucket = admin.storage().bucket();
+      const files = {};
+      for (const kind of MATERIAL_KINDS) {
+        const f = materials[kind];
+        if (!f || !f.path || !String(f.path).startsWith(materialsRoot + '/' + courseId + '/')) continue;
+        const [url] = await bucket.file(f.path).getSignedUrl({
+          action: 'read', expires: Date.now() + 20 * 60 * 1000,
+          responseDisposition: 'inline; filename="' + String(f.name || kind).replace(/[^\w.\- ]/g, '_') + '"'
+        });
+        files[kind] = { name: f.name, size: f.size, url };
+      }
+      return response(event, 200, { ok: true, files });
+    }
+
     if (action === 'admin-lessons') {
       await requireAdmin(event);
       const courseId = clean(body.courseId, 120);
