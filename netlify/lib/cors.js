@@ -5,6 +5,14 @@ const ALLOWED_ORIGINS = new Set([
   'https://englishmates-ratangarh.netlify.app'
 ]);
 
+function isAllowedOrigin(origin) {
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  try {
+    const url = new URL(origin);
+    return url.protocol === 'https:' && /^deploy-preview-\d+--englishmates-ratangarh\.netlify\.app$/.test(url.hostname);
+  } catch (_) { return false; }
+}
+
 function headers(event = {}) {
   const requestHeaders = event.headers || {};
   const origin = requestHeaders.origin || requestHeaders.Origin || '';
@@ -16,7 +24,7 @@ function headers(event = {}) {
   };
 
   // Never reflect an untrusted origin or use wildcard CORS.
-  if (ALLOWED_ORIGINS.has(origin)) {
+  if (isAllowedOrigin(origin)) {
     result['Access-Control-Allow-Origin'] = origin;
   }
 

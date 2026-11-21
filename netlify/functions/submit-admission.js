@@ -22,7 +22,8 @@ function lockIdFor(phone) {
   return crypto.createHash('sha256').update(phone).digest('hex');
 }
 
-async function sendAdminPush(data) {
+async function sendAdminPush(data, isPreview) {
+  if (isPreview) return { sent: 0 };
   try {
     const db = admin.firestore();
     const snap = await db.collection('adminDevices').get();
@@ -77,6 +78,7 @@ exports.handler = async (event) => {
   try {
     initFirebase();
     const db = admin.firestore();
+    const suffix = process.env.CONTEXT === 'production' ? '' : 'Preview';
     const body = JSON.parse(event.body || '{}');
     const name = String(body.name || '').trim();
     const phone = normalizePhone(body.phone);
@@ -111,12 +113,12 @@ exports.handler = async (event) => {
     }
 
     const lockId = lockIdFor(phone);
-    lockRef = db.collection('registrationLocks').doc(lockId);
+    lockRef = db.collection('registrationLocks' + suffix).doc(lockId);
 
     // First protect against registrations already present in the existing roster.
     const [leadSnap, studentSnap] = await Promise.all([
-      db.collection('leads').where('phone', '==', phone).limit(1).get(),
-      db.collection('students').where('phone', '==', phone).limit(1).get()
+      db.collection('leads' + suffix).where('phone', '==', phone).limit(1).get(),
+      db.collection('students' + suffix).where('phone', '==', phone).limit(1).get()
     ]);
     if (!leadSnap.empty || !studentSnap.empty) {
       return { statusCode: 409, body: JSON.stringify({ ok: false, duplicate: true, message: 'You are already registered.' }) };
@@ -150,13 +152,13 @@ exports.handler = async (event) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
-    const leadRef = await db.collection('leads').add(data);
-    await db.collection('students').add({ ...data, leadId: leadRef.id });
+    const leadRef = await db.collection('leads' + suffix).add(data);
+    await db.collection('students' + suffix).add({ ...data, leadId: leadRef.id });
 
     // Keep the lock with the final registration record for auditability.
     await lockRef.set({ leadId: leadRef.id, completedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
 
-    const push = await sendAdminPush(data);
+    const push = await sendAdminPush(data, suffix !== '');
 
     return {
       statusCode: 200,

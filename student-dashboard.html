@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Student Dashboard | Englishmates</title>
+<script src="./ui-feedback.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="assets/site-config.js"></script><script src="assets/lms.js" defer></script>
+<style>body{background:#070b17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.panel{background:#10192b;border:1px solid #26344e}.field{background:#080f1e;border:1px solid #334155;color:#fff}.muted{color:#9aa9c0}.btn{background:linear-gradient(135deg,#2563eb,#7c3aed)}.hidden{display:none!important}</style>
+</head>
+<body>
+<header class="border-b border-white/10 bg-slate-950/80"><nav class="max-w-7xl mx-auto px-4 py-5 flex justify-between gap-4"><a href="./" class="font-black text-xl">ENGLISHMATES</a><div class="flex gap-4 text-sm"><a href="./courses.html" class="text-violet-300">Browse courses</a><a href="./calling-community.html" class="text-slate-300">Calling community</a></div></nav></header>
+<main class="max-w-6xl mx-auto px-4 py-8 md:py-12">
+  <div class="max-w-3xl"><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Your learning space</p><h1 class="text-3xl md:text-4xl font-black mt-2">Student dashboard</h1><p class="muted mt-3">Sign in to view your courses, payment reviews and learning progress.</p></div>
+  <section class="panel rounded-2xl p-5 mt-6">
+    <div class="flex flex-wrap items-center justify-between gap-3"><p id="authIdentity" class="font-semibold">Not signed in</p><button id="signOutBtn" class="hidden rounded-lg border border-white/10 px-4 py-2 text-sm">Sign out</button></div>
+    <div id="authMessage" class="text-sm mt-2" role="status"></div>
+    <div class="grid md:grid-cols-2 gap-3 mt-4"><input id="authEmail" type="email" autocomplete="email" placeholder="Email address" class="field rounded-xl px-3 py-3"><input id="authPassword" type="password" autocomplete="current-password" placeholder="Password (8+ characters)" class="field rounded-xl px-3 py-3"></div>
+    <div class="flex flex-wrap gap-2 mt-3"><button id="signInBtn" class="rounded-xl border border-white/10 px-4 py-2">Sign in</button><button id="signUpBtn" class="rounded-xl border border-white/10 px-4 py-2">Create account</button><button id="googleBtn" class="rounded-xl border border-white/10 px-4 py-2">Continue with Google</button><button id="resendVerification" class="rounded-xl border border-white/10 px-4 py-2">Resend verification</button></div>
+  </section>
+  <section id="dashboard" class="hidden">
+    <div class="panel rounded-2xl p-6 mt-6"><div class="flex flex-wrap items-start justify-between gap-4"><div class="flex items-center gap-3"><img id="studentAvatar" class="hidden w-14 h-14 rounded-full object-cover" alt="Student profile"><div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Student profile</p><h2 class="text-xl font-black mt-2">Complete your details</h2><p id="studentId" class="muted text-sm mt-1"></p></div></div><p id="profileMessage" class="text-sm"></p></div>
+      <form id="enrollForm" class="grid md:grid-cols-3 gap-3 mt-5">
+        <input name="name" required maxlength="100" placeholder="Full name" class="field rounded-xl px-3 py-3">
+        <input name="phone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="field rounded-xl px-3 py-3">
+        <input name="qualification" required maxlength="120" placeholder="Qualification" class="field rounded-xl px-3 py-3">
+        <input name="city" required maxlength="100" placeholder="City" class="field rounded-xl px-3 py-3">
+        <input name="state" required maxlength="100" placeholder="State" class="field rounded-xl px-3 py-3">
+        <select id="courseSelect" name="courseId" required class="field rounded-xl px-3 py-3"><option value="">Choose a course</option></select>
+        <button id="saveProfileBtn" type="button" class="rounded-xl border border-white/10 px-5 py-3 font-bold md:col-span-3">Save profile</button><button class="btn rounded-xl px-5 py-3 font-bold md:col-span-3">Enroll in selected course</button>
+      </form>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-3 mt-8"><div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">My learning</p><h2 class="text-2xl font-black mt-2">My courses</h2></div><button id="refreshBtn" class="rounded-xl border border-white/10 px-4 py-2 text-sm">Refresh</button></div>
+    <div id="enrollments" class="grid lg:grid-cols-2 gap-5 mt-4"></div>
+    <section class="grid lg:grid-cols-3 gap-5 mt-7"><div class="panel rounded-2xl p-5"><div class="flex justify-between items-center gap-3"><h2 class="text-xl font-black">Notifications</h2><button id="markNotificationsRead" class="text-xs text-violet-300 underline">Mark all read</button></div><div id="notifications" class="space-y-3 mt-4"></div></div><div class="panel rounded-2xl p-5"><h2 class="text-xl font-black">My payments</h2><div id="payments" class="space-y-3 mt-4"></div></div><div class="panel rounded-2xl p-5"><h2 class="text-xl font-black">Help &amp; support</h2><p class="muted text-sm mt-2">Need help with enrollment or a lesson?</p><a class="inline-flex btn rounded-xl px-4 py-3 font-bold mt-4" href="https://wa.me/919351031200?text=I%20need%20help%20with%20my%20Englishmates%20course" target="_blank" rel="noopener">Chat with Englishmates</a></div></section>
+  </section>
+  <p id="pageMessage" class="text-sm mt-5" role="status"></p>
+</main>
+<div id="paymentModal" class="hidden fixed inset-0 z-50 bg-black/80 items-center justify-center p-4">
+  <section class="panel w-full max-w-xl max-h-[92vh] overflow-auto rounded-3xl p-6">
+    <div class="flex items-start justify-between"><div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Manual UPI payment</p><h2 class="text-2xl font-black mt-2">Submit payment for review</h2><p id="paymentAmount" class="text-xl font-bold mt-3"></p></div><button id="closePayment" class="text-slate-400">Close</button></div>
+    <div class="rounded-2xl bg-white p-4 text-center mt-5"><img src="./1000470557.png" alt="Englishmates payment QR" class="w-48 h-48 object-contain mx-auto"><p class="text-slate-900 font-bold mt-2">UPI: 9351031200@upi</p></div>
+    <p class="muted text-sm leading-6 mt-4">Pay the exact amount shown. Enter the UTR/reference number and attach a payment screenshot. The course stays locked until Englishmates verifies the payment.</p>
+    <form id="paymentForm" class="grid gap-3 mt-4"><input id="utr" required minlength="6" maxlength="40" placeholder="UPI UTR / transaction reference" class="field rounded-xl px-3 py-3"><input id="proof" required type="file" accept="image/jpeg,image/png,image/webp" class="field rounded-xl px-3 py-3"><button class="btn rounded-xl px-5 py-3 font-bold">Send for admin review</button><p id="paymentMessage" class="text-sm" role="status"></p></form>
+  </section>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const $ = id => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const requestedCourse = params.get('courseId') || '';
+  let paymentTarget = null;
+  LMS.bindAuth();
+  async function loadCatalog() {
+    const result = await LMS.api('public-courses');
+    const eligible = result.courses.filter(c => c.pricePaise !== null);
+    $('courseSelect').innerHTML = '<option value="">Choose an LMS course</option>' + eligible.map(c =>
+      '<option value="' + LMS.escape(c.id) + '">' + LMS.escape(c.title) + ' · ' + (c.pricePaise == null ? 'Fee on request' : LMS.formatMoney(c.pricePaise)) + '</option>').join('');
+    if (requestedCourse && eligible.some(c => c.id === requestedCourse)) $('courseSelect').value = requestedCourse;
+    if (!eligible.length) $('pageMessage').textContent = 'No course with a confirmed fee is available for LMS enrollment yet. Contact Englishmates or check back later.';
+  }
+  async function refreshEnrollments() {
+    $('pageMessage').textContent = 'Loading your courses…';
+    const result = await LMS.api('my-enrollments');
+    $('studentId').textContent = result.profile ? 'Student ID: ' + result.profile.studentId : '';
+    $('enrollments').innerHTML = result.enrollments.length ? result.enrollments.map(e => {
+      const status = e.progressPercent === 100 && e.totalLessons ? 'completed' : e.status.replace(/_/g, ' ');
+      let action = '';
+      if (e.status === 'active' && !(e.totalLessons > 0 && e.completedLessons >= e.totalLessons)) action = '<a class="btn rounded-xl inline-flex justify-center px-4 py-3 font-bold mt-4 w-full" href="./learning-room.html?courseId=' + encodeURIComponent(e.courseId) + '">Continue learning</a>';
+      else if (e.totalLessons > 0 && e.completedLessons >= e.totalLessons) action = '<a class="rounded-xl border border-emerald-300/20 text-emerald-200 inline-flex justify-center px-4 py-3 font-bold mt-3 w-full" href="./certificate.html?courseId=' + encodeURIComponent(e.courseId) + '">View completion certificate</a>';
+      else if (e.status === 'pending_payment' || e.status === 'pending_review') action = e.status === 'pending_payment'
+        ? '<button data-pay="' + LMS.escape(e.id) + '" class="btn rounded-xl px-4 py-3 font-bold mt-4 w-full">Pay by UPI</button>'
+        : '<p class="text-amber-200 text-sm mt-4">Payment submitted; waiting for admin review.</p>';
+      const courseDates = [e.courseStartDate && ('Starts ' + e.courseStartDate), e.courseEndDate && ('Ends ' + e.courseEndDate)].filter(Boolean).join(' · ');
+      const daysRemaining = e.courseEndDate ? Math.ceil((new Date(e.courseEndDate + 'T23:59:59').getTime() - Date.now()) / 86400000) : null;
+      const dateInfo = courseDates ? '<p class="muted text-xs mt-3">' + LMS.escape(courseDates) + (daysRemaining !== null ? ' · ' + (daysRemaining > 0 ? daysRemaining + ' days remaining' : 'course dates ended') : '') + '</p>' : '';
+      const progress = '<div class="mt-4"><div class="flex justify-between text-xs muted"><span>Learning progress</span><span>' + (e.progressPercent || 0) + '%</span></div><div class="h-2 bg-black/40 rounded-full mt-2 overflow-hidden"><div class="h-full bg-violet-400" style="width:' + (e.progressPercent || 0) + '%"></div></div><p class="text-xs muted mt-2">' + (e.completedLessons || 0) + ' of ' + (e.totalLessons || 0) + ' lessons completed</p></div>';
+      return '<article class="panel rounded-2xl p-5"><div class="flex justify-between gap-3"><div><p class="text-xs text-violet-300 font-bold">' + LMS.escape(e.courseName) + '</p><h3 class="text-xl font-black mt-2">' + LMS.escape(status) + '</h3><p class="muted text-sm mt-2">' + LMS.escape(e.studentId || '') + '</p></div><div class="text-right"><p class="text-xs muted">Course fee</p><p class="font-bold mt-1">' + LMS.formatMoney(e.amountPaise || 0) + '</p></div></div>' + progress + action + '</article>';
+    }).join('') : '<div class="panel rounded-2xl p-8 lg:col-span-2 text-center"><h3 class="font-bold text-lg">No course enrollments yet</h3><p class="muted mt-2">Choose a course above or browse the course catalog.</p><a href="./courses.html" class="text-violet-300 inline-block mt-4">Browse courses →</a></div>';
+    $('notifications').innerHTML = (result.notifications || []).length ? result.notifications.map(n => '<article class="rounded-xl bg-white/[.03] p-3"><p class="font-bold text-sm">' + LMS.escape(n.title) + (n.read ? '' : ' · <span class="text-violet-300">New</span>') + '</p><p class="muted text-xs mt-1">' + LMS.escape(n.message) + '</p></article>').join('') : '<p class="muted text-sm">No new notifications.</p>';
+    $('payments').innerHTML = (result.payments || []).length ? result.payments.map(p => '<article class="rounded-xl bg-white/[.03] p-3 flex justify-between gap-3"><div><p class="font-semibold text-sm">' + LMS.escape(p.courseName) + '</p><p class="muted text-xs mt-1">UTR: ' + LMS.escape(p.utr || 'awaiting submission') + '</p></div><div class="text-right"><p class="font-bold text-sm">' + LMS.formatMoney(p.amountPaise) + '</p><p class="muted text-xs mt-1">' + LMS.escape(String(p.status).replace(/_/g,' ')) + '</p></div></article>').join('') : '<p class="muted text-sm">Payment records will appear here.</p>';
+    $('pageMessage').textContent = '';
+    document.querySelectorAll('[data-pay]').forEach(button => button.addEventListener('click', () => startPayment(button.dataset.pay)));
+  }
+  async function startPayment(enrollmentId) {
+    try {
+      const result = await LMS.api('create-payment', { enrollmentId });
+      if (result.alreadyPaid) { await refreshEnrollments(); return; }
+      paymentTarget = { enrollmentId, paymentId: result.payment.id };
+      $('paymentAmount').textContent = LMS.formatMoney(result.payment.amountPaise);
+      $('paymentMessage').textContent = '';
+      $('paymentModal').classList.remove('hidden'); $('paymentModal').classList.add('flex');
+    } catch (e) { $('pageMessage').textContent = e.message; }
+  }
+  $('closePayment').addEventListener('click', () => { $('paymentModal').classList.add('hidden'); $('paymentModal').classList.remove('flex'); });
+  $('paymentForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const file = $('proof').files[0];
+    if (!file || file.size > 3 * 1024 * 1024) { $('paymentMessage').textContent = 'Choose an image up to 3 MB.'; return; }
+    if (!paymentTarget || !LMS.auth.currentUser) { $('paymentMessage').textContent = 'Sign in again and retry.'; return; }
+    const user = LMS.auth.currentUser;
+    try {
+      $('paymentMessage').textContent = 'Uploading payment proof…';
+      const base64 = await LMS.fileBase64(file, 3 * 1024 * 1024);
+      const uploaded = await LMS.api('upload-payment-proof', { paymentId: paymentTarget.paymentId, fileName: file.name, contentType: file.type, base64 });
+      await LMS.api('submit-payment', { paymentId: paymentTarget.paymentId, utr: $('utr').value.trim(), proofPath: uploaded.proofPath });
+      $('paymentMessage').textContent = 'Submitted. Your course will unlock after admin verification.';
+      setTimeout(() => { $('paymentModal').classList.add('hidden'); $('paymentModal').classList.remove('flex'); refreshEnrollments(); }, 900);
+    } catch (e) { $('paymentMessage').textContent = e.message; }
+  });
+  $('saveProfileBtn').addEventListener('click', async () => { const user = LMS.auth.currentUser; if (!user || !user.emailVerified) { LMS.setMessage('authMessage', 'Sign in and verify your email first.', true); return; } const f = $('enrollForm').elements; try { const result = await LMS.api('save-profile', { profile: { name: f.name.value, phone: f.phone.value, qualification: f.qualification.value, city: f.city.value, state: f.state.value } }); $('studentId').textContent = 'Student ID: ' + result.profile.studentId; LMS.setMessage('profileMessage', 'Profile saved.', false); } catch (e) { LMS.setMessage('profileMessage', e.message, true); } });
+  $('enrollForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const user = LMS.auth.currentUser;
+    if (!user) { LMS.setMessage('authMessage', 'Sign in or create an account first.', true); return; }
+    await user.reload();
+    if (!user.emailVerified) { LMS.setMessage('authMessage', 'Verify your email before enrolling.', true); return; }
+    try {
+      const data = Object.fromEntries(new FormData(form).entries());
+      const result = await LMS.api('enroll', data);
+      LMS.setMessage('profileMessage', result.existing ? 'This course is already on your account.' : 'Enrollment saved.', false);
+      await refreshEnrollments();
+    } catch (e) { LMS.setMessage('profileMessage', e.message, true); }
+  });
+  $('refreshBtn').addEventListener('click', () => refreshEnrollments().catch(e => $('pageMessage').textContent = e.message));
+  $('markNotificationsRead').addEventListener('click', async () => { try { await LMS.api('mark-notifications-read'); await refreshEnrollments(); } catch (e) { $('pageMessage').textContent = e.message; } });
+  $('resendVerification').addEventListener('click', async () => {
+    try {
+      if (!LMS.auth.currentUser) throw new Error('Sign in first.');
+      await LMS.auth.currentUser.sendEmailVerification({ url: Englishmates.page('student-dashboard.html'), handleCodeInApp: false });
+      LMS.setMessage('authMessage', 'Verification email sent.', false);
+    } catch (e) { LMS.setMessage('authMessage', e.message, true); }
+  });
+  document.addEventListener('lms-auth-changed', async event => {
+    const user = event.detail.user;
+    $('dashboard').classList.toggle('hidden', !user || !event.detail.verified);
+    if (!user || !event.detail.verified) return;
+    if (user.photoURL) { $('studentAvatar').src = user.photoURL; $('studentAvatar').classList.remove('hidden'); }
+    await loadCatalog().catch(e => $('pageMessage').textContent = e.message);
+    try { const saved = await LMS.api('save-profile', { profile: { name: user.displayName || user.email.split('@')[0] } }); $('studentId').textContent = 'Student ID: ' + saved.profile.studentId; document.querySelector('[name="name"]').value = saved.profile.name || ''; document.querySelector('[name="phone"]').value = saved.profile.phone || ''; document.querySelector('[name="qualification"]').value = saved.profile.qualification || ''; document.querySelector('[name="city"]').value = saved.profile.city || ''; document.querySelector('[name="state"]').value = saved.profile.state || ''; } catch (e) { $('pageMessage').textContent = e.message; }
+    if (user.email && !$('authEmail').value) $('authEmail').value = user.email;
+    refreshEnrollments().catch(e => $('pageMessage').textContent = e.message);
+  });
+});
+</script>
+</body>
+</html>

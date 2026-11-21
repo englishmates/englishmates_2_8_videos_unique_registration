@@ -12,6 +12,23 @@ function store() {
 }
 const reply=(statusCode,payload)=>({statusCode,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(payload)});
 const clean=(v,n=120)=>String(v||'').trim().slice(0,n);
+const httpError=(status,message)=>Object.assign(new Error(message),{status});
+async function requireStudent(event,{verified=true}={}){
+ const h=event.headers||{},token=String(h.authorization||h.Authorization||'').replace(/^Bearer\s+/i,'');
+ if(!token)throw httpError(401,'Please sign in to request or view classes.');
+ let decoded;try{decoded=await admin.auth().verifyIdToken(token);}catch(_){throw httpError(401,'Your sign-in has expired. Please sign in again.');}
+ if(verified&&(!decoded.email||!decoded.email_verified))throw httpError(403,'Please verify your email address first. Check your inbox for the verification link.');
+ return {uid:decoded.uid,email:String(decoded.email||'').toLowerCase()};
+}
+async function consumeLimit(db,suffix,uid,action,maximum,intervalMs){
+ const bucket=Math.floor(Date.now()/intervalMs),ref=db.collection('bookingRateLimits'+suffix).doc(uid+'_'+action+'_'+bucket);
+ await db.runTransaction(async tx=>{
+  const snap=await tx.get(ref),count=Number(snap.exists?snap.data().count:0)||0;
+  if(count>=maximum)throw httpError(429,'Too many requests. Please wait a while before trying again.');
+  tx.set(ref,{uid,action,count:count+1,expiresAt:Date.now()+intervalMs,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+ });
+}
+const OPEN_STATUSES=['pending','confirmed'];
 const days=['sun','mon','tue','wed','thu','fri','sat'];
 const timeRe=/^(?:[01]\d|2[0-3]):[0-5]\d$/;
 function indiaNowParts(){
@@ -46,6 +63,13 @@ exports.handler=async event=>{
  try{
   const db=store(),suffix=process.env.CONTEXT==='production'?'':'Preview';
   const tutorsCol='tutorApplications'+suffix,weeklyCol='tutorWeeklyAvailability'+suffix,blocksCol='tutorAvailabilityBlocks'+suffix,bookingsCol='tutorBookings'+suffix;
+  if(event.httpMethod==='GET'&&(event.queryStringParameters||{}).mine==='1'){
+   const student=await requireStudent(event,{verified:false});
+   const mine=await db.collection(bookingsCol).where('studentUid','==',student.uid).limit(60).get();
+   const bookings=mine.docs.map(d=>{const b=d.data();return {id:d.id,tutorName:clean(b.tutorName,90),date:b.date,startTime:b.startTime,endTime:b.endTime,status:b.status,meetLink:b.status==='confirmed'?clean(b.meetLink,600):''};})
+    .sort((a,b)=>(b.date+b.startTime).localeCompare(a.date+a.startTime));
+   return reply(200,{ok:true,bookings});
+  }
   if(event.httpMethod==='GET'){
    const tutorsSnap=await db.collection(tutorsCol).where('status','==','approved').limit(50).get();
    const tutors=[];
@@ -64,9 +88,26 @@ exports.handler=async event=>{
    return reply(200,{ok:true,durationMinutes:30,tutors});
   }
   if(event.httpMethod!=='POST')return reply(405,{ok:false,error:'Method not allowed.'});
-  const body=JSON.parse(event.body||'{}'),tutorId=clean(body.tutorId,180),date=clean(body.date,10),startTime=clean(body.startTime,5);
-  const studentName=clean(body.studentName,90),phone=clean(body.phone,20).replace(/\D/g,'').slice(-10),email=clean(body.email,140);
-  if(!tutorId||!validDate(date)||!timeRe.test(startTime)||!studentName||!/^\d{10}$/.test(phone)||!/^\S+@\S+\.\S+$/.test(email))return reply(400,{ok:false,error:'Enter your name, valid 10-digit phone, email and choose a valid slot.'});
+  const student=await requireStudent(event);
+  const body=JSON.parse(event.body||'{}');
+  if(body.action==='cancel'){
+   const bookingId=clean(body.bookingId,180);
+   if(!bookingId)return reply(400,{ok:false,error:'Choose a request to cancel.'});
+   const bRef=db.collection(bookingsCol).doc(bookingId),bSnap=await bRef.get();
+   if(!bSnap.exists||bSnap.data().studentUid!==student.uid)return reply(404,{ok:false,error:'Class request not found.'});
+   if(bSnap.data().status==='confirmed')return reply(409,{ok:false,error:'This class is already confirmed. Please contact your tutor to change it.'});
+   if(bSnap.data().status!=='pending')return reply(409,{ok:false,error:'This request can no longer be cancelled.'});
+   await bRef.update({status:'cancelled',cancelledBy:'student',updatedAt:admin.firestore.FieldValue.serverTimestamp()});
+   return reply(200,{ok:true,message:'Your class request was cancelled.'});
+  }
+  await consumeLimit(db,suffix,student.uid,'booking',6,60*60*1000);
+  const openSnap=await db.collection(bookingsCol).where('studentUid','==',student.uid).limit(60).get();
+  const today=indiaNowParts().date;
+  if(openSnap.docs.filter(d=>OPEN_STATUSES.includes(String(d.data().status||'').toLowerCase())&&String(d.data().date||'')>=today).length>=5)
+   return reply(409,{ok:false,error:'You already have 5 open class requests. Please wait for confirmation or cancel one first.'});
+  const tutorId=clean(body.tutorId,180),date=clean(body.date,10),startTime=clean(body.startTime,5);
+  const studentName=clean(body.studentName,90),phone=clean(body.phone,20).replace(/\D/g,'').slice(-10),email=student.email;
+  if(!tutorId||!validDate(date)||!timeRe.test(startTime)||!studentName||!/^\d{10}$/.test(phone))return reply(400,{ok:false,error:'Enter your name, a valid 10-digit phone number and choose a valid slot.'});
   const tutorRef=db.collection(tutorsCol).doc(tutorId),[tutorSnap,scheduleSnap,blockSnap,bookingSnap]=await Promise.all([
    tutorRef.get(),db.collection(weeklyCol).doc(tutorId).get(),db.collection(blocksCol).doc(tutorId+'_'+date).get(),db.collection(bookingsCol).where('tutorId','==',tutorId).get()
   ]);
@@ -83,11 +124,11 @@ exports.handler=async event=>{
   try{
    await db.runTransaction(async tx=>{
     const existing=await tx.get(ref);if(existing.exists&&!['cancelled','rejected'].includes(String(existing.data().status||'').toLowerCase()))throw new Error('SLOT_TAKEN');
-    tx.set(ref,{tutorId,tutorName:clean(tutorSnap.data().name||tutorSnap.data().fullName||tutorSnap.data().displayName,90)||'Englishmates Tutor',studentName,phone,email,date,startTime,endTime:String(Math.floor((startM+30)/60)).padStart(2,'0')+':'+String((startM+30)%60).padStart(2,'0'),durationMinutes:30,status:'pending',timezone:'Asia/Kolkata',createdAt:admin.firestore.FieldValue.serverTimestamp()});
+    tx.set(ref,{tutorId,tutorName:clean(tutorSnap.data().name||tutorSnap.data().fullName||tutorSnap.data().displayName,90)||'Englishmates Tutor',studentUid:student.uid,studentName,phone,email,date,startTime,endTime:String(Math.floor((startM+30)/60)).padStart(2,'0')+':'+String((startM+30)%60).padStart(2,'0'),durationMinutes:30,status:'pending',timezone:'Asia/Kolkata',createdAt:admin.firestore.FieldValue.serverTimestamp()});
    });
   }catch(e){if(e.message==='SLOT_TAKEN')return reply(409,{ok:false,error:'This slot has just been requested. Please choose another.'});throw e;}
   return reply(200,{ok:true,message:'Your 30-minute class request has been sent. The tutor will contact you to confirm it.'});
- }catch(e){console.error('Student booking:',e.message);return reply(500,{ok:false,error:'We could not process your request. Please try again.'});}
+ }catch(e){console.error('Student booking:',e.message);return e.status?reply(e.status,{ok:false,error:e.message}):reply(500,{ok:false,error:'We could not process your request. Please try again.'});}
 };
 
 const handler = exports.handler;

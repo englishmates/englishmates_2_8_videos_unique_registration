@@ -1,7 +1,62 @@
 rules_version = '2';
 
 service firebase.storage {
+  function isLmsAdmin() {
+    return request.auth != null
+      && request.auth.token.email == 'bddayma12@gmail.com'
+      && request.auth.token.email_verified == true;
+  }
+
   match /b/{bucket}/o {
+    // Course artwork is public; only the verified owner account can upload it.
+    match /course-thumbnails/{courseId}/{fileName} {
+      allow read: if true;
+      allow create, update: if isLmsAdmin()
+                            && request.resource.size <= 5 * 1024 * 1024
+                            && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if isLmsAdmin();
+    }
+    match /course-thumbnails-preview/{courseId}/{fileName} {
+      allow read: if true;
+      allow create, update: if isLmsAdmin()
+                            && request.resource.size <= 5 * 1024 * 1024
+                            && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if isLmsAdmin();
+    }
+
+    // Payment proof is private to its student and the verified admin account.
+    match /payment-proofs/{userId}/{paymentId}/{fileName} {
+      allow read: if isLmsAdmin() || (request.auth != null && request.auth.uid == userId);
+      allow create, update: if request.auth != null
+                            && request.auth.uid == userId
+                            && request.resource.size <= 5 * 1024 * 1024
+                            && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if isLmsAdmin();
+    }
+    match /payment-proofs-preview/{userId}/{paymentId}/{fileName} {
+      allow read: if isLmsAdmin() || (request.auth != null && request.auth.uid == userId);
+      allow create, update: if request.auth != null
+                            && request.auth.uid == userId
+                            && request.resource.size <= 5 * 1024 * 1024
+                            && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if isLmsAdmin();
+    }
+
+    // Course practice files (Workbook / PDF). Only the verified owner uploads or reads directly;
+    // enrolled students receive short-lived signed links from the lms-api function.
+    match /course-materials/{courseId}/{kind}/{fileName} {
+      allow read, delete: if isLmsAdmin();
+      allow create, update: if isLmsAdmin()
+                            && (kind == 'workbook' || kind == 'pdf')
+                            && request.resource.size <= 25 * 1024 * 1024;
+    }
+    match /course-materials-preview/{courseId}/{kind}/{fileName} {
+      allow read, delete: if isLmsAdmin();
+      allow create, update: if isLmsAdmin()
+                            && (kind == 'workbook' || kind == 'pdf')
+                            && request.resource.size <= 25 * 1024 * 1024;
+    }
+
     match /tutor-media/{userId}/{mediaType}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null

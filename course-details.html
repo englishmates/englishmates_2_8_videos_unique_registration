@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Course details | Englishmates</title>
+<script src="./ui-feedback.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="assets/site-config.js"></script><script src="assets/lms.js" defer></script>
+<style>body{background:#070b17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.panel{background:#10192b;border:1px solid #26344e}.field{background:#080f1e;border:1px solid #334155;color:#fff}.muted{color:#9aa9c0}.btn{background:linear-gradient(135deg,#2563eb,#7c3aed)}.hidden{display:none!important}</style>
+</head>
+<body>
+<header class="border-b border-white/10 bg-slate-950/80"><nav class="max-w-7xl mx-auto px-4 py-5 flex justify-between gap-4"><a href="./" class="font-black text-xl">ENGLISHMATES</a><div class="flex gap-4 text-sm"><a href="./courses.html" class="text-violet-300">All courses</a><a href="./student-dashboard.html" class="text-slate-300">My learning</a></div></nav></header>
+<main class="max-w-6xl mx-auto px-4 py-8 md:py-12">
+  <a href="./courses.html" class="text-sm text-violet-300">← Back to courses</a>
+  <p id="loadStatus" class="muted mt-6">Loading course…</p>
+  <div id="courseContent" class="hidden">
+    <section class="grid lg:grid-cols-[1.35fr_.65fr] gap-6 mt-5">
+      <div class="panel rounded-3xl overflow-hidden">
+        <div id="banner" class="h-64 bg-gradient-to-br from-blue-600/30 via-violet-600/30 to-rose-500/20"></div>
+        <div class="p-6 md:p-9"><p id="category" class="text-sm text-violet-300 font-bold"></p><h1 id="title" class="text-3xl md:text-5xl font-black mt-3"></h1><p id="description" class="muted mt-5 text-lg leading-8"></p>
+          <div class="grid sm:grid-cols-3 gap-3 mt-7"><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Level</p><p id="level" class="font-bold mt-1"></p></div><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Duration</p><p id="duration" class="font-bold mt-1"></p></div><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Language</p><p id="language" class="font-bold mt-1"></p></div></div>
+        </div>
+      </div>
+      <aside class="panel rounded-3xl p-6 md:p-8 h-fit lg:sticky lg:top-6"><p class="muted text-sm">Course fee</p><p id="price" class="text-3xl font-black mt-1"></p><p id="originalPrice" class="text-sm muted mt-1"></p><p id="dates" class="text-sm text-slate-300 mt-5"></p><div class="border-t border-white/10 mt-6 pt-6"><p class="muted text-sm">Instructor</p><div class="flex items-center gap-3 mt-3"><img id="instructorPhoto" class="hidden w-12 h-12 rounded-full object-cover" alt=""><div id="instructorInitial" class="w-12 h-12 rounded-full bg-violet-500/20 text-violet-200 flex items-center justify-center font-black">E</div><p id="instructor" class="font-bold"></p></div><button id="enrollNow" class="btn rounded-xl w-full py-4 font-extrabold mt-7">Enroll now</button><a id="demoLink" href="#" class="hidden rounded-xl border border-emerald-300/30 text-emerald-200 w-full py-3 font-bold mt-3 inline-flex justify-center">▶ Try a free demo lesson</a><p id="enrollHint" class="muted text-xs mt-3">Enrollment is confirmed after payment review.</p></div></aside>
+    </section>
+    <section id="curriculum" class="hidden panel rounded-3xl p-6 md:p-8 mt-6">
+      <div class="flex flex-wrap items-end justify-between gap-3"><div><h2 class="text-2xl font-black">Course videos</h2><p id="curriculumSummary" class="muted text-sm mt-1"></p></div><a id="curriculumDemo" href="#" class="hidden btn rounded-xl px-5 py-3 font-bold text-white">▶ Watch the free demo</a></div>
+      <div id="curriculumList" class="grid gap-2 mt-5 max-h-[28rem] overflow-y-auto pr-1"></div>
+    </section>
+    <section class="grid lg:grid-cols-2 gap-6 mt-6">
+      <div class="panel rounded-2xl p-6"><h2 class="text-xl font-black">What you will learn</h2><ul id="outcomes" class="muted list-disc pl-5 space-y-2 mt-4"></ul></div>
+      <div class="panel rounded-2xl p-6"><h2 class="text-xl font-black">Course features</h2><ul id="features" class="muted list-disc pl-5 space-y-2 mt-4"></ul></div>
+      <div class="panel rounded-2xl p-6"><h2 class="text-xl font-black">Course outline</h2><ol id="syllabus" class="muted list-decimal pl-5 space-y-2 mt-4"></ol></div>
+      <div class="panel rounded-2xl p-6"><h2 class="text-xl font-black">Requirements</h2><p id="requirements" class="muted mt-4 leading-7"></p><div id="demoWrap" class="hidden mt-5"><h3 class="font-bold mb-1">Public course teaser</h3><p class="muted text-xs mb-3">This is a public sample only. Full course lessons are protected in the learning room after enrollment is active.</p><iframe id="demo" class="w-full aspect-video rounded-xl" title="Public course teaser video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>
+    </section>
+    <section class="panel rounded-2xl p-6 mt-6"><h2 class="text-xl font-black">Frequently asked questions</h2><div id="faqs" class="grid md:grid-cols-2 gap-4 mt-4"></div></section><section class="panel rounded-2xl p-6 mt-6"><div class="flex flex-wrap justify-between items-center gap-3"><div><h2 class="text-xl font-black">Student reviews</h2><p id="ratingSummary" class="muted text-sm mt-1"></p></div><button id="reviewSignIn" class="text-sm text-violet-300 underline">Sign in to leave a review</button></div><form id="courseReviewForm" class="grid md:grid-cols-[180px_1fr_auto] gap-3 mt-5"><select name="rating" class="field rounded-xl px-3 py-3"><option value="5">5 · Excellent</option><option value="4">4 · Good</option><option value="3">3 · Average</option><option value="2">2 · Fair</option><option value="1">1 · Poor</option></select><input name="text" required minlength="5" maxlength="600" placeholder="Share what you learned" class="field rounded-xl px-3 py-3"><button class="btn rounded-xl px-4 py-3 font-bold">Submit review</button><p id="reviewMessage" class="text-sm md:col-span-3" role="status"></p></form><div id="reviewsList" class="grid md:grid-cols-2 gap-3 mt-5"></div></section>
+  </div>
+  <section id="enrollmentPanel" class="panel rounded-3xl p-6 md:p-8 mt-7 hidden">
+    <div class="flex items-start justify-between gap-4"><div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Enrollment</p><h2 class="text-2xl font-black mt-2">Join this course</h2><p class="muted text-sm mt-2">Sign in with your Englishmates account, then complete your student details.</p></div><button id="closeEnrollment" class="text-slate-400">Close</button></div>
+    <div class="border border-white/10 rounded-2xl p-4 mt-5"><p id="authIdentity" class="text-sm">Not signed in</p><p id="authMessage" role="status" class="text-sm mt-2"></p><div id="authControls" class="grid md:grid-cols-2 gap-3 mt-3"><input id="authEmail" type="email" autocomplete="email" placeholder="Email address" class="field rounded-xl px-3 py-3"><input id="authPassword" type="password" autocomplete="current-password" placeholder="Password (8+ characters)" class="field rounded-xl px-3 py-3"><div class="flex flex-wrap gap-2 md:col-span-2"><button id="signInBtn" type="button" class="rounded-xl border border-white/10 px-4 py-2">Sign in</button><button id="signUpBtn" type="button" class="rounded-xl border border-white/10 px-4 py-2">Create account</button><button id="googleBtn" type="button" class="rounded-xl border border-white/10 px-4 py-2">Continue with Google</button><button id="signOutBtn" type="button" class="hidden rounded-xl border border-white/10 px-4 py-2">Sign out</button></div></div></div>
+    <form id="enrollForm" class="grid md:grid-cols-2 gap-3 mt-5">
+      <input name="name" required maxlength="100" placeholder="Full name" class="field rounded-xl px-3 py-3">
+      <input name="phone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="field rounded-xl px-3 py-3">
+      <input name="qualification" required maxlength="120" placeholder="Qualification" class="field rounded-xl px-3 py-3">
+      <input name="city" required maxlength="100" placeholder="City" class="field rounded-xl px-3 py-3">
+      <input name="state" required maxlength="100" placeholder="State" class="field rounded-xl px-3 py-3">
+      <button class="btn rounded-xl px-5 py-3 font-bold md:col-span-2">Submit enrollment request</button>
+      <p id="formMessage" class="text-sm md:col-span-2" role="status"></p>
+    </form>
+  </section>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', async function () {
+  const $ = id => document.getElementById(id);
+  const courseId = new URLSearchParams(location.search).get('id') || '';
+  LMS.bindAuth();
+  function renderCurriculum(modules) {
+    const rows = modules.flatMap(m => m.lessons);
+    if (!rows.length) return;
+    const minutes = rows.reduce((n, l) => n + (l.durationMinutes || 0), 0);
+    const free = rows.filter(l => l.preview).length;
+    const hours = minutes >= 60 ? Math.floor(minutes / 60) + ' h ' + (minutes % 60) + ' min' : minutes + ' min';
+    $('curriculumSummary').textContent = rows.length + ' videos · ' + hours + (free ? ' · ' + free + ' free demo' : '') + ' · the rest unlock when you enroll';
+    $('curriculumList').innerHTML = rows.map((l, i) =>
+      '<' + (l.preview ? 'a href="./learning-room.html?courseId=' + encodeURIComponent(courseId) + '"' : 'button type="button" data-locked="1"') + ' class="text-left flex items-center gap-4 rounded-xl border p-3.5 ' + (l.preview ? 'border-emerald-300/30 bg-emerald-400/5 hover:bg-emerald-400/10' : 'border-white/5 bg-white/[.03] hover:bg-white/[.07]') + '">' +
+        '<span class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm font-black ' + (l.preview ? 'bg-emerald-400/20 text-emerald-200' : 'bg-white/5 text-slate-300') + '">' + (l.preview ? '▶' : (i + 1)) + '</span>' +
+        '<span class="min-w-0 flex-1"><span class="block font-semibold text-sm">' + LMS.escape(l.title) + '</span><span class="text-xs muted">' + (l.durationMinutes ? l.durationMinutes + ' min' : 'Video') + '</span></span>' +
+        '<span class="shrink-0 text-xs font-bold ' + (l.preview ? 'text-emerald-200' : 'text-slate-400') + '">' + (l.preview ? '🔓 Free demo' : '🔒 Locked') + '</span>' +
+      '</' + (l.preview ? 'a' : 'button') + '>').join('');
+    $('curriculum').classList.remove('hidden');
+    $('curriculumList').querySelectorAll('[data-locked]').forEach(b => b.addEventListener('click', () => { $('enrollNow').click(); }));
+    if (free) {
+      const url = './learning-room.html?courseId=' + encodeURIComponent(courseId);
+      $('curriculumDemo').href = url; $('curriculumDemo').classList.remove('hidden');
+      $('demoLink').href = url; $('demoLink').classList.remove('hidden');
+    }
+  }
+  function list(id, values) { $(id).innerHTML = (values || []).length ? values.map(v => '<li>' + LMS.escape(v) + '</li>').join('') : '<li>Course information will be announced soon.</li>'; }
+  try {
+    const result = await LMS.api('public-course', { courseId });
+    const c = result.course;
+    $('loadStatus').classList.add('hidden'); $('courseContent').classList.remove('hidden');
+    $('title').textContent = c.title; $('category').textContent = c.category + ' · ' + c.level;
+    $('description').textContent = c.description || c.shortDescription || '';
+    $('level').textContent = c.level; $('duration').textContent = c.duration || 'To be announced';
+    $('language').textContent = c.language; $('instructor').textContent = c.instructorName;
+    $('price').textContent = c.pricePaise == null ? 'Fee on request' : LMS.formatMoney(c.pricePaise);
+    if (c.pricePaise === null) {
+      $('enrollNow').textContent = 'Contact for course fee'; $('enrollNow').disabled = true;
+      $('enrollHint').textContent = 'Please contact Englishmates to confirm this course fee.';
+    } else {
+      if (c.source === 'legacy') $('enrollHint').textContent = 'This course is from the current Englishmates catalog. After enrollment and payment review, the admin can add its LMS lessons.';
+      $('enrollNow').addEventListener('click', () => { $('enrollmentPanel').classList.remove('hidden'); $('enrollmentPanel').scrollIntoView({ behavior: 'smooth' }); });
+    }
+    $('originalPrice').textContent = c.originalPricePaise && c.originalPricePaise > c.pricePaise ? 'Original price: ' + LMS.formatMoney(c.originalPricePaise) : '';
+    $('dates').textContent = [c.startDate && ('Starts ' + c.startDate), c.endDate && ('Ends ' + c.endDate), c.enrollmentDeadline && ('Enroll by ' + c.enrollmentDeadline)].filter(Boolean).join(' · ') || 'Course dates will be shared after enrollment.';
+    $('requirements').textContent = c.requirements || 'No prior experience is required unless stated by the instructor.';
+    if (c.thumbnailUrl) { const image = document.createElement('img'); image.src = c.thumbnailUrl; image.alt = ''; image.className = 'w-full h-full object-cover'; $('banner').replaceChildren(image); }
+    if (c.instructorPhoto) { $('instructorPhoto').src = c.instructorPhoto; $('instructorPhoto').classList.remove('hidden'); $('instructorInitial').classList.add('hidden'); }
+    if (c.demoVideoId) { $('demo').src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(c.demoVideoId); $('demoWrap').classList.remove('hidden'); }
+    list('outcomes', c.outcomes); list('features', c.features); list('syllabus', c.syllabus);
+    LMS.api('public-lessons', { courseId }).then(res => renderCurriculum(res.modules || [])).catch(() => {});
+    $('ratingSummary').textContent = c.reviewCount ? Number(c.ratingAverage).toFixed(1) + ' / 5 · ' + c.reviewCount + ' review(s)' : 'No reviews yet';
+    async function loadReviews() { const res = await LMS.api('course-reviews', { courseId }); $('reviewsList').innerHTML = res.reviews.length ? res.reviews.map(r => '<article class="rounded-xl bg-white/[.03] p-4"><p class="font-bold">' + LMS.escape(r.name) + ' · ' + '★'.repeat(Math.max(1, Math.min(5, r.rating))) + '</p><p class="muted text-sm mt-2">' + LMS.escape(r.text) + '</p></article>').join('') : '<p class="muted text-sm">Be the first student to review this course.</p>'; }
+    loadReviews().catch(e => $('reviewsList').textContent = e.message);
+    $('faqs').innerHTML = (c.faqs || []).map(f => '<details class="rounded-xl bg-white/5 p-4"><summary class="font-bold cursor-pointer">' + LMS.escape(f.question) + '</summary><p class="muted mt-3">' + LMS.escape(f.answer) + '</p></details>').join('') || '<p class="muted">Questions? Contact Englishmates for details.</p>';
+  } catch (e) { $('loadStatus').textContent = e.message; }
+  $('closeEnrollment').addEventListener('click', () => $('enrollmentPanel').classList.add('hidden'));
+  $('reviewSignIn').addEventListener('click', () => { $('enrollmentPanel').classList.remove('hidden'); $('enrollmentPanel').scrollIntoView({ behavior: 'smooth' }); });
+  $('courseReviewForm').addEventListener('submit', async event => { event.preventDefault(); const form = event.currentTarget; try { const fields = Object.fromEntries(new FormData(form).entries()); await LMS.api('submit-course-review', Object.assign({ courseId }, fields)); $('reviewMessage').textContent = 'Review saved.'; form.reset(); const result = await LMS.api('public-course', { courseId }); $('ratingSummary').textContent = Number(result.course.ratingAverage).toFixed(1) + ' / 5 · ' + result.course.reviewCount + ' review(s)'; const reviews = await LMS.api('course-reviews', { courseId }); $('reviewsList').innerHTML = reviews.reviews.map(r => '<article class="rounded-xl bg-white/[.03] p-4"><p class="font-bold">' + LMS.escape(r.name) + ' · ' + '★'.repeat(Math.max(1, Math.min(5, r.rating))) + '</p><p class="muted text-sm mt-2">' + LMS.escape(r.text) + '</p></article>').join(''); } catch (e) { $('reviewMessage').textContent = e.message; } });
+  document.addEventListener('lms-auth-changed', e => {
+    const user = e.detail.user;
+    if (user && $('enrollForm')) { $('enrollForm').elements.name.value = user.displayName || ''; }
+  });
+  $('enrollForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const user = LMS.auth.currentUser;
+    const msg = $('formMessage');
+    if (!user) { msg.textContent = 'Sign in or create an account above to continue.'; return; }
+    await user.reload();
+    if (!user.emailVerified) { msg.textContent = 'Verify your email from the link we sent, then sign in again.'; return; }
+    const data = Object.fromEntries(new FormData(form).entries());
+    data.courseId = courseId;
+    try {
+      msg.textContent = 'Submitting…';
+      const result = await LMS.api('enroll', data);
+      msg.textContent = result.existing ? 'You already have an enrollment for this course. Opening your dashboard…' : 'Enrollment request saved. Opening your dashboard…';
+      setTimeout(() => { location.href = './student-dashboard.html?courseId=' + encodeURIComponent(courseId); }, 700);
+    } catch (e) { msg.textContent = e.message; }
+  });
+});
+</script>
+</body>
+</html>

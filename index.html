@@ -15,7 +15,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="./ui-feedback.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -42,8 +43,13 @@
     .modal-backdrop{background:rgba(0,0,0,.78);backdrop-filter:blur(8px)}
     .hide-scrollbar::-webkit-scrollbar{display:none}
     @media(max-width:640px){.hero-title{font-size:2.65rem;line-height:1.05}.section-pad{padding-top:4.5rem;padding-bottom:4.5rem}}
+      .panel{background:rgba(15,23,42,.72);border:1px solid rgba(148,163,184,.18)}
+    .field{background:rgba(2,6,23,.7);border:1px solid rgba(148,163,184,.25);color:#f8fafc}
+    .field::placeholder{color:#64748b}
+    .muted{color:#94a3b8}
   </style>
   <script src="assets/site-config.js"></script>
+    <script src="assets/lms.js" defer></script>
 </head>
 <body>
   <div class="fixed inset-0 grid-bg opacity-30 pointer-events-none"></div>
@@ -55,10 +61,10 @@
         <img src="assets/englishmates-logo.jpg" alt="Englishmates logo" class="w-[190px] sm:w-[220px] h-auto object-contain">
       </a>
       <div class="hidden md:flex items-center gap-7 text-sm font-semibold">
-        <a class="nav-link" href="#programs">Programs</a>
+        <a class="nav-link" href="#programs">See All Courses</a>
         <a class="nav-link" href="#tutor-preview">Find a Tutor</a>
         <a class="nav-link" href="./tutor-apply.html">Become a Tutor</a>
-        <a class="nav-link" href="./calling-community.html">Calling Community</a>
+        <a class="nav-link" href="./calling-community.html">Calling Community</a><a class="nav-link" href="./student-dashboard.html">My Learning</a>
         <a class="nav-link" href="#ai-lab">AI Lab</a>
         <a class="nav-link" href="#gallery">Activities</a>
         <a class="nav-link" href="#results">Why Englishmates</a>
@@ -69,7 +75,7 @@
     </nav>
     <div id="mobileMenu" class="hidden md:hidden px-5 pb-5 border-t border-white/5">
       <div class="flex flex-col gap-4 pt-4 text-sm font-semibold">
-        <a class="nav-link" href="#programs">Programs</a><a class="nav-link" href="#tutor-preview">Find a Tutor</a><a class="nav-link" href="./tutor-apply.html">Become a Tutor</a><a class="nav-link" href="./calling-community.html">Calling Community</a><a class="nav-link" href="#ai-lab">AI Lab</a>
+        <a class="nav-link" href="#programs">See All Courses</a><a class="nav-link" href="#tutor-preview">Find a Tutor</a><a class="nav-link" href="./tutor-apply.html">Become a Tutor</a><a class="nav-link" href="./calling-community.html">Calling Community</a><a class="nav-link" href="./student-dashboard.html">My Learning</a><a class="nav-link" href="#ai-lab">AI Lab</a>
         <a class="nav-link" href="#results">Why Englishmates</a><a class="nav-link" href="#about">About</a>
         <a href="#enroll" class="btn-coral text-white text-center px-5 py-3 rounded-xl">Book a Demo</a>
       </div>
@@ -97,7 +103,7 @@
               </p>
               <div class="flex flex-col sm:flex-row gap-3 mt-8">
                 <a href="#enroll" class="btn-primary transition-card text-white px-7 py-4 rounded-xl font-bold text-center inline-flex items-center justify-center gap-2">Book Free Demo <i data-lucide="arrow-right" class="w-5 h-5"></i></a>
-                <a href="#programs" class="px-7 py-4 rounded-xl font-bold text-center border border-white/10 bg-white/5 hover:bg-white/10 transition">Explore Programs</a>
+                <a href="#programs" class="px-7 py-4 rounded-xl font-bold text-center border border-white/10 bg-white/5 hover:bg-white/10 transition">Explore Courses</a>
               </div>
               <div class="flex flex-wrap gap-x-6 gap-y-3 mt-8 text-sm text-slate-400">
                 <span class="flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Practical speaking</span>
@@ -132,14 +138,21 @@
     </section>
 
     <!-- PROGRAMS -->
-    <section id="programs" class="section-pad py-20 px-4 lg:px-8">
+    <section id="programs" class="section-pad py-16 md:py-20 px-4 lg:px-8">
       <div class="max-w-7xl mx-auto">
-        <div class="max-w-2xl reveal">
-          <span class="text-blue-400 text-xs font-extrabold uppercase tracking-[.2em]">Learn by doing</span>
-          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Programs built for <span class="gradient-text">real growth.</span></h2>
-          <p class="text-slate-400 mt-5 leading-7">Choose one skill or combine them. Every program is designed to turn knowledge into confidence and action.</p>
+        <div class="max-w-3xl reveal">
+          <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Explore · Compare · Enroll</span>
+          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">See All Courses</h2>
+          <p class="text-slate-400 mt-4 leading-7">Browse the complete course list, compare details and reviews, then open any course to enroll or continue your learning.</p>
         </div>
-        <div id="publicCourseGrid" class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-10"><div class="text-slate-400">Loading courses…</div></div>
+        <div class="panel rounded-2xl p-4 mt-7 grid md:grid-cols-[1fr_220px_200px] gap-3">
+          <input id="lmsCourseSearch" class="field rounded-xl px-4 py-3" type="search" placeholder="Search courses, skills or instructor" aria-label="Search all courses">
+          <select id="lmsCourseCategory" class="field rounded-xl px-4 py-3" aria-label="Filter courses by category"><option value="">All categories</option></select>
+          <select id="lmsCourseSort" class="field rounded-xl px-4 py-3" aria-label="Sort courses"><option value="recommended">Recommended</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="latest">Latest courses</option><option value="popular">Popularity</option></select>
+        </div>
+        <p id="lmsCourseStatus" class="text-slate-400 text-sm mt-5" role="status">Loading courses…</p>
+        <section id="lmsCourseGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-4"></section>
+        <div class="text-center mt-8"><a href="./student-dashboard.html" class="inline-flex px-6 py-3 rounded-xl bg-violet-500/15 text-violet-200 font-bold">My Learning dashboard →</a></div>
       </div>
     </section>
 
@@ -186,6 +199,33 @@
         <div class="card rounded-3xl p-6 md:p-8 mt-6" id="studentTutorBooking">
           <div class="flex flex-wrap justify-between items-start gap-3"><div><span class="text-violet-300 text-xs font-extrabold uppercase tracking-widest">30-minute sessions</span><h3 class="text-2xl font-extrabold text-white mt-2">Find an available tutor</h3><p class="text-sm text-slate-400 mt-2">Choose an approved tutor and request a convenient 30-minute slot.</p></div><button id="reloadTutorSlots" class="text-sm text-violet-200 border border-white/10 rounded-xl px-4 py-2">Refresh slots</button></div>
           <div id="publicTutorList" class="grid md:grid-cols-2 gap-4 mt-6"><p class="text-sm text-slate-400">Loading available tutors…</p></div>
+          <div id="studentAuthBox" class="mt-6 border-t border-white/10 pt-6">
+            <div id="studentSignedOut">
+              <h4 class="font-bold text-white">Sign in to request a class</h4>
+              <p class="text-sm text-slate-400 mt-1">A free student account prevents spam and lets you track your requests.</p>
+              <div class="grid sm:grid-cols-2 gap-3 mt-4">
+                <input id="studentAuthEmail" type="email" autocomplete="email" placeholder="Email address" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
+                <input id="studentAuthPassword" type="password" autocomplete="current-password" placeholder="Password (at least 6 characters)" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
+                <button type="button" id="studentSignInBtn" class="btn-primary rounded-xl p-3 text-white font-bold">Sign in</button>
+                <button type="button" id="studentSignUpBtn" class="rounded-xl p-3 border border-white/10 text-white font-bold hover:bg-white/5">Create account</button>
+                <button type="button" id="studentGoogleBtn" class="sm:col-span-2 rounded-xl p-3 border border-white/10 text-white font-bold hover:bg-white/5">Continue with Google</button>
+              </div>
+              <button type="button" id="studentResetBtn" class="text-xs text-violet-200 mt-3 underline">Forgot password?</button>
+            </div>
+            <div id="studentSignedIn" class="hidden flex flex-wrap items-center justify-between gap-3">
+              <p id="studentWho" class="text-sm text-slate-300"></p>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" id="studentVerifiedBtn" class="hidden text-sm rounded-xl px-4 py-2 border border-white/10 text-white">I have verified my email</button>
+                <button type="button" id="studentResendBtn" class="hidden text-sm rounded-xl px-4 py-2 border border-white/10 text-white">Resend verification email</button>
+                <button type="button" id="studentSignOutBtn" class="text-sm rounded-xl px-4 py-2 border border-white/10 text-slate-300">Sign out</button>
+              </div>
+            </div>
+            <p id="studentAuthMsg" role="status" class="text-sm mt-3"></p>
+          </div>
+          <div id="myBookingsBox" class="hidden mt-6 border-t border-white/10 pt-6">
+            <div class="flex items-center justify-between gap-3"><h4 class="font-bold text-white">My class requests</h4><button type="button" id="refreshMyBookings" class="text-sm text-violet-200 border border-white/10 rounded-xl px-4 py-2">Refresh</button></div>
+            <div id="myBookingsList" class="grid gap-3 mt-4"></div>
+          </div>
           <form id="studentBookingForm" class="hidden mt-6 border-t border-white/10 pt-6 grid sm:grid-cols-2 gap-3">
             <div class="sm:col-span-2"><h4 class="font-bold text-white">Request your class</h4><p id="selectedTutorLabel" class="text-sm text-violet-200 mt-1"></p></div>
             <input type="hidden" name="tutorId"><input type="hidden" name="date"><input type="hidden" name="startTime">
@@ -390,6 +430,7 @@
 
   <!-- ADMIN / COURSE MANAGEMENT -->
   <section id="adminArea" class="hidden py-16 px-4 lg:px-8 bg-[#02050d] border-y border-violet-500/10">
+    <div id="previewBanner" class="hidden max-w-6xl mx-auto mb-6 rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4 text-amber-100 text-sm flex flex-wrap items-center justify-between gap-3"><span><b>View-only preview.</b> You are looking at real student records. Changes are blocked here; edit them on the live site.</span><a href="./admin-lms.html" class="rounded-xl bg-white/10 px-4 py-2 font-bold">Open LMS admin (test data) →</a></div>
     <div class="max-w-7xl mx-auto">
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-5">
         <div><span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Private dashboard</span>
@@ -524,7 +565,18 @@
       appId: "1:501474121790:web:5097a43a6be4e7bc07996f6"
     };
     // IMPORTANT: use the same email address in firestore.rules.
-    const ADMIN_EMAIL = "bddayma12@gmail.com";
+    const ADMIN_EMAIL = "bddayma12@gmail.com"; const IS_DEPLOY_PREVIEW = /^deploy-preview-\d+--englishmates-ratangarh\.netlify\.app$/.test(location.hostname);
+    /* Preview safety: the old admin dashboard reads the REAL student records. On a deploy preview it opens in
+       view-only mode, and every Firestore write is blocked in the browser while it is open. */
+    (function(){
+      if(!IS_DEPLOY_PREVIEW||!window.firebase||!firebase.firestore)return;
+      const blocked=()=>{ if(window.EMUI)window.EMUI.toast('View-only in preview: this change was not saved.','error'); return Promise.reject(new Error('View-only preview: changes are blocked.')); };
+      const wrap=(proto,name)=>{ if(!proto||!proto[name])return; const orig=proto[name]; proto[name]=function(){ return window.__adminViewOnly?blocked():orig.apply(this,arguments); }; };
+      const F=firebase.firestore;
+      ['set','update','delete'].forEach(m=>wrap(F.DocumentReference&&F.DocumentReference.prototype,m));
+      wrap(F.CollectionReference&&F.CollectionReference.prototype,'add');
+      wrap(F.WriteBatch&&F.WriteBatch.prototype,'commit');
+    })();
     const ENGLISHMATES_FCM_VAPID_KEY = "BB49q-PCD2hDUUEK7IjxJmESlU5Fe8px5urKh-SdVjtrZt86rhw1NWTK29zBhOrWtftEE1Tdzw64pplrDVLAHtE";
     let db=null, auth=null;
     try{
@@ -786,12 +838,10 @@
     function slugCourse(name){return String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||('course-'+Date.now());}
     function renderPublicCourses(){
       const visible=courseCatalog.filter(c=>c.active&&!c.archived).sort((a,b)=>(a.order||999)-(b.order||999));
-      $('#publicCourseGrid').innerHTML=visible.length?visible.map((c,i)=>`<div class="card transition-card rounded-3xl p-7 reveal show"><div class="w-12 h-12 rounded-2xl bg-violet-500/10 text-violet-300 flex items-center justify-center"><i data-lucide="graduation-cap"></i></div><h3 class="text-xl font-bold text-white mt-6">${esc(c.name)}</h3><div class="text-3xl font-extrabold text-white mt-4">${esc(c.fee||'Contact us')}</div><div class="text-xs text-violet-300 font-bold mt-1">${esc(c.duration||c.tag||'Course')}</div><p class="text-slate-400 text-sm leading-6 mt-3">${esc(c.description||'')}</p><div class="mt-5 text-xs text-slate-300 space-y-2">${(c.features||[]).map(f=>`<div>✓ ${esc(f)}</div>`).join('')}</div><button data-course="${esc(c.name)}" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button></div>`).join(''):'<p class="text-slate-400">New courses will be announced soon.</p>';
       $('#courseSelect').innerHTML=visible.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
       COURSE_FEES={}; visible.forEach(c=>COURSE_FEES[c.name]=c.fee||'Contact us'); COURSES=courseCatalog.filter(c=>!c.archived).map(c=>c.name);
-      $$('.courseBtn').forEach(b=>b.addEventListener('click',()=>{$('#courseSelect').value=b.dataset.course;updateSelectedCourseFee();openModal('#enrollModal')}));
       if(!visible.some(c=>c.name===$('#courseSelect').value)&&visible.length)$('#courseSelect').value=visible[0].name;
-      updateSelectedCourseFee(); lucide.createIcons();
+      updateSelectedCourseFee();
     }
     async function loadCourses(){
       if(!db){courseCatalog=DEFAULT_COURSES;renderPublicCourses();return;}
@@ -950,17 +1000,22 @@
     }
     async function showAdmin(){
       $('#adminArea').classList.remove('hidden'); $('#adminArea').scrollIntoView({behavior:'smooth'});
+      if(IS_DEPLOY_PREVIEW){
+        window.__adminViewOnly=true; $('#previewBanner').classList.remove('hidden');
+        try{renderCourseManager();}catch(_){}
+        subscribeAdmin(); return;
+      }
       try{await seedDefaultCourses();renderCourseManager();}catch(err){$('#courseManagerMsg').textContent='Course controls need Firestore rules allowing owner access to the courses collection.';}
       subscribeAdmin();
     }
-    $('#adminLink').addEventListener('click',()=>auth&&auth.currentUser?showAdmin():openModal('#adminLoginModal'));
+    $('#adminLink').addEventListener('click',()=>{auth&&auth.currentUser&&(auth.currentUser.email||'').toLowerCase()===ADMIN_EMAIL.toLowerCase()?showAdmin():openModal('#adminLoginModal');});
     $('#adminLoginForm').addEventListener('submit',async e=>{
       e.preventDefault(); const m=$('#adminLoginMsg');
       if(ADMIN_EMAIL.startsWith('YOUR_ADMIN_EMAIL')){m.textContent='Set your real admin email in index.html before logging in.';m.className='text-sm text-center text-amber-300';return;}
       try{
         await auth.signInWithEmailAndPassword($('#adminEmail').value.trim(),$('#adminPassword').value);
         if((auth.currentUser.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await auth.signOut();throw new Error('not-admin');}
-        closeAll(); showAdmin(); setTimeout(async()=>{ if(Notification.permission==='default') await enableNotifications(); else if(Notification.permission==='granted') await setupFCM(); },400);
+        closeAll(); showAdmin(); if(!IS_DEPLOY_PREVIEW) setTimeout(async()=>{ if(Notification.permission==='default') await enableNotifications(); else if(Notification.permission==='granted') await setupFCM(); },400);
       }catch(err){console.error('Englishmates admin login error:',err.code,err.message);m.textContent=err.message==='not-admin'?'This account is not the Englishmates owner account.':`Login failed (${err.code||'unknown'}). ${err.message||'Check Firebase Authentication.'}`;m.className='text-sm text-center text-rose-400'}
     });
     $('#logoutBtn').addEventListener('click',async()=>{if(adminUnsubscribe)adminUnsubscribe();knownStudentIds.clear();adminFirstLoad=true;$('#adminArea').classList.add('hidden');await auth.signOut()});
@@ -1014,6 +1069,7 @@
       const btn=e.target.closest('[data-book-tutor]');if(!btn)return;
       const tutor=publicTutors.find(t=>t.id===btn.dataset.bookTutor),select=tutorList.querySelector('[data-tutor-slot="'+btn.dataset.bookTutor+'"]');
       if(!tutor||!select.value){alert('Please choose an available 30-minute slot first.');return;}
+      if(!(auth&&auth.currentUser&&auth.currentUser.emailVerified)){studentMsg('Please sign in with a verified email to request a class.',true);$('#studentAuthBox').scrollIntoView({behavior:'smooth',block:'center'});return;}
       const [date,startTime]=select.value.split('|');
       bookingForm.elements.tutorId.value=tutor.id;bookingForm.elements.date.value=date;bookingForm.elements.startTime.value=startTime;
       $('#selectedTutorLabel').textContent=tutor.name+' · '+date+' · '+startTime+' IST (30 minutes)';
@@ -1022,16 +1078,96 @@
     bookingForm.addEventListener('submit',async e=>{
       e.preventDefault();const btn=$('#sendBookingRequest');btn.disabled=true;$('#bookingFormMessage').textContent='Sending your request…';
       const payload=Object.fromEntries(new FormData(bookingForm).entries());
-      try{const r=await fetch(Englishmates.api('student-bookings'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not send request.');
-        $('#bookingFormMessage').textContent=data.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-emerald-300';bookingForm.reset();bookingForm.classList.add('hidden');await loadPublicTutors();
+      try{if(!(auth&&auth.currentUser))throw new Error('Please sign in first.');const r=await fetch(Englishmates.api('student-bookings'),{method:'POST',headers:await studentHeaders(),body:JSON.stringify(payload)}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not send request.');
+        $('#bookingFormMessage').textContent=data.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-emerald-300';bookingForm.reset();bookingForm.classList.add('hidden');await loadPublicTutors();loadMyBookings();
       }catch(err){$('#bookingFormMessage').textContent=err.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-rose-300';await loadPublicTutors();}
       finally{btn.disabled=false;}
     });
+    // ---- Student account (required for class requests) ----
+    const studentMsg=(t,bad)=>{const m=$('#studentAuthMsg');m.textContent=t||'';m.className='text-sm mt-3 '+(bad?'text-rose-300':'text-emerald-300');};
+    const studentError=e=>({'auth/email-already-in-use':'This email already has an account. Please sign in.','auth/invalid-email':'Enter a valid email address.','auth/weak-password':'Choose a password with at least 6 characters.','auth/invalid-credential':'The email or password is incorrect.','auth/popup-closed-by-user':'Google sign-in was cancelled.','auth/unauthorized-domain':'This website domain is not authorised in Firebase Authentication.'}[e&&e.code]||(e&&e.message)||'Something went wrong. Please try again.');
+    async function studentHeaders(){return {'Content-Type':'application/json',Authorization:'Bearer '+await auth.currentUser.getIdToken()};}
+    function renderStudentAuth(){
+      const u=auth&&auth.currentUser;
+      $('#studentSignedOut').classList.toggle('hidden',!!u);$('#studentSignedIn').classList.toggle('hidden',!u);
+      $('#myBookingsBox').classList.toggle('hidden',!(u&&u.emailVerified));
+      if(!u)return;
+      $('#studentWho').textContent='Signed in as '+u.email+(u.emailVerified?'':' — email not verified yet');
+      $('#studentVerifiedBtn').classList.toggle('hidden',u.emailVerified);$('#studentResendBtn').classList.toggle('hidden',u.emailVerified);
+      if(u.emailVerified){bookingForm.elements.email.value=u.email;bookingForm.elements.email.readOnly=true;if(!bookingForm.elements.studentName.value&&u.displayName)bookingForm.elements.studentName.value=u.displayName;}
+    }
+    async function loadMyBookings(){
+      const list=$('#myBookingsList');if(!(auth&&auth.currentUser&&auth.currentUser.emailVerified))return;
+      try{
+        const r=await fetch(Englishmates.api('student-bookings')+'?mine=1',{headers:await studentHeaders(),cache:'no-store'}),data=await r.json();
+        if(!r.ok||!data.ok)throw new Error(data.error||'Could not load your requests.');
+        const label={pending:'Waiting for tutor',confirmed:'Confirmed',rejected:'Declined',cancelled:'Cancelled'},tone={pending:'text-amber-300',confirmed:'text-emerald-300',rejected:'text-rose-300',cancelled:'text-slate-400'};
+        list.innerHTML=data.bookings.length?data.bookings.map(b=>'<article class="rounded-2xl border border-white/10 bg-white/[.025] p-4 flex flex-wrap items-center justify-between gap-3"><div><p class="font-bold text-white">'+esc(b.tutorName)+'</p><p class="text-sm text-slate-400">'+esc(b.date)+' · '+esc(b.startTime)+'–'+esc(b.endTime)+' IST</p><p class="text-xs font-bold mt-1 '+(tone[b.status]||'text-slate-400')+'">'+esc(label[b.status]||b.status)+'</p></div><div class="flex gap-2">'+(b.status==='confirmed'&&/^https:\/\//i.test(b.meetLink)?'<a href="'+esc(b.meetLink)+'" target="_blank" rel="noopener" class="btn-primary rounded-xl px-4 py-2 text-sm font-bold text-white">Join Google Meet</a>':'')+(b.status==='pending'?'<button type="button" data-cancel-booking="'+esc(b.id)+'" class="rounded-xl px-4 py-2 text-sm border border-white/10 text-slate-300 hover:bg-white/5">Cancel request</button>':'')+'</div></article>').join(''):'<p class="text-sm text-slate-400">You have not requested any classes yet.</p>';
+      }catch(err){list.innerHTML='<p class="text-sm text-rose-300">'+esc(err.message)+'</p>';}
+    }
+    $('#myBookingsList').addEventListener('click',async e=>{
+      const b=e.target.closest('[data-cancel-booking]');if(!b)return;b.disabled=true;
+      try{const r=await fetch(Englishmates.api('student-bookings'),{method:'POST',headers:await studentHeaders(),body:JSON.stringify({action:'cancel',bookingId:b.dataset.cancelBooking})}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not cancel.');studentMsg(data.message);}
+      catch(err){studentMsg(err.message,true);}
+      await loadPublicTutors();loadMyBookings();
+    });
+    $('#refreshMyBookings').addEventListener('click',loadMyBookings);
+    const studentCreds=()=>({email:$('#studentAuthEmail').value.trim(),password:$('#studentAuthPassword').value});
+    $('#studentSignInBtn').addEventListener('click',async()=>{try{const c=studentCreds();await auth.signInWithEmailAndPassword(c.email,c.password);studentMsg('');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentSignUpBtn').addEventListener('click',async()=>{try{const c=studentCreds();const cred=await auth.createUserWithEmailAndPassword(c.email,c.password);await cred.user.sendEmailVerification();studentMsg('Account created. We sent a verification link to '+c.email+'. Open it, then press “I have verified my email”.');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentGoogleBtn').addEventListener('click',async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());studentMsg('');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentResetBtn').addEventListener('click',async()=>{try{const email=$('#studentAuthEmail').value.trim();if(!email)throw new Error('Enter your email address first.');await auth.sendPasswordResetEmail(email);studentMsg('Password reset email sent.');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentResendBtn').addEventListener('click',async()=>{try{await auth.currentUser.sendEmailVerification();studentMsg('Verification email sent again. Check your inbox and spam folder.');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentVerifiedBtn').addEventListener('click',async()=>{try{await auth.currentUser.reload();await auth.currentUser.getIdToken(true);renderStudentAuth();if(auth.currentUser.emailVerified){studentMsg('Email verified. You can request a class now.');loadMyBookings();}else studentMsg('Not verified yet. Open the link in the email first.',true);}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentSignOutBtn').addEventListener('click',async()=>{await auth.signOut();});
+    if(auth)auth.onAuthStateChanged(()=>{renderStudentAuth();loadMyBookings();});
     $('#reloadTutorSlots').addEventListener('click',loadPublicTutors);loadPublicTutors();
 
     // Reveal animations
     const io=new IntersectionObserver(entries=>entries.forEach(en=>{if(en.isIntersecting){en.target.classList.add('show');io.unobserve(en.target)}}),{threshold:.08});
     $$('.reveal').forEach(el=>io.observe(el));
   </script>
+<script>
+(function () {
+  document.addEventListener('DOMContentLoaded', async function () {
+    const byId = id => document.getElementById(id);
+    let courses = [];
+    function render() {
+      const term = byId('lmsCourseSearch').value.trim().toLowerCase();
+      const category = byId('lmsCourseCategory').value;
+      let list = courses.filter(c => (!category || c.category === category) &&
+        (!term || [c.title,c.description,c.category,c.instructorName,c.level].join(' ').toLowerCase().includes(term)));
+      const mode = byId('lmsCourseSort').value;
+      if (mode === 'price-low') list.sort((a,b) => (a.pricePaise || 0) - (b.pricePaise || 0));
+      if (mode === 'price-high') list.sort((a,b) => (b.pricePaise || 0) - (a.pricePaise || 0));
+      if (mode === 'latest') list.sort((a,b) => String(b.createdAt || b.startDate || '').localeCompare(String(a.createdAt || a.startDate || '')));
+      if (mode === 'popular') list.sort((a,b) => (b.popularity || 0) - (a.popularity || 0));
+      byId('lmsCourseGrid').innerHTML = list.length ? list.map(c => {
+        const image = c.thumbnailUrl ? '<img src="' + LMS.escape(c.thumbnailUrl) + '" alt="" loading="lazy" class="w-full h-48 object-cover">' :
+          '<div class="w-full h-48 bg-gradient-to-br from-blue-600/30 via-violet-600/30 to-rose-500/20 flex items-center justify-center text-5xl">✦</div>';
+        const price = c.pricePaise === null ? 'Fee on request' : LMS.formatMoney(c.pricePaise);
+        return '<article class="card rounded-2xl overflow-hidden transition hover:-translate-y-1"><a href="./course-details.html?id=' + encodeURIComponent(c.id) + '" class="block">' + image +
+          '<div class="p-5"><div class="flex items-center justify-between gap-2"><span class="text-xs text-violet-200 bg-violet-400/10 rounded-full px-3 py-1">' + LMS.escape(c.category) + '</span><span class="text-xs muted">' + LMS.escape(c.level) + '</span></div>' +
+          '<h3 class="text-xl font-bold mt-4">' + LMS.escape(c.title) + '</h3>' + (c.reviewCount ? '<p class="text-amber-200 text-xs mt-1">★ ' + Number(c.ratingAverage).toFixed(1) + ' · ' + c.reviewCount + ' reviews</p>' : '') +
+          '<p class="muted text-sm mt-2 min-h-10">' + LMS.escape(c.shortDescription || c.description || '') + '</p>' +
+          '<div class="flex items-end justify-between mt-5"><div><p class="text-xs muted">Instructor</p><p class="font-semibold text-sm mt-1">' + LMS.escape(c.instructorName) + '</p></div><div class="text-right"><p class="text-xs muted">' + LMS.escape(c.duration || '') + '</p><p class="text-lg font-black text-white mt-1">' + price + '</p></div></div>' +
+          '<span class="inline-flex btn rounded-xl px-4 py-3 font-bold mt-5 w-full justify-center">View course &amp; enroll</span></div></a></article>';
+      }).join('') : '<div class="panel rounded-2xl p-8 md:col-span-3 text-center"><h3 class="font-bold text-xl">No courses found</h3><p class="muted mt-2">Try another search, or check back when the next course is published.</p></div>';
+      byId('lmsCourseStatus').textContent = list.length + (list.length === 1 ? ' course' : ' courses');
+    }
+    ['lmsCourseSearch','lmsCourseCategory','lmsCourseSort'].forEach(id => byId(id).addEventListener('input', render));
+    try {
+      const result = await LMS.api('public-courses');
+      courses = result.courses || [];
+      const categories = Array.from(new Set(courses.map(c => c.category).filter(Boolean))).sort();
+      byId('lmsCourseCategory').innerHTML = '<option value="">All categories</option>' + categories.map(c => '<option value="' + LMS.escape(c) + '">' + LMS.escape(c) + '</option>').join('');
+      render();
+    } catch (error) {
+      byId('lmsCourseStatus').textContent = error.message;
+      byId('lmsCourseGrid').innerHTML = '<div class="panel rounded-2xl p-8 text-center text-rose-200">' + LMS.escape(error.message) + '</div>';
+    }
+  });
+}());
+</script>
 </body>
 </html>

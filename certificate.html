@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Course certificate | Englishmates</title>
+<script src="./ui-feedback.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="assets/site-config.js"></script><script src="assets/lms.js" defer></script>
+<style>
+body{background:#070b17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.panel{background:#10192b;border:1px solid #26344e}.field{background:#080f1e;border:1px solid #334155;color:#fff}.muted{color:#9aa9c0}
+.certificate{background:#fffdf6;color:#18223a;border:12px double #8b6b24;min-height:560px}
+@media print{body{background:white;color:#111}.no-print{display:none!important}.certificate{border-color:#8b6b24;min-height:94vh;box-shadow:none}.page{max-width:none!important;padding:0!important}.certificate-wrap{padding:10px!important}}
+</style>
+</head>
+<body>
+<header class="no-print border-b border-white/10"><nav class="max-w-5xl mx-auto px-4 py-5 flex justify-between"><a href="./" class="font-black text-xl">ENGLISHMATES</a><a href="./student-dashboard.html" class="text-sm text-violet-300">← Student dashboard</a></nav></header>
+<main class="page max-w-5xl mx-auto px-4 py-8">
+<section id="authPanel" class="no-print panel rounded-2xl p-5 max-w-xl mx-auto"><h1 class="text-xl font-black">Sign in to view your certificate</h1><p id="authIdentity" class="text-sm mt-3">Not signed in</p><p id="authMessage" class="text-sm mt-2"></p><div class="grid md:grid-cols-2 gap-3 mt-3"><input id="authEmail" type="email" placeholder="Email address" class="field rounded-xl px-3 py-3"><input id="authPassword" type="password" placeholder="Password" class="field rounded-xl px-3 py-3"></div><div class="flex gap-2 mt-3"><button id="signInBtn" class="rounded-xl border border-white/10 px-4 py-2">Sign in</button><button id="signUpBtn" class="rounded-xl border border-white/10 px-4 py-2">Create account</button><button id="googleBtn" class="rounded-xl border border-white/10 px-4 py-2">Google</button><button id="signOutBtn" class="hidden rounded-xl border border-white/10 px-4 py-2">Sign out</button></div></section>
+<p id="message" class="text-center muted text-sm mt-5" role="status"></p>
+<section id="certificate" class="certificate-wrap hidden">
+  <article class="certificate rounded-xl p-8 md:p-16 text-center flex flex-col items-center justify-center">
+    <p class="text-sm uppercase tracking-[.35em] font-bold text-amber-800">Englishmates · Certificate of Completion</p>
+    <div class="text-5xl mt-8">✦</div>
+    <h1 class="text-4xl md:text-6xl font-serif font-bold mt-6">Certificate</h1>
+    <p class="mt-8 text-lg">This is proudly presented to</p>
+    <p id="studentName" class="text-3xl md:text-4xl font-bold text-slate-900 mt-4"></p>
+    <p class="mt-7 max-w-2xl leading-8">for successfully completing the Englishmates course</p>
+    <p id="courseName" class="text-2xl md:text-3xl font-bold text-violet-900 mt-2"></p>
+    <p id="completionLine" class="mt-5 text-slate-600"></p>
+    <div class="w-full flex justify-between items-end gap-8 mt-16 text-left">
+      <div><div class="border-t border-slate-500 w-48 pt-2 font-semibold">Englishmates</div><p class="text-xs text-slate-500 mt-1">Course provider</p></div>
+      <div class="text-right"><div id="certificateId" class="font-mono font-bold"></div><p class="text-xs text-slate-500 mt-1">Certificate ID</p></div>
+    </div>
+  </article>
+</section>
+<div id="certificateActions" class="no-print hidden text-center mt-5"><button id="printBtn" class="rounded-xl bg-violet-600 px-6 py-3 font-bold">Print / Save as PDF</button></div>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const $ = id => document.getElementById(id);
+  const courseId = new URLSearchParams(location.search).get('courseId') || '';
+  LMS.bindAuth();
+  $('printBtn').addEventListener('click', () => window.print());
+  document.addEventListener('lms-auth-changed', async event => {
+    $('certificate').classList.add('hidden'); $('certificateActions').classList.add('hidden');
+    const user = event.detail.user;
+    $('authPanel').classList.remove('hidden');
+    if (!user || !event.detail.verified) return;
+    $('message').textContent = 'Checking course completion…';
+    try {
+      const result = await LMS.api('get-certificate', { courseId });
+      const c = result.certificate;
+      $('studentName').textContent = c.studentName;
+      $('courseName').textContent = c.courseName;
+      $('certificateId').textContent = c.certificateId;
+      const date = c.issuedAt ? new Date(c.issuedAt) : new Date();
+      $('completionLine').textContent = 'Completed ' + c.completedLessons + ' lessons · Issued ' + date.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+      $('message').textContent = '';
+      $('authPanel').classList.add('hidden'); $('certificate').classList.remove('hidden'); $('certificateActions').classList.remove('hidden');
+    } catch (e) { $('message').textContent = e.message; }
+  });
+});
+</script>
+</body>
+</html>
