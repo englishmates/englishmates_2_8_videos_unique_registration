@@ -430,6 +430,7 @@
 
   <!-- ADMIN / COURSE MANAGEMENT -->
   <section id="adminArea" class="hidden py-16 px-4 lg:px-8 bg-[#02050d] border-y border-violet-500/10">
+    <div id="previewBanner" class="hidden max-w-6xl mx-auto mb-6 rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4 text-amber-100 text-sm flex flex-wrap items-center justify-between gap-3"><span><b>View-only preview.</b> You are looking at real student records. Changes are blocked here; edit them on the live site.</span><a href="./admin-lms.html" class="rounded-xl bg-white/10 px-4 py-2 font-bold">Open LMS admin (test data) →</a></div>
     <div class="max-w-7xl mx-auto">
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-5">
         <div><span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Private dashboard</span>
@@ -565,6 +566,17 @@
     };
     // IMPORTANT: use the same email address in firestore.rules.
     const ADMIN_EMAIL = "bddayma12@gmail.com"; const IS_DEPLOY_PREVIEW = /^deploy-preview-\d+--englishmates-ratangarh\.netlify\.app$/.test(location.hostname);
+    /* Preview safety: the old admin dashboard reads the REAL student records. On a deploy preview it opens in
+       view-only mode, and every Firestore write is blocked in the browser while it is open. */
+    (function(){
+      if(!IS_DEPLOY_PREVIEW||!window.firebase||!firebase.firestore)return;
+      const blocked=()=>{ if(window.EMUI)window.EMUI.toast('View-only in preview: this change was not saved.','error'); return Promise.reject(new Error('View-only preview: changes are blocked.')); };
+      const wrap=(proto,name)=>{ if(!proto||!proto[name])return; const orig=proto[name]; proto[name]=function(){ return window.__adminViewOnly?blocked():orig.apply(this,arguments); }; };
+      const F=firebase.firestore;
+      ['set','update','delete'].forEach(m=>wrap(F.DocumentReference&&F.DocumentReference.prototype,m));
+      wrap(F.CollectionReference&&F.CollectionReference.prototype,'add');
+      wrap(F.WriteBatch&&F.WriteBatch.prototype,'commit');
+    })();
     const ENGLISHMATES_FCM_VAPID_KEY = "BB49q-PCD2hDUUEK7IjxJmESlU5Fe8px5urKh-SdVjtrZt86rhw1NWTK29zBhOrWtftEE1Tdzw64pplrDVLAHtE";
     let db=null, auth=null;
     try{
@@ -987,20 +999,23 @@
       });
     }
     async function showAdmin(){
-      if(IS_DEPLOY_PREVIEW){location.href='./admin-lms.html';return;}
       $('#adminArea').classList.remove('hidden'); $('#adminArea').scrollIntoView({behavior:'smooth'});
+      if(IS_DEPLOY_PREVIEW){
+        window.__adminViewOnly=true; $('#previewBanner').classList.remove('hidden');
+        try{renderCourseManager();}catch(_){}
+        subscribeAdmin(); return;
+      }
       try{await seedDefaultCourses();renderCourseManager();}catch(err){$('#courseManagerMsg').textContent='Course controls need Firestore rules allowing owner access to the courses collection.';}
       subscribeAdmin();
     }
-    $('#adminLink').addEventListener('click',()=>{if(IS_DEPLOY_PREVIEW){location.href='./admin-lms.html';return;}auth&&auth.currentUser&&(auth.currentUser.email||'').toLowerCase()===ADMIN_EMAIL.toLowerCase()?showAdmin():openModal('#adminLoginModal');});
+    $('#adminLink').addEventListener('click',()=>{auth&&auth.currentUser&&(auth.currentUser.email||'').toLowerCase()===ADMIN_EMAIL.toLowerCase()?showAdmin():openModal('#adminLoginModal');});
     $('#adminLoginForm').addEventListener('submit',async e=>{
       e.preventDefault(); const m=$('#adminLoginMsg');
-      if(IS_DEPLOY_PREVIEW){m.textContent='Use the LMS Admin page in this preview. The existing roster dashboard is disabled here to protect live records.';m.className='text-sm text-center text-amber-300';return;}
       if(ADMIN_EMAIL.startsWith('YOUR_ADMIN_EMAIL')){m.textContent='Set your real admin email in index.html before logging in.';m.className='text-sm text-center text-amber-300';return;}
       try{
         await auth.signInWithEmailAndPassword($('#adminEmail').value.trim(),$('#adminPassword').value);
         if((auth.currentUser.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await auth.signOut();throw new Error('not-admin');}
-        closeAll(); showAdmin(); setTimeout(async()=>{ if(Notification.permission==='default') await enableNotifications(); else if(Notification.permission==='granted') await setupFCM(); },400);
+        closeAll(); showAdmin(); if(!IS_DEPLOY_PREVIEW) setTimeout(async()=>{ if(Notification.permission==='default') await enableNotifications(); else if(Notification.permission==='granted') await setupFCM(); },400);
       }catch(err){console.error('Englishmates admin login error:',err.code,err.message);m.textContent=err.message==='not-admin'?'This account is not the Englishmates owner account.':`Login failed (${err.code||'unknown'}). ${err.message||'Check Firebase Authentication.'}`;m.className='text-sm text-center text-rose-400'}
     });
     $('#logoutBtn').addEventListener('click',async()=>{if(adminUnsubscribe)adminUnsubscribe();knownStudentIds.clear();adminFirstLoad=true;$('#adminArea').classList.add('hidden');await auth.signOut()});
