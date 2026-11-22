@@ -8,9 +8,19 @@
     messagingSenderId: '501474121790',
     appId: '1:501474121790:web:5097a43a6be4e7bc07996f6'
   };
-  if (!firebase.apps.length) firebase.initializeApp(config);
-  const auth = firebase.auth();
-  const storage = firebase.storage();
+  const adminMode = !!(document.body && document.body.dataset.adminAuth === 'password');
+  const defaultApp = firebase.apps.find(item => item.name === '[DEFAULT]') || firebase.initializeApp(config);
+  if (adminMode) {
+    const previousAuth = defaultApp.auth();
+    previousAuth.onAuthStateChanged(user => {
+      if (user && String(user.email || '').toLowerCase() === 'bddayma12@gmail.com') previousAuth.signOut().catch(() => {});
+    });
+  }
+  const appName = adminMode ? 'englishmates-lms-admin' : '[DEFAULT]';
+  let app = adminMode ? (firebase.apps.find(item => item.name === appName) || firebase.initializeApp(config, appName)) : defaultApp;
+  const auth = app.auth();
+  const storage = app.storage();
+  const authReady = adminMode ? auth.setPersistence(firebase.auth.Auth.Persistence.NONE) : Promise.resolve();
   const $ = id => document.getElementById(id);
   const escape = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
@@ -97,5 +107,5 @@
       document.dispatchEvent(new CustomEvent('lms-auth-changed', { detail: { user: user || null, verified } }));
     });
   }
-  window.LMS = Object.freeze({ auth, storage, api, escape, formatMoney, youtubeId, storagePath, fileBase64, setMessage, bindAuth });
+  window.LMS = Object.freeze({ auth, storage, authReady, api, escape, formatMoney, youtubeId, storagePath, fileBase64, setMessage, bindAuth });
 }());

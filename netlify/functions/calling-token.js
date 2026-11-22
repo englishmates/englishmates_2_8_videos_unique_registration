@@ -1,11 +1,12 @@
 const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
-const { authenticatedUser, consumeLimit, httpError, ownProfile, reply, requireEligible, store } = require('../lib/calling');
+const { authenticatedUser, requireGoogleLearner, consumeLimit, httpError, ownProfile, reply, requireEligible, store } = require('../lib/calling');
 const cors = require('../lib/cors');
 
 exports.handler = async event => {
   try {
     if (event.httpMethod !== 'POST') return reply(405, { ok: false, error: 'Method not allowed.' });
     const db = store(); const user = await authenticatedUser(event);
+    requireGoogleLearner(user);
     const { sessionId } = JSON.parse(event.body || '{}');
     if (!sessionId || String(sessionId).length > 160) throw httpError(400, 'Invalid call session.');
     const profile = await ownProfile(db, user);

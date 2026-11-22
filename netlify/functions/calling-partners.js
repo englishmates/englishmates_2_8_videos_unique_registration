@@ -1,5 +1,5 @@
 const {
-  admin, COLLECTIONS, authenticatedUser, blockId, clean, consumeLimit,
+  admin, COLLECTIONS, authenticatedUser, requireGoogleLearner, blockId, clean, consumeLimit,
   httpError, iso, ownProfile, reply, requireEligible, store, audit
 } = require('../lib/calling');
 const { LEVELS, TOPICS, hasContactDetails, isOnline, matchingScore, pairId, publicPartner, timestampMs } = require('../lib/partner-community');
@@ -284,6 +284,7 @@ exports.handler = async event => {
     if (event.httpMethod === 'OPTIONS') return cors.options(event);
     const db = store();
     const user = await authenticatedUser(event);
+    requireGoogleLearner(user);
     if (event.httpMethod === 'GET') {
       const own = await ownProfile(db, user);
       requireEligible(own.data);

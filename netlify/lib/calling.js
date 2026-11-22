@@ -84,7 +84,7 @@ async function authenticatedUser(event) {
   if (!decoded.email || !decoded.email_verified) {
     throw httpError(403, 'Verify your email address before using Calling Community.');
   }
-  return { uid: decoded.uid, email: String(decoded.email).toLowerCase(), claims: decoded };
+  return { uid: decoded.uid, email: String(decoded.email).toLowerCase(), signInProvider: decoded.firebase?.sign_in_provider || '', claims: decoded };
 }
 
 async function ownProfile(db, user, required = true) {
@@ -105,7 +105,11 @@ function requireEligible(profile) {
 
 function adminAllowed(user) {
   // This is deliberately enforced in the Netlify function, not trusted to the UI.
-  return user.email === PRIMARY_ADMIN_EMAIL;
+  return user.email === PRIMARY_ADMIN_EMAIL && user.signInProvider === 'password';
+}
+
+function requireGoogleLearner(user) {
+  if (user.signInProvider !== 'google.com') throw httpError(403, 'Sign in with Google to use Calling Community.');
 }
 
 function requireAdmin(user) {
@@ -178,6 +182,7 @@ module.exports = {
   reply,
   safeAvatar,
   requireAdmin,
+  requireGoogleLearner,
   requireEligible,
   store
 };

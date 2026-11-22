@@ -54,7 +54,7 @@ async function userFromEvent(event, required = true) {
 async function requireAdmin(event) {
   const user = await userFromEvent(event);
   const allowed = String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase();
-  if (String(user.email || '').toLowerCase() !== allowed) throw fail(403, 'Admin access is required.');
+  if (String(user.email || '').toLowerCase() !== allowed || user.firebase?.sign_in_provider !== 'password') throw fail(403, 'Sign in with the authorized admin email and password for admin access.');
   return user;
 }
 
@@ -634,7 +634,7 @@ async function handle(event) {
       const user = await userFromEvent(event);
       const courseId = clean(body.courseId, 120);
       if (!courseId) throw fail(400, 'Choose a course.');
-      const isAdmin = String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase();
+      const isAdmin = String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase() && user.firebase?.sign_in_provider === 'password';
       const activeEnrollment = isAdmin ? null : await hasActiveEnrollment(user.uid, courseId);
       const hasAccess = isAdmin || Boolean(activeEnrollment);
       const course = await findCourse(courseId);
@@ -661,7 +661,7 @@ async function handle(event) {
       const moduleId = clean(body.moduleId, 120);
       const lessonId = clean(body.lessonId, 120);
       if (!courseId || !moduleId || !lessonId) throw fail(400, 'Choose a course lesson.');
-      const isAdmin = String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase();
+      const isAdmin = String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase() && user.firebase?.sign_in_provider === 'password';
       const lessonSnap = await col('lmsCourseContent').doc(courseId).collection('modules').doc(moduleId).collection('lessons').doc(lessonId).get();
       if (!lessonSnap.exists || lessonSnap.data().published === false) throw fail(404, 'Published lesson not found.');
       const lesson = lessonSnap.data();
@@ -941,7 +941,7 @@ async function handle(event) {
       const user = await userFromEvent(event);
       const courseId = clean(body.courseId, 120);
       if (!courseId) throw fail(400, 'Choose a course.');
-      const isAdmin = String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase();
+      const isAdmin = String(user.email).toLowerCase() === String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase() && user.firebase?.sign_in_provider === 'password';
       if (!isAdmin && !await hasActiveEnrollment(user.uid, courseId)) throw fail(403, 'Enroll in this course to open its practice files.');
       const found = await col('lmsCourses').doc(courseId).get();
       const materials = found.exists ? (found.data().materials || {}) : {};

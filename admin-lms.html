@@ -11,7 +11,7 @@
 <script src="assets/site-config.js"></script><script src="assets/lms.js" defer></script>
 <style>body{background:#070b17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.panel{background:#10192b;border:1px solid #26344e}.field{background:#080f1e;border:1px solid #334155;color:#fff}.muted{color:#9aa9c0}.btn{background:linear-gradient(135deg,#2563eb,#7c3aed)}.hidden{display:none!important}input,textarea,select{width:100%}.dz.over{background:rgba(139,92,246,.2)}</style>
 </head>
-<body>
+<body data-admin-auth="password">
 <header class="border-b border-white/10 bg-slate-950/80"><nav class="max-w-7xl mx-auto px-4 py-5 flex justify-between"><a href="./" class="font-black text-xl">ENGLISHMATES</a><a href="./courses.html" class="text-sm text-violet-300">View course marketplace</a></nav></header>
 <main class="max-w-7xl mx-auto px-4 py-8 md:py-12">
 <div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Restricted administration</p><h1 class="text-3xl md:text-4xl font-black mt-2">LMS course and enrollment manager</h1><p class="muted mt-3">Manage courses, protected video lessons, enrollments and manual payment reviews.</p></div>
@@ -435,9 +435,9 @@ document.addEventListener('DOMContentLoaded', function () {
   $('loginForm').addEventListener('submit', async event => {
     event.preventDefault();
     const doneLogin = EMUI.busy(event.currentTarget.querySelector('button'), 'Signing in…');
-    try { await LMS.auth.signInWithEmailAndPassword($('adminEmail').value.trim(), $('adminPassword').value); }
+    try { await LMS.authReady; await LMS.auth.signInWithEmailAndPassword($('adminEmail').value.trim(), $('adminPassword').value); }
     catch (e) { $('loginMessage').textContent = e.message; }
-    finally { doneLogin(); }
+    finally { $('adminPassword').value = ''; doneLogin(); }
   });
   $('logout').addEventListener('click', () => LMS.auth.signOut());
   LMS.auth.onAuthStateChanged(async user => {

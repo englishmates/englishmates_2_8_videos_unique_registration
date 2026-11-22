@@ -27,7 +27,7 @@ async function adminUser(event){
     const h=event.headers||{},token=String(h.authorization||h.Authorization||'').replace(/^Bearer\s+/i,'');
  if(!token)throw Object.assign(new Error('Admin sign-in required.'),{status:401});
  const user=await admin.auth().verifyIdToken(token);
- if(!user.email_verified||String(user.email||'').toLowerCase()!==ADMIN_EMAIL)throw Object.assign(new Error('Not authorized.'),{status:403});
+ if(!user.email_verified||String(user.email||'').toLowerCase()!==ADMIN_EMAIL||user.firebase?.sign_in_provider!=='password')throw Object.assign(new Error('Sign in with the authorized admin email and password.'),{status:403});
  return user;
 }
 function serialize(doc){const d=doc.data();return {id:doc.id,...d,createdAt:d.createdAt?.toDate?.().toISOString()||null,updatedAt:d.updatedAt?.toDate?.().toISOString()||null,approvedAt:d.approvedAt?.toDate?.().toISOString()||null,reviewedAt:d.reviewedAt?.toDate?.().toISOString()||null,deactivatedAt:d.deactivatedAt?.toDate?.().toISOString()||null};}
