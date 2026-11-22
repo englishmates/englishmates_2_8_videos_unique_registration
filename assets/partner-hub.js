@@ -7,6 +7,7 @@
   function setMessage(text, error = false) {
     $('hubMessage').textContent = text || '';
     $('hubMessage').className = 'text-sm mt-4 ' + (error ? 'text-rose-300' : 'text-emerald-300');
+    if (text && window.EMUI) window.EMUI.toast(text, error ? 'error' : 'ok');
   }
   function make(tag, className, text) {
     const item = document.createElement(tag);
@@ -267,7 +268,7 @@
     await user.reload().catch(() => {});
     if (!user.emailVerified) return;
     await syncProfile();
-    if (approved) hubTimer = setInterval(loadHub, 60000);
+    if (approved) hubTimer = setInterval(() => { if (!document.hidden) loadHub(); }, 20000);
     else profileTimer = setInterval(syncProfile, 60000);
   });
 })();

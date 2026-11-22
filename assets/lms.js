@@ -16,8 +16,8 @@
       if (user && String(user.email || '').toLowerCase() === 'bddayma12@gmail.com') previousAuth.signOut().catch(() => {});
     });
   }
-  const appName = adminMode ? 'englishmates-lms-admin' : '[DEFAULT]';
-  let app = adminMode ? (firebase.apps.find(item => item.name === appName) || firebase.initializeApp(config, appName)) : defaultApp;
+  const adminAppName = 'englishmates-lms-admin';
+  const app = adminMode ? (firebase.apps.find(item => item.name === adminAppName) || firebase.initializeApp(config, adminAppName)) : defaultApp;
   const auth = app.auth();
   const storage = app.storage();
   const authReady = adminMode ? auth.setPersistence(firebase.auth.Auth.Persistence.NONE).then(() => auth.signOut()) : Promise.resolve();
@@ -69,13 +69,18 @@
     const signUp = $('signUpBtn');
     const google = $('googleBtn');
     const signOut = $('signOutBtn');
+    const busy = (btn, label) => (window.EMUI ? window.EMUI.busy(btn, label) : () => {});
     if (signIn) signIn.addEventListener('click', async () => {
+      const done = busy(signIn, 'Signing in…');
+      setMessage('authMessage', 'Signing you in…', false);
       try {
         await auth.signInWithEmailAndPassword($('authEmail').value.trim(), $('authPassword').value);
         setMessage('authMessage', 'Signed in. Checking your account…', false);
       } catch (e) { setMessage('authMessage', e.message, true); }
+      finally { done(); }
     });
     if (signUp) signUp.addEventListener('click', async () => {
+      const done = busy(signUp, 'Creating account…');
       try {
         const email = $('authEmail').value.trim();
         const password = $('authPassword').value;
@@ -84,14 +89,18 @@
         await result.user.sendEmailVerification({ url: Englishmates.page('student-dashboard.html'), handleCodeInApp: false });
         setMessage('authMessage', 'Account created. Verify the link sent to your email, then return here.', false);
       } catch (e) { setMessage('authMessage', e.message, true); }
+      finally { done(); }
     });
     if (google) google.addEventListener('click', async () => {
+      const done = busy(google, 'Opening Google…');
+      setMessage('authMessage', 'Opening Google sign-in…', false);
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
         await auth.signInWithPopup(provider);
-        setMessage('authMessage', 'Signed in with Google.', false);
+        setMessage('authMessage', 'Signed in with Google. Checking your account…', false);
       } catch (e) { setMessage('authMessage', e.message, true); }
+      finally { done(); }
     });
     if (signOut) signOut.addEventListener('click', async () => {
       await auth.signOut();

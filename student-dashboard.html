@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Student Dashboard | Englishmates</title>
-<script src="./ui-feedback.js"></script>
+<script src="assets/ui-feedback.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -34,7 +34,7 @@
       </form>
     </div>
     <div class="flex flex-wrap items-end justify-between gap-3 mt-8"><div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">My learning</p><h2 class="text-2xl font-black mt-2">My courses</h2></div><button id="refreshBtn" class="rounded-xl border border-white/10 px-4 py-2 text-sm">Refresh</button></div>
-    <div id="enrollments" class="grid lg:grid-cols-2 gap-5 mt-4"></div>
+    <div id="enrollments" class="grid lg:grid-cols-2 gap-5 mt-4"><div class="em-skeleton"></div><div class="em-skeleton"></div></div>
     <section class="grid lg:grid-cols-3 gap-5 mt-7"><div class="panel rounded-2xl p-5"><div class="flex justify-between items-center gap-3"><h2 class="text-xl font-black">Notifications</h2><button id="markNotificationsRead" class="text-xs text-violet-300 underline">Mark all read</button></div><div id="notifications" class="space-y-3 mt-4"></div></div><div class="panel rounded-2xl p-5"><h2 class="text-xl font-black">My payments</h2><div id="payments" class="space-y-3 mt-4"></div></div><div class="panel rounded-2xl p-5"><h2 class="text-xl font-black">Help &amp; support</h2><p class="muted text-sm mt-2">Need help with enrollment or a lesson?</p><a class="inline-flex btn rounded-xl px-4 py-3 font-bold mt-4" href="https://wa.me/919351031200?text=I%20need%20help%20with%20my%20Englishmates%20course" target="_blank" rel="noopener">Chat with Englishmates</a></div></section>
   </section>
   <p id="pageMessage" class="text-sm mt-5" role="status"></p>
@@ -114,17 +114,23 @@ document.addEventListener('DOMContentLoaded', function () {
   $('saveProfileBtn').addEventListener('click', async () => { const user = LMS.auth.currentUser; if (!user || !user.emailVerified) { LMS.setMessage('authMessage', 'Sign in and verify your email first.', true); return; } const f = $('enrollForm').elements; try { const result = await LMS.api('save-profile', { profile: { name: f.name.value, phone: f.phone.value, qualification: f.qualification.value, city: f.city.value, state: f.state.value } }); $('studentId').textContent = 'Student ID: ' + result.profile.studentId; LMS.setMessage('profileMessage', 'Profile saved.', false); } catch (e) { LMS.setMessage('profileMessage', e.message, true); } });
   $('enrollForm').addEventListener('submit', async event => {
     event.preventDefault();
-    const form = event.currentTarget;
-    const user = LMS.auth.currentUser;
-    if (!user) { LMS.setMessage('authMessage', 'Sign in or create an account first.', true); return; }
-    await user.reload();
-    if (!user.emailVerified) { LMS.setMessage('authMessage', 'Verify your email before enrolling.', true); return; }
+    // Keep the form and button now: event.currentTarget becomes null after the first await.
+    const form = event.currentTarget || $('enrollForm');
+    const button = event.submitter || form.querySelector('button:not([type="button"])');
+    const done = window.EMUI ? window.EMUI.busy(button, 'Enrolling…') : () => {};
     try {
+      const user = LMS.auth.currentUser;
+      if (!user) { LMS.setMessage('authMessage', 'Sign in or create an account first.', true); return; }
+      await user.reload();
+      if (!user.emailVerified) { LMS.setMessage('authMessage', 'Verify your email before enrolling.', true); return; }
+      LMS.setMessage('profileMessage', 'Enrolling you in the course…', false);
       const data = Object.fromEntries(new FormData(form).entries());
       const result = await LMS.api('enroll', data);
       LMS.setMessage('profileMessage', result.existing ? 'This course is already on your account.' : 'Enrollment saved.', false);
+      if (window.EMUI) window.EMUI.toast(result.existing ? 'Already enrolled in this course' : 'Enrollment saved ✓');
       await refreshEnrollments();
-    } catch (e) { LMS.setMessage('profileMessage', e.message, true); }
+    } catch (e) { LMS.setMessage('profileMessage', e.message, true); if (window.EMUI) window.EMUI.toast(e.message, 'error'); }
+    finally { done(); }
   });
   $('refreshBtn').addEventListener('click', () => refreshEnrollments().catch(e => $('pageMessage').textContent = e.message));
   $('markNotificationsRead').addEventListener('click', async () => { try { await LMS.api('mark-notifications-read'); await refreshEnrollments(); } catch (e) { $('pageMessage').textContent = e.message; } });

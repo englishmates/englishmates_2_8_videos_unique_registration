@@ -5,13 +5,14 @@
   const $ = id => document.getElementById(id);
   let auth, state = null, poll = null, agoraClient = null, microphone = null, remoteAudioTrack = null, muted = false, callPaused = false, joinedSessionId = null, lastChatKey = '', avatarPreviewUrl = null;
 
-  function message(id, text, error = false) { const node = $(id); node.textContent = text || ''; node.className = `text-sm mt-3 ${error ? 'text-rose-300' : 'text-emerald-300'}`; }
+  function message(id, text, error = false) { const node = $(id); node.textContent = text || ''; node.className = `text-sm mt-3 ${error ? 'text-rose-300' : 'text-emerald-300'}`; if (text && window.EMUI && ['matchingMessage', 'profileMessage'].includes(id)) window.EMUI.toast(text, error ? 'error' : 'ok'); }
   function friendly(error) { const code = error?.code || ''; const map = { 'auth/email-already-in-use': 'This email already has an account. Please sign in.', 'auth/invalid-email': 'Enter a valid email address.', 'auth/weak-password': 'Choose a password with at least 6 characters.', 'auth/invalid-credential': 'The email or password is incorrect.', 'auth/unauthorized-domain': 'This website domain is not authorized in Firebase Authentication.', 'auth/popup-closed-by-user': 'Google sign-in was cancelled.' }; return map[code] || error?.message || 'Something went wrong. Please try again.'; }
   function show(id, visible) { $(id).classList.toggle('hidden', !visible); }
+  function setAuthMode(register) { show('registerForm', register); show('loginForm', !register); $('registerTab').className = register ? 'btn primary flex-1' : 'btn flex-1 text-slate-300'; $('loginTab').className = register ? 'btn flex-1 text-slate-300' : 'btn primary flex-1'; message('authMessage', ''); }
   async function token() { return auth.currentUser.getIdToken(); }
   async function api(method, body) { const response = await fetch(Englishmates.api('calling-community'), { method, headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }); let data = {}; try { data = await response.json(); } catch (_) {} if (!response.ok || !data.ok) { const error = new Error(data.error || 'Request failed.'); error.status = response.status; throw error; } return data; }
   function isCommunityUser(user) { return !!(user && Array.isArray(user.providerData) && user.providerData.some(provider => ['google.com', 'password'].includes(provider.providerId))); }
-  function setViews(user) { const supported = isCommunityUser(user); show('signedOut', !supported); show('verifyEmail', supported && !user.emailVerified); show('communityApp', supported && !!user.emailVerified); if (user && !supported) message('authMessage', 'Use Google or email and password to access Calling Community.', true); if (user && supported && !user.emailVerified) message('verifyMessage', 'Verify the email link before continuing.', false); }
+  function setViews(user) { const supported = isCommunityUser(user); show('signedOut', !supported); show('verifyEmail', supported && !user.emailVerified); show('communityApp', supported && !!user.emailVerified); if (user && !supported) message('authMessage', 'Use Google or email and password to sign in.', true); }
   function checkedInterests() { return [...document.querySelectorAll('#interests input:checked')].map(input => input.value); }
   async function compressAvatar() {
     const file = $('avatarInput').files[0];
@@ -30,10 +31,12 @@
     if (!blob || blob.size > 20000) throw new Error('That picture is too detailed. Choose a smaller or simpler image.');
     return await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error('The picture could not be prepared.')); reader.readAsDataURL(blob); });
   }
-  function statusCopy(status) { return { pending: 'Your profile is activating automatically. Refresh in a moment.', approved: 'Your profile is active. You can start matching with a partner.', rejected: 'Community access is blocked. Contact Englishmates if you need help.', suspended: 'Community access is suspended. Please contact Englishmates if you need help.' }[status] || 'Complete your profile to start matching.'; }
+  function statusCopy(status) { return { pending: 'Your profile is activating automatically. Refresh in a moment.', approved: 'Your profile is active. You can safely enter the partner-matching queue.', rejected: 'Community access is blocked. Contact Englishmates if you need help.', suspended: 'Community access is suspended. Please contact Englishmates if you need help.' }[status] || 'Complete your profile to start matching.'; }
+  let profileDirty = false, wasQueued = false, queueExpiresAt = 0, queueTicker = null;
   function renderProfile(profile) {
     const status = profile?.status || 'new'; show('statusBox', true); $('statusBox').textContent = statusCopy(status); $('statusBox').className = `rounded-2xl p-4 mt-6 text-sm ${status === 'approved' ? 'bg-emerald-500/10 text-emerald-100' : status === 'suspended' || status === 'rejected' ? 'bg-rose-500/10 text-rose-100' : 'bg-amber-500/10 text-amber-100'}`;
     show('matchingPanel', status === 'approved'); if (!profile) return;
+    if (profileDirty) return; // the learner is editing: a background refresh must not reset their choices
     const fields = { fullName: 'fullName', alias: 'alias', age: 'age', city: 'city', state: 'state', level: 'level', preferredLanguage: 'language', locationPreference: 'locationPreference', goals: 'goals', intro: 'intro' };
     Object.entries(fields).forEach(([key, id]) => { if (profile[key] !== undefined) $(id).value = profile[key] || ''; });
     document.querySelectorAll('#interests input').forEach(input => { input.checked = (profile.interests || []).includes(input.value); }); $('adultConfirm').checked = true; $('saveProfile').textContent = status === 'approved' ? 'Update profile' : 'Save profile'; if (profile.avatarURL) { $('avatarPreview').src = profile.avatarURL; show('avatarPreviewWrap', true); }
@@ -86,7 +89,18 @@
     $('joinQueue').classList.toggle('opacity-60', !!queue || !!session);
     $('joinQueue').textContent = queue ? 'Searching…' : 'Find a partner';
     show('queueStatus', !!queue);
-    if (queue) $('queueStatus').textContent = 'You are in the matching queue. This request expires in five minutes; keep this page open.';
+    clearInterval(queueTicker);
+    if (queue) {
+      wasQueued = true; queueExpiresAt = Date.parse(queue.expiresAt) || (Date.now() + 300000);
+      const tick = () => {
+        const left = Math.min(300, Math.max(0, Math.round((queueExpiresAt - Date.now()) / 1000)));
+        $('queueStatus').innerHTML = '<span class="em-spinner"></span> Looking for a partner who is online right now… <b>' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') + '</b> left. Keep this page open — you will see the invitation here.';
+      };
+      tick(); queueTicker = setInterval(tick, 1000);
+    } else if (wasQueued) {
+      wasQueued = false;
+      if (!session) message('matchingMessage', 'No compatible learner was online this time. Try again in a minute, or invite one of your connections.', true);
+    }
     show('callCard', !!session);
     show('feedbackCard', !!data.recentSession);
     if (!session) {
@@ -97,7 +111,10 @@
     }
     const partner = session.partner || {};
     const alias = partner.alias || 'Practice partner';
-    $('partnerDetails').textContent = alias;
+    const details = $('partnerDetails'); details.replaceChildren();
+    const nameLine = document.createElement('span'); nameLine.textContent = alias + (partner.level ? ' · ' + partner.level : ''); details.appendChild(nameLine);
+    const extra = [partner.introduction, (partner.interests || []).join(', ')].filter(Boolean).join(' — ');
+    if (extra) { const line = document.createElement('span'); line.className = 'block text-xs font-normal text-slate-300 mt-1'; line.textContent = extra; details.appendChild(line); }
     setAvatar('partnerAvatar', alias, partner.avatarURL);
     setAvatar('callAvatar', alias, partner.avatarURL);
     $('callPartnerName').textContent = alias;
@@ -110,12 +127,14 @@
     if (active) { syncCallControls(session); renderMessages(session); }
   }
   async function refreshDashboard() {
-    if (!isCommunityUser(auth?.currentUser) || !auth.currentUser.emailVerified) return;
+    if (!auth?.currentUser?.emailVerified) return;
     try { state = await api('GET'); renderProfile(state.profile); if (state.profile?.status === 'approved') renderMatching(state); }
     catch (error) { if (error.status === 404) { state = { profile: null }; renderProfile(null); return; } message('profileMessage', error.message, true); }
   }
-  async function pollDashboard() { await refreshDashboard(); poll = setTimeout(pollDashboard, state?.session || state?.queue ? 6000 : 30000); }
+  async function pollDashboard() { if (!document.hidden) await refreshDashboard(); poll = setTimeout(pollDashboard, state?.session || state?.queue ? 4000 : 15000); }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && auth?.currentUser?.emailVerified) { clearTimeout(poll); pollDashboard(); } });
   function startPolling() { clearTimeout(poll); pollDashboard(); }
+  async function sendVerification(user) { await user.sendEmailVerification({ url: `${location.origin}/community-profile.html`, handleCodeInApp: false }); }
   async function signOut() { try { if (state?.session) await api('POST', { action: 'end-call' }); else if (state?.queue) await api('POST', { action: 'leave-queue' }); } catch (_) {} await leaveAudio(); clearTimeout(poll); await auth.signOut(); }
   async function action(actionName, extra = {}) { const result = await api('POST', { action: actionName, ...extra }); if (actionName !== 'pause-call') message('matchingMessage', result.message); await refreshDashboard(); return result; }
   async function loadAgora() { if (window.AgoraRTC) return window.AgoraRTC; await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = 'https://download.agora.io/sdk/release/AgoraRTC_N-4.23.2.js'; script.onload = resolve; script.onerror = () => reject(new Error('The audio service could not load.')); document.head.appendChild(script); }); return window.AgoraRTC; }
@@ -170,13 +189,17 @@
 
   async function initialise() {
     try { if (!firebase.apps.length) firebase.initializeApp(config); auth = firebase.auth(); } catch (error) { message('authMessage', 'Firebase could not start. Please check the site configuration.', true); return; }
+    $('registerTab').addEventListener('click', () => setAuthMode(true)); $('loginTab').addEventListener('click', () => setAuthMode(false));
+    $('registerForm').addEventListener('submit', async event => { event.preventDefault(); try { const result = await auth.createUserWithEmailAndPassword($('registerEmail').value.trim(), $('registerPassword').value); await result.user.updateProfile({ displayName: $('registerName').value.trim() }); await sendVerification(result.user); message('authMessage', 'Account created. Check your inbox for the verification link.'); } catch (error) { message('authMessage', friendly(error), true); } });
+    $('loginForm').addEventListener('submit', async event => { event.preventDefault(); try { await auth.signInWithEmailAndPassword($('loginEmail').value.trim(), $('loginPassword').value); } catch (error) { message('authMessage', friendly(error), true); } });
     $('googleSignIn').addEventListener('click', async () => { try { const provider = new firebase.auth.GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' }); await auth.signInWithPopup(provider); } catch (error) { message('authMessage', friendly(error), true); } });
-    $('emailSignInForm').addEventListener('submit', async event => { event.preventDefault(); const button = $('emailSignIn'); button.disabled = true; try { await auth.signInWithEmailAndPassword($('emailAuthEmail').value.trim(), $('emailAuthPassword').value); message('authMessage', 'Signed in. Checking your email verification…'); } catch (error) { message('authMessage', friendly(error), true); } finally { button.disabled = false; } });
-    $('emailSignUp').addEventListener('click', async () => { const email = $('emailAuthEmail').value.trim(), password = $('emailAuthPassword').value; if (!email) return message('authMessage', 'Enter your email address first.', true); if (password.length < 8) return message('authMessage', 'Choose a password with at least 8 characters.', true); const button = $('emailSignUp'); button.disabled = true; try { const credential = await auth.createUserWithEmailAndPassword(email, password); await credential.user.sendEmailVerification({ url: Englishmates.page('community-profile.html'), handleCodeInApp: false }); message('verifyMessage', 'Verification email sent. Open its link, then return here.'); } catch (error) { message(auth.currentUser && !auth.currentUser.emailVerified ? 'verifyMessage' : 'authMessage', friendly(error), true); } finally { button.disabled = false; } });
-    $('refreshEmailVerification').addEventListener('click', async () => { const user = auth.currentUser; if (!user) return; try { await user.reload(); const updated = auth.currentUser; setViews(updated); if (updated.emailVerified) { message('profileMessage', 'Email verified. Complete or update your learner profile below.'); await refreshDashboard(); startPolling(); } else message('verifyMessage', 'The email is not verified yet. Open the link in your inbox, then try again.', true); } catch (error) { message('verifyMessage', friendly(error), true); } });
-    $('resendVerification').addEventListener('click', async () => { try { if (!auth.currentUser) throw new Error('Sign in again to request a verification link.'); await auth.currentUser.sendEmailVerification({ url: Englishmates.page('community-profile.html'), handleCodeInApp: false }); message('verifyMessage', 'A new verification email has been sent.'); } catch (error) { message('verifyMessage', friendly(error), true); } });
-        $('avatarInput').addEventListener('change', () => { const file = $('avatarInput').files[0]; if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); if (!file) return; avatarPreviewUrl = URL.createObjectURL(file); $('avatarPreview').src = avatarPreviewUrl; show('avatarPreviewWrap', true); });
-    $('profileForm').addEventListener('submit', async event => { event.preventDefault(); if (!$('adultConfirm').checked) return message('profileMessage', 'You must confirm that you are 18 or older and in India.', true); try { const profile = { fullName: $('fullName').value, alias: $('alias').value, age: $('age').value, city: $('city').value, state: $('state').value, level: $('level').value, preferredLanguage: $('language').value, locationPreference: $('locationPreference').value, interests: checkedInterests(), goals: $('goals').value, intro: $('intro').value }; const avatarDataUrl = await compressAvatar(); if (avatarDataUrl) profile.avatarDataUrl = avatarDataUrl; const result = await api('POST', { action: state?.profile ? 'update-profile' : 'register-profile', profile }); message('profileMessage', result.message); await refreshDashboard(); } catch (error) { message('profileMessage', error.message, true); } });
+    $('resetPassword').addEventListener('click', async () => { try { const email = $('loginEmail').value.trim(); if (!email) throw new Error('Enter your email address first.'); await auth.sendPasswordResetEmail(email); message('authMessage', 'Password reset email sent.'); } catch (error) { message('authMessage', friendly(error), true); } });
+    $('resendVerification').addEventListener('click', async () => { try { await sendVerification(auth.currentUser); message('verifyMessage', 'A new verification email was sent.'); } catch (error) { message('verifyMessage', friendly(error), true); } });
+    $('refreshVerification').addEventListener('click', async () => { try { await auth.currentUser.reload(); if (auth.currentUser.emailVerified) { setViews(auth.currentUser); await refreshDashboard(); } else message('verifyMessage', 'We cannot see verification yet. Open the link in your email, then try again.', true); } catch (error) { message('verifyMessage', friendly(error), true); } });
+    document.querySelectorAll('.signOut').forEach(button => button.addEventListener('click', signOut));
+    $('avatarInput').addEventListener('change', () => { const file = $('avatarInput').files[0]; if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); if (!file) return; avatarPreviewUrl = URL.createObjectURL(file); $('avatarPreview').src = avatarPreviewUrl; show('avatarPreviewWrap', true); });
+    ['input', 'change'].forEach(type => $('profileForm').addEventListener(type, () => { profileDirty = true; }));
+    $('profileForm').addEventListener('submit', async event => { event.preventDefault(); if (!$('adultConfirm').checked) return message('profileMessage', 'You must confirm that you are 18 or older and in India.', true); try { const profile = { fullName: $('fullName').value, alias: $('alias').value, age: $('age').value, city: $('city').value, state: $('state').value, level: $('level').value, preferredLanguage: $('language').value, locationPreference: $('locationPreference').value, interests: checkedInterests(), goals: $('goals').value, intro: $('intro').value }; const avatarDataUrl = await compressAvatar(); if (avatarDataUrl) profile.avatarDataUrl = avatarDataUrl; const result = await api('POST', { action: state?.profile ? 'update-profile' : 'register-profile', profile }); message('profileMessage', result.message); profileDirty = false; if (window.EMUI) window.EMUI.toast('Profile saved ✓'); await refreshDashboard(); } catch (error) { message('profileMessage', error.message, true); } });
     $('joinQueue').addEventListener('click', () => action('join-queue').catch(error => message('matchingMessage', error.message, true)));
     $('leaveQueue').addEventListener('click', () => action('leave-queue').catch(error => message('matchingMessage', error.message, true)));
     $('acceptCall').addEventListener('click', () => action('accept-call').catch(error => message('matchingMessage', error.message, true)));
@@ -189,7 +212,7 @@
     $('blockPartner').addEventListener('click', async () => { if (confirm('Block this learner and end the call?')) { await leaveAudio(); action('block-current-partner').catch(error => message('matchingMessage', error.message, true)); } });
     $('reportPartner').addEventListener('click', () => action('report-current-partner', { reason: $('reportReason').value, details: $('reportDetails').value }).catch(error => message('matchingMessage', error.message, true)));
     $('sendFeedback').addEventListener('click', () => action('submit-feedback', { rating: $('feedbackRating').value, note: $('feedbackNote').value }).catch(error => message('matchingMessage', error.message, true)));
-    auth.onAuthStateChanged(async user => { if (user) await user.reload(); setViews(user); if (!user || !isCommunityUser(user)) return; $('identity').textContent = 'Verified learner'; if ((user.email || '').toLowerCase() === ADMIN_EMAIL) show('adminLink', true); if (user.emailVerified) { await refreshDashboard(); startPolling(); } });
+    auth.onAuthStateChanged(async user => { if (user) await user.reload(); if (user && !isCommunityUser(user)) { await auth.signOut(); setViews(null); message('authMessage', 'Use Google or email and password to sign in.', true); return; } setViews(user); if (!user) return; $('identity').textContent = user.emailVerified ? 'Verified Englishmates learner' : 'Email verification required'; if ((user.email || '').toLowerCase() === ADMIN_EMAIL) show('adminLink', true); if (user.emailVerified) { await refreshDashboard(); startPolling(); } });
   }
   initialise();
 })();

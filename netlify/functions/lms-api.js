@@ -54,7 +54,7 @@ async function userFromEvent(event, required = true) {
 async function requireAdmin(event) {
   const user = await userFromEvent(event);
   const allowed = String(process.env.LMS_ADMIN_EMAIL || 'bddayma12@gmail.com').toLowerCase();
-  if (String(user.email || '').toLowerCase() !== allowed || user.firebase?.sign_in_provider !== 'password') throw fail(403, 'Sign in with the authorized admin email and password for admin access.');
+  if (String(user.email || '').toLowerCase() !== allowed || user.firebase?.sign_in_provider !== 'password') throw fail(403, 'Sign in with the authorized admin email and password.');
   return user;
 }
 

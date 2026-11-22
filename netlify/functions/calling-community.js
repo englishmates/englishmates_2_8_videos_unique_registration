@@ -1,10 +1,10 @@
 const {
-  admin, COLLECTIONS, asArray, areBlocked, audit, authenticatedUser, requireCommunityLearner, clean,
+  admin, COLLECTIONS, asArray, areBlocked, audit, authenticatedUser, clean, requireCommunityLearner,
   blockId, consumeLimit, httpError, iso, ownProfile, publicProfile, reply, safeAvatar,
   requireEligible, store
 } = require('../lib/calling');
 const cors = require('../lib/cors');
-const { pairId } = require('../lib/partner-community');
+const { pairId, isOnline, publicPartner } = require('../lib/partner-community');
 
 const LEVELS = ['Beginner', 'Elementary', 'Intermediate', 'Upper Intermediate', 'Advanced'];
 const TOPICS = ['Daily conversation', 'Interview', 'Public speaking', 'Grammar', 'Vocabulary', 'Travel', 'Personality development'];
@@ -112,31 +112,51 @@ async function closeSession(db, sessionRef, reason, actor) {
 }
 
 function matchingScore(one, two) {
-  const shared = one.interests.filter(topic => two.interests.includes(topic));
-  if (!shared.length || Math.abs(LEVELS.indexOf(one.level) - LEVELS.indexOf(two.level)) > 1) return -1;
+  // Level must be within one step. Shared interests are NOT required (they only raise the score),
+  // otherwise two learners with different topics could wait forever.
+  if (Math.abs(LEVELS.indexOf(one.level) - LEVELS.indexOf(two.level)) > 1) return -1;
+  const shared = (one.interests || []).filter(topic => (two.interests || []).includes(topic));
   let score = shared.length * 10;
   if (one.preferredLanguage === two.preferredLanguage) score += 3;
-  if (one.locationPreference === 'Same city preferred' && one.city.toLowerCase() === two.city.toLowerCase()) score += 4;
-  else if (one.locationPreference !== 'Anywhere in India' && one.state.toLowerCase() === two.state.toLowerCase()) score += 2;
+  if (one.locationPreference === 'Same city preferred' && String(one.city).toLowerCase() === String(two.city).toLowerCase()) score += 4;
+  else if (one.locationPreference !== 'Anywhere in India' && String(one.state).toLowerCase() === String(two.state).toLowerCase()) score += 2;
   return score;
 }
 
+function eligiblePeer(data) {
+  return data && data.status === 'approved' && data.countryStatus === 'approved' && data.moderationStatus !== 'suspended'
+    && data.availableForRequests !== false && !data.activeSessionId;
+}
+
+// Finds a partner for a learner who pressed "Find a partner".
+// 1) Learners who are also searching come first. 2) Otherwise any approved learner who is online right now
+//    (page open, heartbeat within 5 minutes, not set offline) gets an invitation with this learner's profile.
 async function findMatch(db, user) {
   const own = await ownProfile(db, user);
   requireEligible(own.data);
-  const waiting = await db.collection(COLLECTIONS.queues).where('status', '==', 'waiting').limit(60).get();
   const candidates = [];
-  for (const queue of waiting.docs) {
-    if (queue.id === user.uid || timestampMs(queue.data().expiresAt) <= now()) continue;
-    const candidateProfile = await db.collection(COLLECTIONS.profiles).doc(queue.id).get();
-    if (!candidateProfile.exists) continue;
-    const data = candidateProfile.data();
-    if (data.status !== 'approved' || data.countryStatus !== 'approved' || data.moderationStatus === 'suspended' || data.availableForRequests === false || data.activeSessionId) continue;
-    const score = matchingScore(own.data, data);
-    if (score >= 0 && !(await areBlocked(db, user.uid, queue.id))) candidates.push({ uid: queue.id, score });
+  const seen = new Set([user.uid]);
+
+  const waiting = await db.collection(COLLECTIONS.queues).where('status', '==', 'waiting').limit(40).get();
+  const queued = waiting.docs.filter(q => q.id !== user.uid && timestampMs(q.data().expiresAt) > now());
+  if (queued.length) {
+    const profiles = await db.getAll(...queued.map(q => db.collection(COLLECTIONS.profiles).doc(q.id)));
+    for (const snap of profiles) {
+      if (!snap.exists || !eligiblePeer(snap.data())) continue;
+      const score = matchingScore(own.data, snap.data());
+      if (score >= 0 && !(await areBlocked(db, user.uid, snap.id))) { candidates.push({ uid: snap.id, score: score + 1000, viaQueue: true }); seen.add(snap.id); }
+    }
   }
+
+  const online = await db.collection(COLLECTIONS.profiles).where('availability', '==', 'available').limit(60).get();
+  for (const snap of online.docs) {
+    if (seen.has(snap.id) || !eligiblePeer(snap.data()) || !isOnline(snap.data())) continue;
+    const score = matchingScore(own.data, snap.data());
+    if (score >= 0 && !(await areBlocked(db, user.uid, snap.id))) { candidates.push({ uid: snap.id, score, viaQueue: false }); seen.add(snap.id); }
+  }
+
   candidates.sort((a, b) => b.score - a.score);
-  for (const candidate of candidates) {
+  for (const candidate of candidates.slice(0, 8)) {
     const result = await db.runTransaction(async tx => {
       const ownRef = db.collection(COLLECTIONS.profiles).doc(user.uid);
       const otherRef = db.collection(COLLECTIONS.profiles).doc(candidate.uid);
@@ -148,16 +168,17 @@ async function findMatch(db, user) {
       const connectionRef = db.collection(COLLECTIONS.connections).doc(pair);
       const requestRef = db.collection(COLLECTIONS.partnerRequests).doc(pair);
       const [ownSnap, otherSnap, ownQueue, otherQueue, ownBlock, otherBlock, connection, request] = await Promise.all([tx.get(ownRef), tx.get(otherRef), tx.get(ownQueueRef), tx.get(otherQueueRef), tx.get(ownBlockRef), tx.get(otherBlockRef), tx.get(connectionRef), tx.get(requestRef)]);
-      if (!ownSnap.exists || !otherSnap.exists || !ownQueue.exists || !otherQueue.exists) return null;
-      if (ownBlock.exists || otherBlock.exists || ownSnap.data().availableForRequests === false || otherSnap.data().availableForRequests === false) return null;
-      if (connection.exists && connection.data().status === 'active') return null;
-      if (request.exists && request.data().status === 'pending' && timestampMs(request.data().expiresAt) > now()) return null;
-      if (ownSnap.data().activeSessionId || otherSnap.data().activeSessionId || ownQueue.data().status !== 'waiting' || otherQueue.data().status !== 'waiting' || timestampMs(otherQueue.data().expiresAt) <= now()) return null;
+      if (!ownSnap.exists || !otherSnap.exists || !ownQueue.exists || ownQueue.data().status !== 'waiting') return null;
+      if (ownBlock.exists || otherBlock.exists || ownSnap.data().availableForRequests === false || !eligiblePeer(otherSnap.data())) return null;
+      if (ownSnap.data().activeSessionId) return null;
+      if (candidate.viaQueue) {
+        if (!otherQueue.exists || otherQueue.data().status !== 'waiting' || timestampMs(otherQueue.data().expiresAt) <= now()) return null;
+      } else if (!isOnline(otherSnap.data())) return null;
       if (matchingScore(ownSnap.data(), otherSnap.data()) < 0) return null;
       const ref = db.collection(COLLECTIONS.sessions).doc();
       const inviteExpiresAt = admin.firestore.Timestamp.fromMillis(now() + INVITE_MS);
-      tx.set(ref, { participants: [user.uid, candidate.uid], status: 'invited', acceptedBy: [], createdAt: admin.firestore.FieldValue.serverTimestamp(), inviteExpiresAt, expiresAt: admin.firestore.Timestamp.fromMillis(now() + SESSION_MS), channelId: ref.id, pausedBy: [] });
-      tx.delete(ownQueueRef); tx.delete(otherQueueRef);
+      tx.set(ref, { participants: [user.uid, candidate.uid], status: 'invited', acceptedBy: [], createdAt: admin.firestore.FieldValue.serverTimestamp(), inviteExpiresAt, expiresAt: admin.firestore.Timestamp.fromMillis(now() + SESSION_MS), channelId: ref.id, pausedBy: [], callType: 'audio', source: candidate.viaQueue ? 'queue' : 'online-match' });
+      tx.delete(ownQueueRef); if (otherQueue.exists) tx.delete(otherQueueRef);
       tx.update(ownRef, { activeSessionId: ref.id, availability: 'invited', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
       tx.update(otherRef, { activeSessionId: ref.id, availability: 'invited', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
       return { id: ref.id, participant: candidate.uid };
@@ -176,11 +197,17 @@ async function dashboard(db, user) {
   const queue = await db.collection(COLLECTIONS.queues).doc(user.uid).get();
   const waiting = queue.exists && timestampMs(queue.data().expiresAt) > now() ? queue.data() : null;
   if (queue.exists && !waiting) await queue.ref.delete();
+  if (waiting && !session) {
+    // Retry on every poll: a partner who came online after the search began is found within seconds.
+    let matched = null;
+    try { matched = await findMatch(db, user); } catch (err) { console.error('match retry failed:', err.message); }
+    if (matched) return dashboard(db, user);
+  }
   let partner = null;
   let messages = [];
   if (session) {
     const partnerSnap = await db.collection(COLLECTIONS.profiles).doc(partnerId(user.uid, session)).get();
-    if (partnerSnap.exists) partner = publicProfile(partnerSnap.data());
+    if (partnerSnap.exists) partner = { ...publicProfile(partnerSnap.data()), level: publicPartner(partnerSnap.data()).level, introduction: publicPartner(partnerSnap.data()).introduction, interests: publicPartner(partnerSnap.data()).interests };
     if (session.status === 'active') {
       const messageSnapshot = await ref.collection('messages').orderBy('createdAt', 'desc').limit(CHAT_LIMIT).get();
       messages = messageSnapshot.docs.reverse().map(doc => {
@@ -196,7 +223,7 @@ async function dashboard(db, user) {
   }
   let onlineLearners = 0;
   try { onlineLearners = (await db.collection(COLLECTIONS.queues).where('status', '==', 'waiting').count().get()).data().count; } catch (_) { /* Aggregate is optional in local emulators. */ }
-  return { ok: true, profile: profile.data ? { fullName: profile.data.fullName, alias: profile.data.alias, email: profile.data.email, emailVerified: true, age: profile.data.age, city: profile.data.city, state: profile.data.state, level: profile.data.level, interests: profile.data.interests, goals: profile.data.goals, intro: profile.data.intro || '', avatarURL: require('../lib/calling').safeAvatar(profile.data.avatarURL), preferredLanguage: profile.data.preferredLanguage, locationPreference: profile.data.locationPreference, status: profile.data.status || 'approved', availableForRequests: profile.data.availableForRequests !== false, completedCallCount: Number(profile.data.completedCallCount || 0), speakingSeconds: Number(profile.data.speakingSeconds || 0), createdAt: iso(profile.data.createdAt), reviewedAt: iso(profile.data.reviewedAt) } : null, queue: waiting ? { expiresAt: iso(waiting.expiresAt) } : null, session: session ? { id: ref.id, status: session.status, acceptedByMe: (session.acceptedBy || []).includes(user.uid), inviteExpiresAt: iso(session.inviteExpiresAt), expiresAt: iso(session.expiresAt), pausedByMe: (session.pausedBy || []).includes(user.uid), pausedByPartner: (session.pausedBy || []).includes(partnerId(user.uid, session)), partner, messages } : null, recentSession, onlineLearners };
+  return { ok: true, profile: profile.data ? { fullName: profile.data.fullName, alias: profile.data.alias, email: profile.data.email, emailVerified: true, age: profile.data.age, city: profile.data.city, state: profile.data.state, level: profile.data.level, interests: profile.data.interests, goals: profile.data.goals, intro: profile.data.intro || '', avatarURL: require('../lib/calling').safeAvatar(profile.data.avatarURL), preferredLanguage: profile.data.preferredLanguage, locationPreference: profile.data.locationPreference, status: profile.data.status || 'pending', availableForRequests: profile.data.availableForRequests !== false, completedCallCount: Number(profile.data.completedCallCount || 0), speakingSeconds: Number(profile.data.speakingSeconds || 0), createdAt: iso(profile.data.createdAt), reviewedAt: iso(profile.data.reviewedAt) } : null, queue: waiting ? { expiresAt: iso(waiting.expiresAt) } : null, session: session ? { id: ref.id, status: session.status, acceptedByMe: (session.acceptedBy || []).includes(user.uid), inviteExpiresAt: iso(session.inviteExpiresAt), expiresAt: iso(session.expiresAt), pausedByMe: (session.pausedBy || []).includes(user.uid), pausedByPartner: (session.pausedBy || []).includes(partnerId(user.uid, session)), partner, messages } : null, recentSession, onlineLearners };
 }
 
 exports.handler = async event => {
@@ -224,17 +251,19 @@ exports.handler = async event => {
     if (action === 'join-queue') {
       requireEligible(own.data); await consumeLimit(db, user.uid, 'queue', 8, 60 * 60 * 1000);
       const queueRef = db.collection(COLLECTIONS.queues).doc(user.uid);
+      let alreadyInvited = false;
       await db.runTransaction(async tx => {
         const [profileSnap, queueSnap] = await Promise.all([tx.get(own.ref), tx.get(queueRef)]);
         if (!profileSnap.exists) throw httpError(404, 'Complete your speaking profile first.');
         const profileData = profileSnap.data();
         requireEligible(profileData);
-        if (profileData.activeSessionId) throw httpError(409, 'Finish or decline your current call invitation first.');
+        if (profileData.activeSessionId) { alreadyInvited = true; return; } // someone just matched with you: show that invitation instead of an error
         if (profileData.availableForRequests === false) throw httpError(409, 'Go online before searching for a partner.');
         if (queueSnap.exists && timestampMs(queueSnap.data().expiresAt) > now()) return;
         tx.set(queueRef, { uid: user.uid, status: 'waiting', createdAt: admin.firestore.FieldValue.serverTimestamp(), expiresAt: admin.firestore.Timestamp.fromMillis(now() + QUEUE_MS) });
         tx.update(own.ref, { availability: 'waiting', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
       });
+      if (alreadyInvited) return reply(200, { ok: true, message: 'You already have a practice invitation. Review it below.' });
       const match = await findMatch(db, user);
       return reply(200, { ok: true, message: match ? 'A compatible learner was found. Review the invitation.' : 'You are in the matching queue. We will look for a partner for five minutes.' });
     }

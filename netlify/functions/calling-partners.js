@@ -1,6 +1,6 @@
 const {
-  admin, COLLECTIONS, authenticatedUser, requireCommunityLearner, blockId, clean, consumeLimit,
-  httpError, iso, ownProfile, reply, requireEligible, store, audit
+  admin, COLLECTIONS, authenticatedUser, blockId, clean, consumeLimit,
+  httpError, iso, ownProfile, reply, requireEligible, requireCommunityLearner, store, audit
 } = require('../lib/calling');
 const { LEVELS, TOPICS, hasContactDetails, isOnline, matchingScore, pairId, publicPartner, timestampMs } = require('../lib/partner-community');
 const cors = require('../lib/cors');
@@ -232,8 +232,11 @@ async function handlePost(db, user, body) {
       ]);
       if (!peer.exists || !ownSnap.exists || outBlock.exists || inBlock.exists) throw httpError(403, 'This learner is unavailable.');
       assertApproved(ownSnap.data()); assertApproved(peer.data());
-      if (ownSnap.data().activeSessionId || peer.data().activeSessionId || ownQueue.exists || peerQueue.exists) throw httpError(409, 'One of you is already in a call or matching queue.');
+      if (ownSnap.data().activeSessionId || peer.data().activeSessionId) throw httpError(409, 'One of you is already in a call. Please try again after it ends.');
       if (!isOnline(peer.data()) || !isOnline(ownSnap.data())) throw httpError(409, 'Both learners must be online and available before calling.');
+      // Inviting a connection ends any random search for either learner instead of blocking the invitation.
+      if (ownQueue.exists) tx.delete(queueRef);
+      if (peerQueue.exists) tx.delete(peerQueueRef);
       tx.set(sessionRef, { participants: [user.uid, peerUid], status: 'invited', acceptedBy: [], createdAt: admin.firestore.FieldValue.serverTimestamp(), inviteExpiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + INVITE_MS), expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + SESSION_MS), channelId: sessionRef.id, pausedBy: [], callType: 'audio', source: 'connection' });
       tx.update(ownRef, { activeSessionId: sessionRef.id, availability: 'invited', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
       tx.update(peerRef, { activeSessionId: sessionRef.id, availability: 'invited', updatedAt: admin.firestore.FieldValue.serverTimestamp() });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Course details | Englishmates</title>
-<script src="./ui-feedback.js"></script>
+<script src="assets/ui-feedback.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -110,27 +110,33 @@ document.addEventListener('DOMContentLoaded', async function () {
   } catch (e) { $('loadStatus').textContent = e.message; }
   $('closeEnrollment').addEventListener('click', () => $('enrollmentPanel').classList.add('hidden'));
   $('reviewSignIn').addEventListener('click', () => { $('enrollmentPanel').classList.remove('hidden'); $('enrollmentPanel').scrollIntoView({ behavior: 'smooth' }); });
-  $('courseReviewForm').addEventListener('submit', async event => { event.preventDefault(); const form = event.currentTarget; try { const fields = Object.fromEntries(new FormData(form).entries()); await LMS.api('submit-course-review', Object.assign({ courseId }, fields)); $('reviewMessage').textContent = 'Review saved.'; form.reset(); const result = await LMS.api('public-course', { courseId }); $('ratingSummary').textContent = Number(result.course.ratingAverage).toFixed(1) + ' / 5 · ' + result.course.reviewCount + ' review(s)'; const reviews = await LMS.api('course-reviews', { courseId }); $('reviewsList').innerHTML = reviews.reviews.map(r => '<article class="rounded-xl bg-white/[.03] p-4"><p class="font-bold">' + LMS.escape(r.name) + ' · ' + '★'.repeat(Math.max(1, Math.min(5, r.rating))) + '</p><p class="muted text-sm mt-2">' + LMS.escape(r.text) + '</p></article>').join(''); } catch (e) { $('reviewMessage').textContent = e.message; } });
+  $('courseReviewForm').addEventListener('submit', async event => { event.preventDefault(); const reviewForm = event.currentTarget || $('courseReviewForm'); const reviewBtn = event.submitter || reviewForm.querySelector('button:not([type="button"])'); const reviewDone = window.EMUI ? window.EMUI.busy(reviewBtn, 'Saving…') : () => {}; try { const fields = Object.fromEntries(new FormData(reviewForm).entries()); await LMS.api('submit-course-review', Object.assign({ courseId }, fields)); $('reviewMessage').textContent = 'Review saved.'; reviewForm.reset(); const result = await LMS.api('public-course', { courseId }); $('ratingSummary').textContent = Number(result.course.ratingAverage).toFixed(1) + ' / 5 · ' + result.course.reviewCount + ' review(s)'; const reviews = await LMS.api('course-reviews', { courseId }); $('reviewsList').innerHTML = reviews.reviews.map(r => '<article class="rounded-xl bg-white/[.03] p-4"><p class="font-bold">' + LMS.escape(r.name) + ' · ' + '★'.repeat(Math.max(1, Math.min(5, r.rating))) + '</p><p class="muted text-sm mt-2">' + LMS.escape(r.text) + '</p></article>').join(''); } catch (e) { $('reviewMessage').textContent = e.message; } finally { reviewDone(); } });
   document.addEventListener('lms-auth-changed', e => {
     const user = e.detail.user;
     if (user && $('enrollForm')) { $('enrollForm').elements.name.value = user.displayName || ''; }
   });
   $('enrollForm').addEventListener('submit', async event => {
     event.preventDefault();
-    const form = event.currentTarget;
-    const user = LMS.auth.currentUser;
+    // Keep the form and button now: event.currentTarget becomes null after the first await.
+    const form = event.currentTarget || $('enrollForm');
+    const button = event.submitter || form.querySelector('button:not([type="button"])');
+    const done = window.EMUI ? window.EMUI.busy(button, 'Enrolling…') : () => {};
     const msg = $('formMessage');
-    if (!user) { msg.textContent = 'Sign in or create an account above to continue.'; return; }
-    await user.reload();
-    if (!user.emailVerified) { msg.textContent = 'Verify your email from the link we sent, then sign in again.'; return; }
-    const data = Object.fromEntries(new FormData(form).entries());
-    data.courseId = courseId;
+    let redirecting = false;
     try {
+      const user = LMS.auth.currentUser;
+      if (!user) { msg.textContent = 'Sign in or create an account above to continue.'; return; }
+      await user.reload();
+      if (!user.emailVerified) { msg.textContent = 'Verify your email from the link we sent, then sign in again.'; return; }
+      const data = Object.fromEntries(new FormData(form).entries());
+      data.courseId = courseId;
       msg.textContent = 'Submitting…';
       const result = await LMS.api('enroll', data);
       msg.textContent = result.existing ? 'You already have an enrollment for this course. Opening your dashboard…' : 'Enrollment request saved. Opening your dashboard…';
+      redirecting = true;
       setTimeout(() => { location.href = './student-dashboard.html?courseId=' + encodeURIComponent(courseId); }, 700);
-    } catch (e) { msg.textContent = e.message; }
+    } catch (e) { msg.textContent = e.message; if (window.EMUI) window.EMUI.toast(e.message, 'error'); }
+    finally { if (!redirecting) done(); }
   });
 });
 </script>

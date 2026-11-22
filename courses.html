@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Courses | Englishmates</title>
 <meta name="description" content="Explore Englishmates courses and learning programs.">
-<script src="./ui-feedback.js"></script>
+<script src="assets/ui-feedback.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -36,7 +36,7 @@ body{background:#070b17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.pa
     <select id="sort" class="field rounded-xl px-4 py-3"><option value="recommended">Recommended</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="latest">Latest courses</option><option value="popular">Popularity</option></select>
   </section>
   <p id="status" class="muted text-sm mt-5" role="status">Loading courses…</p>
-  <section id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-4"></section>
+  <section id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-4"><div class="em-skeleton"></div><div class="em-skeleton"></div><div class="em-skeleton"></div></section>
 </main>
 <footer class="border-t border-white/10 mt-16 py-8 text-center muted text-sm">Englishmates · Master English. Unlock Your Future.</footer>
 <script>
