@@ -95,8 +95,8 @@ async function ownProfile(db, user, required = true) {
 }
 
 function requireEligible(profile) {
-  if (profile.status !== 'approved') throw httpError(403, 'Your community profile must be approved before you can find a partner.');
-  if (profile.countryCode !== 'IN' || profile.countryStatus !== 'approved') throw httpError(403, 'India eligibility is still awaiting approval.');
+  if (profile.status !== 'approved') throw httpError(403, 'Complete and activate your community profile before you can find a partner.');
+  if (profile.countryCode !== 'IN' || profile.countryStatus !== 'approved') throw httpError(403, 'Your profile must confirm that you are an adult in India before you can find a partner.');
   if (profile.adultConfirmed !== true) throw httpError(403, 'Calling Community is available only to adults aged 18 and above.');
   if (profile.moderationStatus && profile.moderationStatus !== 'active') {
     throw httpError(403, 'Calling Community access is currently unavailable for this account.');

@@ -63,6 +63,11 @@ function partnerId(userId, session) {
 
 async function activeSession(db, user) {
   const profile = await ownProfile(db, user);
+  const explicitlyBlocked = ['rejected', 'suspended'].includes(profile.data.status) || profile.data.moderationStatus === 'suspended';
+  if (!explicitlyBlocked && (profile.data.status !== 'approved' || profile.data.countryStatus !== 'approved')) {
+    await profile.ref.update({ status: 'approved', countryStatus: 'approved', approvalMethod: 'automatic', approvedAt: profile.data.approvedAt || admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    profile.data = { ...profile.data, status: 'approved', countryStatus: 'approved', approvalMethod: 'automatic' };
+  }
   if (!profile.data.activeSessionId) return { profile, ref: null, data: null };
   const ref = db.collection(COLLECTIONS.sessions).doc(profile.data.activeSessionId);
   const snapshot = await ref.get();
@@ -191,7 +196,7 @@ async function dashboard(db, user) {
   }
   let onlineLearners = 0;
   try { onlineLearners = (await db.collection(COLLECTIONS.queues).where('status', '==', 'waiting').count().get()).data().count; } catch (_) { /* Aggregate is optional in local emulators. */ }
-  return { ok: true, profile: profile.data ? { fullName: profile.data.fullName, alias: profile.data.alias, email: profile.data.email, emailVerified: true, age: profile.data.age, city: profile.data.city, state: profile.data.state, level: profile.data.level, interests: profile.data.interests, goals: profile.data.goals, intro: profile.data.intro || '', avatarURL: require('../lib/calling').safeAvatar(profile.data.avatarURL), preferredLanguage: profile.data.preferredLanguage, locationPreference: profile.data.locationPreference, status: profile.data.status || 'pending', availableForRequests: profile.data.availableForRequests !== false, completedCallCount: Number(profile.data.completedCallCount || 0), speakingSeconds: Number(profile.data.speakingSeconds || 0), createdAt: iso(profile.data.createdAt), reviewedAt: iso(profile.data.reviewedAt) } : null, queue: waiting ? { expiresAt: iso(waiting.expiresAt) } : null, session: session ? { id: ref.id, status: session.status, acceptedByMe: (session.acceptedBy || []).includes(user.uid), inviteExpiresAt: iso(session.inviteExpiresAt), expiresAt: iso(session.expiresAt), pausedByMe: (session.pausedBy || []).includes(user.uid), pausedByPartner: (session.pausedBy || []).includes(partnerId(user.uid, session)), partner, messages } : null, recentSession, onlineLearners };
+  return { ok: true, profile: profile.data ? { fullName: profile.data.fullName, alias: profile.data.alias, email: profile.data.email, emailVerified: true, age: profile.data.age, city: profile.data.city, state: profile.data.state, level: profile.data.level, interests: profile.data.interests, goals: profile.data.goals, intro: profile.data.intro || '', avatarURL: require('../lib/calling').safeAvatar(profile.data.avatarURL), preferredLanguage: profile.data.preferredLanguage, locationPreference: profile.data.locationPreference, status: profile.data.status || 'approved', availableForRequests: profile.data.availableForRequests !== false, completedCallCount: Number(profile.data.completedCallCount || 0), speakingSeconds: Number(profile.data.speakingSeconds || 0), createdAt: iso(profile.data.createdAt), reviewedAt: iso(profile.data.reviewedAt) } : null, queue: waiting ? { expiresAt: iso(waiting.expiresAt) } : null, session: session ? { id: ref.id, status: session.status, acceptedByMe: (session.acceptedBy || []).includes(user.uid), inviteExpiresAt: iso(session.inviteExpiresAt), expiresAt: iso(session.expiresAt), pausedByMe: (session.pausedBy || []).includes(user.uid), pausedByPartner: (session.pausedBy || []).includes(partnerId(user.uid, session)), partner, messages } : null, recentSession, onlineLearners };
 }
 
 exports.handler = async event => {
@@ -207,13 +212,13 @@ exports.handler = async event => {
       const input = profileInput(body.profile || {});
       const own = await ownProfile(db, user, false);
       const isNew = !own.exists;
-      const existingStatus = own.data?.status || 'pending';
-      const status = existingStatus === 'approved' || existingStatus === 'suspended' ? existingStatus : 'pending';
+      const existingStatus = own.data?.status || 'new';
+      const status = existingStatus === 'suspended' || existingStatus === 'rejected' ? existingStatus : 'approved';
       const verifiedAvatarURL = safeAvatar(user.claims.picture);
       const avatarURL = input.avatarURL || (!own.data?.avatarURL ? verifiedAvatarURL : null);
-      await own.ref.set({ ...input, uid: user.uid, email: user.email, emailVerified: true, countryCode: 'IN', countryStatus: status === 'approved' ? 'approved' : 'pending', adultConfirmed: true, status, moderationStatus: status === 'suspended' ? 'suspended' : 'active', availability: own.data?.availability || 'offline', availableForRequests: own.data?.availableForRequests !== false, ...(avatarURL ? { avatarURL } : {}), updatedAt: admin.firestore.FieldValue.serverTimestamp(), ...(isNew ? { createdAt: admin.firestore.FieldValue.serverTimestamp() } : {}) }, { merge: true });
+      await own.ref.set({ ...input, uid: user.uid, email: user.email, emailVerified: true, countryCode: 'IN', countryStatus: status === 'approved' ? 'approved' : 'pending', adultConfirmed: true, status, moderationStatus: status === 'suspended' ? 'suspended' : 'active', availability: own.data?.availability || 'offline', availableForRequests: own.data?.availableForRequests !== false, ...(avatarURL ? { avatarURL } : {}), ...(status === 'approved' ? { approvalMethod: 'automatic', approvedAt: own.data?.approvedAt || admin.firestore.FieldValue.serverTimestamp() } : {}), updatedAt: admin.firestore.FieldValue.serverTimestamp(), ...(isNew ? { createdAt: admin.firestore.FieldValue.serverTimestamp() } : {}) }, { merge: true });
       await audit(db, user, isNew ? 'profile_created' : 'profile_updated', user.uid);
-      return reply(200, { ok: true, message: status === 'approved' ? 'Your approved profile was updated.' : 'Profile saved and queued for administrator approval.' });
+      return reply(200, { ok: true, message: status === 'approved' ? 'Profile saved. Your community access is active.' : status === 'suspended' ? 'Profile saved, but community access is suspended. Contact Englishmates for help.' : 'Profile saved, but community access remains blocked. Contact Englishmates for help.' });
     }
     const own = await ownProfile(db, user);
     if (action === 'join-queue') {
