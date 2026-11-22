@@ -108,8 +108,8 @@ function adminAllowed(user) {
   return user.email === PRIMARY_ADMIN_EMAIL && user.signInProvider === 'password';
 }
 
-function requireGoogleLearner(user) {
-  if (user.signInProvider !== 'google.com') throw httpError(403, 'Sign in with Google to use Calling Community.');
+function requireCommunityLearner(user) {
+  if (!['google.com', 'password'].includes(user.signInProvider)) throw httpError(403, 'Sign in with Google or verified email and password to use Calling Community.');
 }
 
 function requireAdmin(user) {
@@ -182,7 +182,7 @@ module.exports = {
   reply,
   safeAvatar,
   requireAdmin,
-  requireGoogleLearner,
+  requireCommunityLearner,
   requireEligible,
   store
 };

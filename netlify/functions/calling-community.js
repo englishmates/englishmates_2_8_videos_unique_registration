@@ -1,5 +1,5 @@
 const {
-  admin, COLLECTIONS, asArray, areBlocked, audit, authenticatedUser, requireGoogleLearner, clean,
+  admin, COLLECTIONS, asArray, areBlocked, audit, authenticatedUser, requireCommunityLearner, clean,
   blockId, consumeLimit, httpError, iso, ownProfile, publicProfile, reply, safeAvatar,
   requireEligible, store
 } = require('../lib/calling');
@@ -203,7 +203,7 @@ exports.handler = async event => {
   try {
     const db = store();
     const user = await authenticatedUser(event);
-    requireGoogleLearner(user);
+    requireCommunityLearner(user);
     if (event.httpMethod === 'GET') return reply(200, await dashboard(db, user));
     if (event.httpMethod !== 'POST') return reply(405, { ok: false, error: 'Method not allowed.' });
     const body = JSON.parse(event.body || '{}');

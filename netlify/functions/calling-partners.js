@@ -1,5 +1,5 @@
 const {
-  admin, COLLECTIONS, authenticatedUser, requireGoogleLearner, blockId, clean, consumeLimit,
+  admin, COLLECTIONS, authenticatedUser, requireCommunityLearner, blockId, clean, consumeLimit,
   httpError, iso, ownProfile, reply, requireEligible, store, audit
 } = require('../lib/calling');
 const { LEVELS, TOPICS, hasContactDetails, isOnline, matchingScore, pairId, publicPartner, timestampMs } = require('../lib/partner-community');
@@ -11,7 +11,7 @@ const SESSION_MS = 15 * 60 * 1000;
 
 function assertApproved(profile) {
   if (!profile || profile.status !== 'approved' || profile.countryStatus !== 'approved' || profile.countryCode !== 'IN' || profile.adultConfirmed !== true || profile.moderationStatus !== 'active') {
-    throw httpError(403, 'Both learner profiles must be approved and active.');
+    throw httpError(403, 'Both learner profiles must be active.');
   }
 }
 function requestResult(snapshot, uid, profiles) {
@@ -284,7 +284,7 @@ exports.handler = async event => {
     if (event.httpMethod === 'OPTIONS') return cors.options(event);
     const db = store();
     const user = await authenticatedUser(event);
-    requireGoogleLearner(user);
+    requireCommunityLearner(user);
     if (event.httpMethod === 'GET') {
       const own = await ownProfile(db, user);
       requireEligible(own.data);

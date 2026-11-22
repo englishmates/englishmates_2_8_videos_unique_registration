@@ -20,7 +20,7 @@
   let app = adminMode ? (firebase.apps.find(item => item.name === appName) || firebase.initializeApp(config, appName)) : defaultApp;
   const auth = app.auth();
   const storage = app.storage();
-  const authReady = adminMode ? auth.setPersistence(firebase.auth.Auth.Persistence.NONE) : Promise.resolve();
+  const authReady = adminMode ? auth.setPersistence(firebase.auth.Auth.Persistence.NONE).then(() => auth.signOut()) : Promise.resolve();
   const $ = id => document.getElementById(id);
   const escape = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'

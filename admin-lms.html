@@ -440,16 +440,22 @@ document.addEventListener('DOMContentLoaded', function () {
     finally { $('adminPassword').value = ''; doneLogin(); }
   });
   $('logout').addEventListener('click', () => LMS.auth.signOut());
-  LMS.auth.onAuthStateChanged(async user => {
-    if (!user) { $('loginPanel').classList.remove('hidden'); $('adminPanel').classList.add('hidden'); return; }
-    await user.reload().catch(() => {});
-    if (!user.emailVerified || String(user.email || '').toLowerCase() !== adminEmail) {
-      $('loginMessage').textContent = 'Use the verified owner admin account for LMS management.';
-      $('adminPanel').classList.add('hidden'); return;
-    }
-    $('identity').textContent = user.email;
-    try { await load(); $('loginPanel').classList.add('hidden'); $('adminPanel').classList.remove('hidden'); }
-    catch (e) { $('loginMessage').textContent = e.message; $('adminPanel').classList.add('hidden'); }
+  LMS.authReady.then(() => {
+    LMS.auth.onAuthStateChanged(async user => {
+      if (!user) { $('loginPanel').classList.remove('hidden'); $('adminPanel').classList.add('hidden'); return; }
+      await user.reload().catch(() => {});
+      const tokenResult = await user.getIdTokenResult(true);
+      if (!user.emailVerified || String(user.email || '').toLowerCase() !== adminEmail || tokenResult.claims.firebase.sign_in_provider !== 'password') {
+        $('loginMessage').textContent = 'Use the verified owner admin account and password for LMS management.';
+        $('adminPanel').classList.add('hidden'); await LMS.auth.signOut(); return;
+      }
+      $('identity').textContent = user.email;
+      try { await load(); $('loginPanel').classList.add('hidden'); $('adminPanel').classList.remove('hidden'); }
+      catch (e) { $('loginMessage').textContent = e.message; $('adminPanel').classList.add('hidden'); }
+    });
+  }).catch(() => {
+    $('loginPanel').classList.remove('hidden'); $('adminPanel').classList.add('hidden');
+    $('loginMessage').textContent = 'Please sign in again with the administrator email and password.';
   });
 });
 </script>

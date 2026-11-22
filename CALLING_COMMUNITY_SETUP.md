@@ -2,7 +2,7 @@
 
 ## Included in this preview branch
 
-- Verified Google sign-in and automatic learner profile activation; admins can block or suspend access when needed.
+- Verified Google or email/password sign-in (email accounts verify by link, with no SMS OTP) and automatic learner profile activation; admins can block or suspend access when needed.
 - Searchable directory of active learners, proficiency and topic filters, online-only filtering, compatible random matching, and paginated results.
 - Speaking requests with duplicate protection, recipient accept/reject, sender cancellation, and 14-day expiration.
 - Accepted connections with an audio-call invitation flow. Calls use the existing Agora RTC token service and never create or publish a camera track.
@@ -48,7 +48,7 @@ Agora RTC provides the existing managed real-time audio transport. This branch d
 
 Run npm test and node --check on the changed JavaScript files. Unit coverage includes deterministic pair ids, privacy projection, email/phone filtering, safe avatar hosts, online expiry, level compatibility, and timestamp conversion. API integration and Firebase authorization should be tested in a Firebase Emulator or isolated test project.
 
-The call must also be checked manually with two separate active Google learner accounts and two browser sessions to confirm both users can hear each other, mute, pause, end, and recover after a refresh or network interruption. A successful build alone is not evidence that the audio call works.
+The call must also be checked manually with two active Google or email/password learner accounts and two browser sessions to confirm both users can hear each other, mute, pause, end, and recover after a refresh or network interruption. A successful build alone is not evidence that the audio call works.
 
 ## Operating-cost estimate
 
@@ -61,13 +61,13 @@ Illustrative Agora estimate in USD; this is not a quote and uses the current pub
 | 1,000 | 250 | 15,000 | 30,000 | $11.80 |
 | 5,000 | 1,250 | 75,000 | 150,000 | $82.60 |
 
-Firebase Authentication uses Google sign-in only for the community and does not use SMS verification. Firestore Standard currently includes per-project no-cost allowances of 50,000 reads/day, 20,000 writes/day, 20,000 deletes/day, 1 GiB stored data, and 10 GiB monthly egress. The existing site's usage shares that project allowance, so actual Firebase charges depend on existing project usage and region. Netlify hosting/functions are also shared with the existing site; no separate fixed charge is attributed here. Review actual usage and Agora billing in their consoles before enabling broader access.
+Firebase Authentication supports Google or email/password sign-in for the community and does not use SMS verification. Firestore Standard currently includes per-project no-cost allowances of 50,000 reads/day, 20,000 writes/day, 20,000 deletes/day, 1 GiB stored data, and 10 GiB monthly egress. The existing site's usage shares that project allowance, so actual Firebase charges depend on existing project usage and region. Netlify hosting/functions are also shared with the existing site; no separate fixed charge is attributed here. Review actual usage and Agora billing in their consoles before enabling broader access.
 
 Pricing references: Agora RTC pricing https://www.agora.io/en/pricing/ and Firebase pricing https://firebase.google.com/pricing.
 
 ## Manual verification checklist
 
-- Create two learner accounts with Google in the same Deploy Preview; each profile should become active immediately after submission.
+- Create two learner accounts in the same Deploy Preview, one with Google and one with email/password; verify the email link, then confirm each profile becomes active immediately after submission.
 - Search each other by name/topic/level and verify email, phone, age, and location do not appear.
 - Send a request, receive it in the second session, accept it, reject another, cancel an outgoing request, and confirm duplicates are rejected.
 - Start an audio call from an accepted connection. Confirm the invitation requires acceptance and the microphone prompt appears only after a user clicks Join audio call.
@@ -78,7 +78,7 @@ Pricing references: Agora RTC pricing https://www.agora.io/en/pricing/ and Fireb
 - Check mobile and desktop sizes and the browser console.
 - Confirm the admin counts show aggregates and no private call messages.
 
-This manual two-session check requires the Netlify Deploy Preview environment variables and two Google learner accounts; it cannot be claimed from static code checks.
+This manual two-session check requires the Netlify Deploy Preview environment variables and two Google/email learner accounts; it cannot be claimed from static code checks.
 
 ## Rollback and production checklist
 
