@@ -66,7 +66,7 @@
         <a class="nav-link" href="#tutor-preview">Find a Tutor</a>
         <a class="nav-link" href="./tutor-apply.html">Become a Tutor</a>
         <a class="nav-link" href="./calling-community.html">Calling Community</a><a class="nav-link" href="./student-dashboard.html">My Learning</a>
-        <a class="nav-link" href="#ai-lab">AI Lab</a>
+        <a class="nav-link" href="#ai-lab">Learning Hub</a>
         <a class="nav-link" href="#gallery">Activities</a>
         <a class="nav-link" href="#results">Why Englishmates</a>
         <a class="nav-link" href="#about">About</a>
@@ -76,7 +76,7 @@
     </nav>
     <div id="mobileMenu" class="hidden md:hidden px-5 pb-5 border-t border-white/5">
       <div class="flex flex-col gap-4 pt-4 text-sm font-semibold">
-        <a class="nav-link" href="#programs">See All Courses</a><a class="nav-link" href="#tutor-preview">Find a Tutor</a><a class="nav-link" href="./tutor-apply.html">Become a Tutor</a><a class="nav-link" href="./calling-community.html">Calling Community</a><a class="nav-link" href="./student-dashboard.html">My Learning</a><a class="nav-link" href="#ai-lab">AI Lab</a>
+        <a class="nav-link" href="#programs">See All Courses</a><a class="nav-link" href="#tutor-preview">Find a Tutor</a><a class="nav-link" href="./tutor-apply.html">Become a Tutor</a><a class="nav-link" href="./calling-community.html">Calling Community</a><a class="nav-link" href="./student-dashboard.html">My Learning</a><a class="nav-link" href="#ai-lab">Learning Hub</a>
         <a class="nav-link" href="#results">Why Englishmates</a><a class="nav-link" href="#about">About</a>
         <a href="#enroll" class="btn-coral text-white text-center px-5 py-3 rounded-xl">Book a Demo</a>
       </div>
@@ -267,25 +267,66 @@
       </div>
     </section>
 
-    <!-- AI LAB -->
-    <section id="ai-lab" class="section-pad py-20 px-4 lg:px-8">
-      <div class="max-w-5xl mx-auto">
-        <div class="text-center reveal">
-          <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">AI Lab</span>
-          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Try the <span class="gradient-text">AI Skill Booster.</span></h2>
-          <p class="text-slate-400 mt-4">A small taste of the practical AI experience students can build with Englishmates.</p>
+    <!-- ENGLISHMATES LEARNING HUB -->
+    <section id="ai-lab" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
+      <div class="max-w-6xl mx-auto">
+        <div class="max-w-3xl mx-auto text-center reveal">
+          <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Englishmates Learning Hub</span>
+          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Your next step starts <span class="gradient-text">here.</span></h2>
+          <p class="text-slate-400 mt-4 leading-7">Courses, speaking practice and tutor support—connected in one place. Choose what you want to do and jump straight in.</p>
         </div>
-        <div class="card rounded-[2rem] mt-10 overflow-hidden reveal">
-          <div class="flex border-b border-white/5 overflow-x-auto hide-scrollbar">
-            <button class="aiTab flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 border-violet-400 text-white" data-mode="polish">Polish English</button>
-            <button class="aiTab flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 border-transparent text-slate-500" data-mode="prompt">Create Prompt</button>
-            <button class="aiTab flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 border-transparent text-slate-500" data-mode="vocab">Improve Vocabulary</button>
+        <div class="flex justify-center mt-8 reveal">
+          <div class="inline-flex rounded-2xl border border-white/10 bg-white/[.035] p-1.5" role="group" aria-label="Choose learner or tutor tools">
+            <button type="button" data-hub-role="learner" aria-pressed="true" class="rounded-xl px-5 py-3 text-sm font-bold text-white bg-violet-500/20 border border-violet-300/20">For learners</button>
+            <button type="button" data-hub-role="tutor" aria-pressed="false" class="rounded-xl px-5 py-3 text-sm font-bold text-slate-400 border border-transparent hover:text-white">For tutors</button>
           </div>
-          <div class="p-6 md:p-8">
-            <textarea id="aiInput" class="w-full h-32 bg-black/20 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-violet-400 resize-none" placeholder="Type a sentence you want to improve..."></textarea>
-            <button id="aiBtn" class="btn-primary w-full mt-4 py-4 rounded-xl text-white font-bold">Generate</button>
-            <div id="aiResult" class="hidden mt-5 p-5 rounded-2xl bg-black/20 border border-white/10 text-slate-200 whitespace-pre-wrap leading-7"></div>
-          </div>
+        </div>
+        <p id="hubIntro" class="text-center text-sm text-slate-400 mt-5 reveal">Find a course, practise speaking, meet a tutor, or continue a lesson.</p>
+        <div id="learnerHubCards" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8 reveal">
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[250px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-blue-400/10 text-blue-200"><i data-lucide="book-open" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-200">Learn</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">Explore courses</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Compare course details, levels and fees, then open a course to enroll.</p>
+            <a href="#programs" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Browse courses <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[250px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-emerald-400/10 text-emerald-200"><i data-lucide="headphones" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-200">Speak</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">Calling Community</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Meet speaking partners and practise live voice conversations in a friendly space.</p>
+            <a href="./calling-community.html" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Practise speaking <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[250px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-violet-400/10 text-violet-200"><i data-lucide="messages-square" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-violet-200">Get guidance</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">Find a tutor</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Watch tutor introductions, check availability and request a 30-minute session.</p>
+            <a href="#studentTutorBooking" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Meet the tutors <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[250px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-amber-400/10 text-amber-200"><i data-lucide="graduation-cap" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-amber-200">My progress</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">My Learning</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Return to your student dashboard to see enrollments and continue lessons.</p>
+            <a href="./student-dashboard.html" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Open dashboard <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+        </div>
+        <div id="tutorHubCards" class="hidden grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8 reveal">
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[230px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-violet-400/10 text-violet-200"><i data-lucide="calendar-check" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-violet-200">Tutor tools</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">Teacher dashboard</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Update your introduction video, set teaching hours, manage blocked dates and respond to booking requests.</p>
+            <a href="./teacher-dashboard.html" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Open teacher dashboard <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[230px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-blue-400/10 text-blue-200"><i data-lucide="user-round-plus" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-200">Join as a tutor</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">Apply to teach</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Create your tutor profile and send it to the Englishmates team for review.</p>
+            <a href="./tutor-apply.html" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Start an application <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[230px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-emerald-400/10 text-emerald-200"><i data-lucide="eye" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-200">Public profile</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">See the tutor listing</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Check how approved tutor profiles, introduction videos and available sessions appear to learners.</p>
+            <a href="#studentTutorBooking" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">View tutor profiles <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
         </div>
       </div>
     </section>
@@ -1021,23 +1062,25 @@
     $('#logoutBtn').addEventListener('click',async()=>{if(adminUnsubscribe)adminUnsubscribe();knownStudentIds.clear();adminFirstLoad=true;$('#adminArea').classList.add('hidden');await auth.signOut()});
     if(auth) auth.onAuthStateChanged(u=>{ if(u && !$('#adminArea').classList.contains('hidden')) subscribeAdmin(); });
 
-    // Lightweight AI demo that works without exposing an API key in the browser.
-    let aiMode='polish';
-    $$('.aiTab').forEach(tab=>tab.addEventListener('click',()=>{
-      aiMode=tab.dataset.mode;
-      $$('.aiTab').forEach(x=>{x.classList.remove('text-white','border-violet-400');x.classList.add('text-slate-500','border-transparent')});
-      tab.classList.add('text-white','border-violet-400');tab.classList.remove('text-slate-500','border-transparent');
-      $('#aiInput').placeholder = aiMode==='polish'?'Type a sentence you want to improve...':aiMode==='prompt'?'Describe what you want AI to do...':'Enter a word or simple sentence...';
-      $('#aiResult').classList.add('hidden');
+    // Simple audience switch makes the site's real tools easy to find.
+    const hubRoleButtons=$('[data-hub-role]'), learnerHubCards=$('#learnerHubCards'), tutorHubCards=$('#tutorHubCards'), hubIntro=$('#hubIntro');
+    hubRoleButtons.forEach(button=>button.addEventListener('click',()=>{
+      const isTutor=button.dataset.hubRole==='tutor';
+      hubRoleButtons.forEach(item=>{
+        const active=item===button;
+        item.setAttribute('aria-pressed',String(active));
+        item.classList.toggle('text-white',active);
+        item.classList.toggle('text-slate-400',!active);
+        item.classList.toggle('bg-violet-500/20',active);
+        item.classList.toggle('border-violet-300/20',active);
+        item.classList.toggle('border-transparent',!active);
+      });
+      learnerHubCards.classList.toggle('hidden',isTutor);
+      tutorHubCards.classList.toggle('hidden',!isTutor);
+      hubIntro.textContent=isTutor
+        ?'Manage your tutor profile and availability, or apply to join the teaching team.'
+        :'Find a course, practise speaking, meet a tutor, or continue a lesson.';
     }));
-    $('#aiBtn').addEventListener('click',()=>{
-      const v=$('#aiInput').value.trim(); if(!v)return;
-      let r='';
-      if(aiMode==='polish') r=`Better version:\\n“${v}”\\n\\nTip: Keep your sentence clear, natural and specific. In the full Englishmates AI lab, students can practise rewriting, grammar and professional communication.`;
-      if(aiMode==='prompt') r=`Starter prompt:\\n“Act as an expert assistant. Help me with: ${v}. Ask any important clarifying question first, then give a practical answer with examples.”\\n\\nTip: Good prompts give AI a role, task and desired output.`;
-      if(aiMode==='vocab') r=`Vocabulary practice for “${v}”:\\n• Understand the meaning in context\\n• Learn 2–3 useful alternatives\\n• Make your own sentence\\n• Use the word in tomorrow’s conversation`;
-      $('#aiResult').textContent=r; $('#aiResult').classList.remove('hidden');
-    });
 
 
     // Student-facing approved tutor directory and 30-minute booking requests.
