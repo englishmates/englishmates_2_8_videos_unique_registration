@@ -270,19 +270,19 @@
     <!-- ENGLISHMATES LEARNING HUB -->
     <section id="ai-lab" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
       <div class="max-w-6xl mx-auto">
-        <div class="max-w-3xl mx-auto text-center reveal">
+        <div class="max-w-3xl mx-auto text-center">
           <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Englishmates Learning Hub</span>
           <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Your next step starts <span class="gradient-text">here.</span></h2>
           <p class="text-slate-400 mt-4 leading-7">Courses, speaking practice and tutor support—connected in one place. Choose what you want to do and jump straight in.</p>
         </div>
-        <div class="flex justify-center mt-8 reveal">
+        <div class="flex justify-center mt-8">
           <div class="inline-flex rounded-2xl border border-white/10 bg-white/[.035] p-1.5" role="group" aria-label="Choose learner or tutor tools">
             <button type="button" data-hub-role="learner" aria-pressed="true" class="rounded-xl px-5 py-3 text-sm font-bold text-white bg-violet-500/20 border border-violet-300/20">For learners</button>
             <button type="button" data-hub-role="tutor" aria-pressed="false" class="rounded-xl px-5 py-3 text-sm font-bold text-slate-400 border border-transparent hover:text-white">For tutors</button>
           </div>
         </div>
-        <p id="hubIntro" class="text-center text-sm text-slate-400 mt-5 reveal">Find a course, practise speaking, meet a tutor, or continue a lesson.</p>
-        <div id="learnerHubCards" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8 reveal">
+        <p id="hubIntro" class="text-center text-sm text-slate-400 mt-5">Find a course, practise speaking, meet a tutor, or continue a lesson.</p>
+        <div id="learnerHubCards" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
           <article class="card rounded-2xl p-5 flex flex-col min-h-[250px]">
             <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-blue-400/10 text-blue-200"><i data-lucide="book-open" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-200">Learn</span></div>
             <h3 class="text-lg font-extrabold text-white mt-5">Explore courses</h3>
@@ -308,7 +308,7 @@
             <a href="./student-dashboard.html" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Open dashboard <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
           </article>
         </div>
-        <div id="tutorHubCards" class="hidden grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8 reveal">
+        <div id="tutorHubCards" class="hidden sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
           <article class="card rounded-2xl p-5 flex flex-col min-h-[230px]">
             <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-violet-400/10 text-violet-200"><i data-lucide="calendar-check" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-violet-200">Tutor tools</span></div>
             <h3 class="text-lg font-extrabold text-white mt-5">Teacher dashboard</h3>
@@ -1077,6 +1077,7 @@
       });
       learnerHubCards.classList.toggle('hidden',isTutor);
       tutorHubCards.classList.toggle('hidden',!isTutor);
+      tutorHubCards.classList.toggle('grid',isTutor);
       hubIntro.textContent=isTutor
         ?'Manage your tutor profile and availability, or apply to join the teaching team.'
         :'Find a course, practise speaking, meet a tutor, or continue a lesson.';
