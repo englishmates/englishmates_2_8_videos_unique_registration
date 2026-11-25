@@ -1063,7 +1063,7 @@
     if(auth) auth.onAuthStateChanged(u=>{ if(u && !$('#adminArea').classList.contains('hidden')) subscribeAdmin(); });
 
     // Simple audience switch makes the site's real tools easy to find.
-    const hubRoleButtons=$('[data-hub-role]'), learnerHubCards=$('#learnerHubCards'), tutorHubCards=$('#tutorHubCards'), hubIntro=$('#hubIntro');
+    const hubRoleButtons=$$('[data-hub-role]'), learnerHubCards=$('#learnerHubCards'), tutorHubCards=$('#tutorHubCards'), hubIntro=$('#hubIntro');
     hubRoleButtons.forEach(button=>button.addEventListener('click',()=>{
       const isTutor=button.dataset.hubRole==='tutor';
       hubRoleButtons.forEach(item=>{
