@@ -1,13 +1,19 @@
-# Tutor profile photo and intro video
+# Tutor profile photo and protected introduction video
 
-Approved tutors can upload a profile photo and a one-minute introduction video from the Teacher Dashboard. Students see the tutor's profile photo in the booking card; selecting it, or **Watch introduction**, opens the video.
+Approved tutors can upload a profile photo and a one-minute introduction video from the Teacher Dashboard. Student tutor cards use an inline, signed Cloudflare Stream player instead of a profile photo. The signed playback token disables the download option and limits the video to the Englishmates site origin.
 
-The browser uploads directly to the existing Firebase Storage bucket. The included `storage.rules` restrict uploads to the signed-in tutor's own `tutor-media/<uid>/...` path and allow only JPEG, PNG, WebP, MP4, WebM, and MOV files up to 50 MB.
+Profile photos upload to Firebase Storage under `tutor-media/<uid>/profile-photo/...`. Storage rules allow only the signed-in tutor to upload their own JPEG, PNG, or WebP photo (up to 5 MB). Intro videos no longer upload to Firebase Storage.
 
-Before the first upload, deploy the included Storage rules to the `englishmates-ratangarh-933f1` Firebase project. For example, from an authenticated Firebase CLI session:
+## Secure intro video requirements
 
-```powershell
-firebase deploy --only storage --project englishmates-ratangarh-933f1
-```
+Tutor intro videos use the same Cloudflare Stream settings as protected course lessons. Set these Netlify variables for both Deploy Previews and Production:
 
-Do not use test-mode Storage rules. The live upload form also enforces a 5 MB photo limit, a 50 MB video limit, and a 60-second maximum duration.
+- `CLOUDFLARE_STREAM_ACCOUNT_ID`
+- `CLOUDFLARE_STREAM_API_TOKEN`
+- `CLOUDFLARE_STREAM_CUSTOMER_HOST`
+
+The API token must include Stream Edit access. The Teacher Dashboard requests a one-time upload URL; the server stores only the Stream video UID and issues short-lived playback tokens with downloads disabled. Videos remain limited to 60 seconds and 50 MB.
+
+Existing Firebase-hosted tutor intro videos are legacy uploads. Tutors must upload them again through the Teacher Dashboard to use the protected player. Until then, their cards show a video placeholder. Never put Cloudflare credentials in a web page or chat.
+
+Browser streaming cannot prevent screen recording or filming the screen with another device.

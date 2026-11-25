@@ -13,6 +13,28 @@ function store() {
 const reply=(statusCode,payload)=>({statusCode,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(payload)});
 const clean=(v,n=120)=>String(v||'').trim().slice(0,n);
 const httpError=(status,message)=>Object.assign(new Error(message),{status});
+const MAX_TUTOR_INTRO_SECONDS=60;
+function streamConfig(){
+ const accountId=process.env.CLOUDFLARE_STREAM_ACCOUNT_ID,apiToken=process.env.CLOUDFLARE_STREAM_API_TOKEN,customerHost=String(process.env.CLOUDFLARE_STREAM_CUSTOMER_HOST||'').trim().toLowerCase();
+ if(!accountId||!apiToken||!/^([a-z0-9.-]+)\.cloudflarestream\.com$/.test(customerHost))throw httpError(503,'Secure tutor video hosting is not configured.');
+ return {accountId,apiToken,customerHost};
+}
+async function streamApi(path,options={}){
+ const config=streamConfig(),headers={Authorization:'Bearer '+config.apiToken};let body;
+ if(options.body!==undefined){headers['Content-Type']='application/json';body=JSON.stringify(options.body);}
+ const result=await fetch('https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(config.accountId)+'/stream'+path,{method:options.method||'GET',headers,body});
+ let payload={};try{payload=await result.json();}catch(_){}
+ if(!result.ok||payload.success!==true){console.error('Tutor intro Stream API error:',result.status);throw httpError(502,'Secure tutor video service is unavailable.');}
+ return payload.result||{};
+}
+async function tutorStreamPlaybackUrl(uid,durationSeconds=MAX_TUTOR_INTRO_SECONDS){
+ if(!/^[a-f0-9]{24,64}$/i.test(String(uid||'')))return '';
+ const video=await streamApi('/'+encodeURIComponent(uid));
+ if(video.requireSignedURLs!==true||video.readyToStream!==true)return '';
+ const tokenResult=await streamApi('/'+encodeURIComponent(uid)+'/token',{method:'POST',body:{exp:Math.floor(Date.now()/1000)+Math.max(20*60,Math.min(60*60,Math.ceil(Number(durationSeconds)||MAX_TUTOR_INTRO_SECONDS)+15*60)),downloadable:false}});
+ const token=clean(tokenResult.token,4096);if(!token)throw httpError(502,'Secure tutor video provider returned an invalid playback token.');
+ const {customerHost}=streamConfig();return 'https://'+customerHost+'/'+encodeURIComponent(token)+'/iframe';
+}
 async function requireStudent(event,{verified=true}={}){
  const h=event.headers||{},token=String(h.authorization||h.Authorization||'').replace(/^Bearer\s+/i,'');
  if(!token)throw httpError(401,'Please sign in to request or view classes.');
@@ -82,8 +104,18 @@ exports.handler=async event=>{
     ]);
     const schedule=s.exists?(s.data().schedule||{}):{};
     const slots=makeSlots(schedule,b.docs.map(x=>x.data()),k.docs.map(x=>x.data()));
-    if(!slots.length)continue;
-    tutors.push({id,name:clean(t.name||t.fullName||t.displayName,90)||'Englishmates Tutor',subjects:clean(t.subjects||t.expertise||t.specialization,140),bio:clean(t.bio||t.about,240),photoUrl:clean(t.photoUrl||t.photoURL||t.profileUrl,1600),introVideoUrl:clean(t.introVideoUrl,1600),introVideoDurationSeconds:Math.min(60,Math.max(0,Number(t.introVideoDurationSeconds)||0)),slots});
+    const introVideoDurationSeconds=Math.min(MAX_TUTOR_INTRO_SECONDS,Math.max(0,Number(t.introVideoDurationSeconds)||0));
+    const introVideoPlaybackUrl=await tutorStreamPlaybackUrl(clean(t.introVideoUid,80),introVideoDurationSeconds||MAX_TUTOR_INTRO_SECONDS).catch(error=>{console.error('Tutor intro playback unavailable:',error.message);return '';});
+    tutors.push({
+     id,
+     name:clean(t.name||t.fullName||t.displayName,90)||'Englishmates Tutor',
+     subjects:clean(t.subjects||t.expertise||t.specialization,180),
+     experience:clean(t.experience,80),
+     bio:clean(t.bio||t.about,600),
+     introVideoPlaybackUrl,
+     introVideoDurationSeconds,
+     slots
+    });
    }
    return reply(200,{ok:true,durationMinutes:30,tutors});
   }

@@ -162,11 +162,11 @@
         <div class="max-w-3xl reveal">
           <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Learn with the right guide</span>
           <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Meet your <span class="gradient-text">Tutor.</span></h2>
-          <p class="text-slate-400 mt-4 leading-7">Get personal guidance from experienced educators. Explore the tutor experience we are building at Englishmates.</p>
+          <p class="text-slate-400 mt-4 leading-7">Browse approved tutors, watch protected introduction videos, review teaching experience and request an open 30-minute session.</p>
         </div>
         <article class="card rounded-3xl p-6 md:p-8 mt-9 reveal">
           <div class="flex flex-col sm:flex-row gap-6 items-start">
-            <img src="bhagirath-dayma-profile.png" alt="Bhagirath Dayma, Founder and Lead Trainer" class="w-28 h-28 rounded-2xl object-cover object-center border border-violet-400/40">
+            <div class="w-full sm:w-80 shrink-0 aspect-video rounded-2xl border border-violet-400/40 bg-black overflow-hidden relative"><video controls controlslist="nodownload noplaybackrate" disablepictureinpicture playsinline preload="none" class="w-full h-full bg-black" aria-label="Lead tutor introduction video"></video><div class="absolute inset-0 grid place-items-center text-center pointer-events-none"><div><span class="inline-grid place-items-center w-12 h-12 rounded-full bg-violet-500/80 text-white text-xl">▶</span><p class="text-white font-bold mt-3">Lead tutor video introduction</p><p class="text-slate-400 text-xs mt-1">Video will appear here</p></div></div></div>
             <div class="flex-1">
               <span class="text-xs text-emerald-300 font-bold uppercase tracking-wide">Englishmates · Lead Trainer</span>
               <h3 class="text-2xl font-extrabold text-white mt-2">Bhagirath Dayma</h3>
@@ -186,8 +186,8 @@
         <div class="grid md:grid-cols-2 gap-5 mt-6">
           <article class="card rounded-3xl p-6">
             <div class="flex items-center gap-3"><i data-lucide="graduation-cap" class="w-6 h-6 text-blue-300"></i><h3 class="font-extrabold text-white">Student Experience</h3></div>
-            <p class="text-sm text-slate-400 leading-6 mt-3">A future student dashboard will help learners explore tutor profiles and manage class requests.</p>
-            <span class="inline-flex mt-4 px-3 py-2 rounded-full bg-amber-400/10 text-amber-300 text-xs font-bold">Coming soon</span>
+            <p class="text-sm text-slate-400 leading-6 mt-3">Review each approved tutor’s experience and subjects, watch a protected introduction, and request an open class slot.</p>
+            <span class="inline-flex mt-4 px-3 py-2 rounded-full bg-emerald-400/10 text-emerald-300 text-xs font-bold">Approved tutor profiles</span>
           </article>
           <article class="card rounded-3xl p-6">
             <div class="flex items-center gap-3"><i data-lucide="calendar-check" class="w-6 h-6 text-violet-300"></i><h3 class="font-extrabold text-white">Tutor Experience</h3></div>
@@ -236,7 +236,6 @@
             <p id="bookingFormMessage" role="status" class="text-sm sm:col-span-2"></p>
           </form>
         </div>
-        <dialog id="tutorIntroDialog" class="w-[min(92vw,760px)] rounded-3xl border border-white/10 bg-[#10192b] text-white p-0 backdrop:bg-black/80"><div class="p-5 md:p-6"><div class="flex items-center justify-between gap-4"><div><p class="text-xs text-violet-300 font-bold uppercase tracking-widest">Tutor introduction</p><h3 id="tutorIntroTitle" class="text-xl font-extrabold mt-1"></h3></div><button id="closeTutorIntro" type="button" class="text-slate-300 hover:text-white text-2xl" aria-label="Close introduction">×</button></div><video id="tutorIntroVideo" controls preload="metadata" playsinline class="w-full aspect-video rounded-2xl bg-black mt-5"></video></div></dialog>
         <p class="text-xs text-slate-500 mt-5">Class requests remain pending until the tutor confirms them. Confirmed sessions are scheduled through the tutor’s connected Google Calendar with a Google Meet link. All times are India Standard Time (IST).</p>
       </div>
     </section>
@@ -1040,35 +1039,34 @@
     });
 
 
-    // Student-facing tutor availability and 30-minute booking requests.
+    // Student-facing approved tutor directory and 30-minute booking requests.
     const tutorList=$('#publicTutorList'), bookingForm=$('#studentBookingForm');
     let publicTutors=[];
-    const safeTutorPhoto=(url)=>/^https:\/\//i.test(url)?url:'';
-    const safeTutorVideo=(url)=>/^https:\/\/firebasestorage\.googleapis\.com\//i.test(url)?url:'';
-    const tutorIntroDialog=$('#tutorIntroDialog'),tutorIntroVideo=$('#tutorIntroVideo');
-    function closeTutorIntro(){tutorIntroVideo.pause();tutorIntroVideo.removeAttribute('src');tutorIntroVideo.load();if(tutorIntroDialog.open)tutorIntroDialog.close();}
-    function openTutorIntro(tutor){const video=safeTutorVideo(tutor.introVideoUrl);if(!video)return;tutorIntroVideo.src=video;$('#tutorIntroTitle').textContent=tutor.name+' · introduction';tutorIntroDialog.showModal();tutorIntroVideo.play().catch(()=>{});}
-    $('#closeTutorIntro').addEventListener('click',closeTutorIntro);tutorIntroDialog.addEventListener('close',()=>{tutorIntroVideo.pause();tutorIntroVideo.removeAttribute('src');tutorIntroVideo.load();});
+    function safeTutorPlayback(value){try{const url=new URL(String(value||''));return url.protocol==='https:'&&/^[a-z0-9.-]+\.cloudflarestream\.com$/i.test(url.hostname)&&/^\/[A-Za-z0-9._~-]+\/iframe$/.test(url.pathname)?url.href:'';}catch(_){return '';}}
     async function loadPublicTutors(){
-      tutorList.innerHTML='<p class="text-sm text-slate-400">Loading available tutors…</p>';
+      tutorList.innerHTML='<p class="text-sm text-slate-400">Loading approved tutors…</p>';
       try{
         const r=await fetch(Englishmates.api('student-bookings'),{cache:'no-store'}),data=await r.json();
         if(!r.ok||!data.ok)throw new Error(data.error||'Could not load tutors.');
         publicTutors=data.tutors||[];
-        if(!publicTutors.length){tutorList.innerHTML='<p class="text-sm text-slate-400">No tutor slots are available right now. Please check again later.</p>';return;}
-        tutorList.innerHTML=publicTutors.map(t=>{const photo=safeTutorPhoto(t.photoUrl),intro=safeTutorVideo(t.introVideoUrl),avatar=photo?'<img src="'+esc(photo)+'" alt="" class="w-14 h-14 rounded-xl object-cover">':'<div class="w-14 h-14 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-200 font-bold text-xl">'+esc((t.name||'T').slice(0,1).toUpperCase())+'</div>';return '<article class="rounded-2xl border border-white/10 bg-white/[.025] p-4">'+
-          '<div class="flex items-center gap-3">'+(intro?'<button type="button" data-watch-intro="'+esc(t.id)+'" class="relative shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400" aria-label="Watch '+esc(t.name)+' introduction">'+avatar+'<span class="absolute inset-0 grid place-items-center rounded-xl bg-black/45 text-white text-lg">▶</span></button>':avatar)+
-          '<div><h4 class="font-extrabold text-white">'+esc(t.name)+'</h4><p class="text-xs text-violet-200">'+esc(t.subjects||'Englishmates Tutor')+'</p></div></div>'+
-          (t.bio?'<p class="text-sm text-slate-400 mt-3">'+esc(t.bio)+'</p>':'')+
-          (intro?'<button type="button" data-watch-intro="'+esc(t.id)+'" class="text-sm text-violet-200 font-bold mt-3">▶ Watch '+esc(String(Math.round(t.introVideoDurationSeconds||0)||1))+'-second introduction</button>':'')+
-          '<label class="block text-xs text-slate-400 mt-4">Available 30-minute slots</label><select data-tutor-slot="'+esc(t.id)+'" class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white"><option value="">Choose a date and time</option>'+t.slots.map(s=>'<option value="'+esc(s.date+'|'+s.startTime)+'">'+esc(s.date)+' · '+esc(s.startTime)+'–'+esc(s.endTime)+' IST</option>').join('')+'</select><button type="button" data-book-tutor="'+esc(t.id)+'" class="btn-primary rounded-xl px-4 py-2.5 text-sm font-bold text-white mt-3">Request this tutor</button></article>';}).join('');
+        if(!publicTutors.length){tutorList.innerHTML='<p class="text-sm text-slate-400">No approved tutor profiles are available right now.</p>';return;}
+        tutorList.innerHTML=publicTutors.map(t=>{
+          const name=t.name||'Englishmates Tutor',video=safeTutorPlayback(t.introVideoPlaybackUrl),slots=Array.isArray(t.slots)?t.slots:[];
+          const player=video
+            ?'<iframe src="'+esc(video)+'" title="'+esc(name)+' introduction video" class="w-full aspect-video bg-black" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>'
+            :'<div class="w-full aspect-video bg-gradient-to-br from-slate-950 via-violet-950/50 to-slate-900 grid place-items-center text-center p-6" aria-label="Tutor introduction video not available yet"><div><span class="inline-grid place-items-center w-12 h-12 rounded-full bg-white/10 text-violet-200 text-xl">▶</span><p class="text-white font-bold mt-3">Introduction video coming soon</p><p class="text-slate-400 text-xs mt-1">A protected introduction video will appear here when ready.</p></div></div>';
+          const experience=t.experience?'<span class="shrink-0 text-xs rounded-full bg-violet-400/10 text-violet-200 px-3 py-1">'+esc(t.experience)+'</span>':'';
+          const booking=slots.length
+            ?'<label class="block text-xs text-slate-400 mt-4">Available 30-minute slots</label><select data-tutor-slot="'+esc(t.id)+'" class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white"><option value="">Choose a date and time</option>'+slots.map(s=>'<option value="'+esc(s.date+'|'+s.startTime)+'">'+esc(s.date)+' · '+esc(s.startTime)+'–'+esc(s.endTime)+' IST</option>').join('')+'</select><button type="button" data-book-tutor="'+esc(t.id)+'" class="btn-primary rounded-xl px-4 py-2.5 text-sm font-bold text-white mt-3">Request this tutor</button>'
+            :'<div class="mt-4 rounded-xl border border-white/10 bg-white/[.025] p-3 text-sm text-slate-400">No open class slots right now.</div><button type="button" disabled class="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-400 bg-white/5 mt-3 cursor-not-allowed">Currently unavailable</button>';
+          return '<article class="rounded-2xl border border-white/10 bg-white/[.025] overflow-hidden">'+player+'<div class="p-5"><div class="flex flex-wrap items-start justify-between gap-3"><div><h4 class="font-extrabold text-white text-lg">'+esc(name)+'</h4><p class="text-sm text-violet-200 mt-1">'+esc(t.subjects||'Englishmates Tutor')+'</p></div>'+experience+'</div>'+(t.bio?'<p class="text-sm text-slate-300 leading-6 mt-4">'+esc(t.bio)+'</p>':'')+booking+'</div></article>';
+        }).join('');
       }catch(e){tutorList.innerHTML='<p class="text-sm text-rose-300">'+esc(e.message)+'</p>';}
     }
     tutorList.addEventListener('click',e=>{
-      const intro=e.target.closest('[data-watch-intro]');if(intro){const tutor=publicTutors.find(t=>t.id===intro.dataset.watchIntro);if(tutor)openTutorIntro(tutor);return;}
-      const btn=e.target.closest('[data-book-tutor]');if(!btn)return;
+      const btn=e.target.closest('[data-book-tutor]');if(!btn||btn.disabled)return;
       const tutor=publicTutors.find(t=>t.id===btn.dataset.bookTutor),select=tutorList.querySelector('[data-tutor-slot="'+btn.dataset.bookTutor+'"]');
-      if(!tutor||!select.value){alert('Please choose an available 30-minute slot first.');return;}
+      if(!tutor||!select||!select.value){alert('Please choose an available 30-minute slot first.');return;}
       if(!(auth&&auth.currentUser&&auth.currentUser.emailVerified)){studentMsg('Please sign in with a verified email to request a class.',true);$('#studentAuthBox').scrollIntoView({behavior:'smooth',block:'center'});return;}
       const [date,startTime]=select.value.split('|');
       bookingForm.elements.tutorId.value=tutor.id;bookingForm.elements.date.value=date;bookingForm.elements.startTime.value=startTime;
