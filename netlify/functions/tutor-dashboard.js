@@ -27,12 +27,45 @@ const GOOGLE_CONNECTIONS = 'tutorGoogleConnections' + suffix;
 const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 const MAX_INTRO_VIDEO_SECONDS = 60;
 function encryptionKey(){const k=process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'';if(!/^[a-f0-9]{64}$/i.test(k))throw new Error('Google Meet integration is not configured: token encryption key is missing.');return Buffer.from(k,'hex');}
-function googleOAuthConfig(){const clientId=clean(process.env.GOOGLE_CLIENT_ID,300),clientSecret=clean(process.env.GOOGLE_CLIENT_SECRET,500),tokenKey=String(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'').trim(),redirectUri=String(process.env.GOOGLE_REDIRECT_URI||'').trim().replace(/\/+$/,'');const missing=[];if(!clientId)missing.push('GOOGLE_CLIENT_ID');if(!clientSecret)missing.push('GOOGLE_CLIENT_SECRET');if(!redirectUri)missing.push('GOOGLE_REDIRECT_URI');if(!/^[a-f0-9]{64}$/i.test(tokenKey))missing.push('GOOGLE_TOKEN_ENCRYPTION_KEY (64 hexadecimal characters)');if(missing.length)throw new Error('Google OAuth configuration is incomplete for this deploy. Missing: '+missing.join(', ')+'.');let parsed;try{parsed=new URL(redirectUri);}catch{throw new Error('GOOGLE_REDIRECT_URI must be a valid HTTPS URL.');}if(parsed.protocol!=='https:'||parsed.pathname!=='/.netlify/functions/google-oauth'||parsed.search||parsed.hash)throw new Error('GOOGLE_REDIRECT_URI must exactly end with /.netlify/functions/google-oauth and must not include a query string or trailing slash.');return {clientId,clientSecret,redirectUri};}
-function publicDashboardUrl(value){try{const url=new URL(String(value||''));if(url.origin!=='https://englishmates.github.io'||!url.pathname.startsWith('/englishmates_2_8_videos_unique_registration/'))return '';return url.href;}catch{return '';}}
+function googleOAuthConfig(){const clientId=clean(process.env.GOOGLE_CLIENT_ID,300),clientSecret=clean(process.env.GOOGLE_CLIENT_SECRET,500),tokenKey=String(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY||'').trim(),configuredRedirectUri=String(process.env.GOOGLE_REDIRECT_URI||'').trim(),netlifyOrigin=String(process.env.CONTEXT==='production'?process.env.URL:(process.env.DEPLOY_PRIME_URL||process.env.URL)||'').trim(),redirectSource=netlifyOrigin||configuredRedirectUri;const missing=[];if(!clientId)missing.push('GOOGLE_CLIENT_ID');if(!clientSecret)missing.push('GOOGLE_CLIENT_SECRET');if(!redirectSource)missing.push('GOOGLE_REDIRECT_URI (or Netlify URL)');if(!/^[a-f0-9]{64}$/i.test(tokenKey))missing.push('GOOGLE_TOKEN_ENCRYPTION_KEY (64 hexadecimal characters)');if(missing.length)throw new Error('Google OAuth configuration is incomplete for this deploy. Missing: '+missing.join(', ')+'.');let parsed;try{parsed=new URL(redirectSource);}catch{throw new Error('GOOGLE_REDIRECT_URI must be a valid HTTPS site URL.');}if(parsed.protocol!=='https:'||parsed.username||parsed.password)throw new Error('GOOGLE_REDIRECT_URI must use an HTTPS site URL without credentials.');const redirectUri=parsed.origin+'/.netlify/functions/google-oauth';return {clientId,clientSecret,redirectUri};}
+function publicDashboardUrl(value){
+ try{
+  const url=new URL(String(value||'')),path=url.pathname.replace(/\/+$/,'');
+  const githubPages=url.origin==='https://englishmates.github.io'&&path==='/englishmates_2_8_videos_unique_registration/teacher-dashboard.html';
+  const netlifyDashboard=/^https:\/\/(?:englishmates-?ratangarh|deploy-preview-\d+--englishmates-?ratangarh)\.netlify\.app$/i.test(url.origin)&&path==='/teacher-dashboard.html';
+  if(!githubPages&&!netlifyDashboard)return '';
+  return url.origin+path;
+ }catch{return '';}
+}
 function mediaUrlForTutor(value,uid,label){const url=clean(value,1600);if(!url)return '';try{const parsed=new URL(url),path=decodeURIComponent(parsed.pathname);if(parsed.protocol!=='https:'||parsed.hostname!=='firebasestorage.googleapis.com'||!path.includes('/o/tutor-media/'+uid+'/'))throw new Error();return url;}catch{throw new Error(label+' must be uploaded from your Englishmates profile media form.');}}
+function streamConfig(){
+ const accountId=process.env.CLOUDFLARE_STREAM_ACCOUNT_ID,apiToken=process.env.CLOUDFLARE_STREAM_API_TOKEN,customerHost=String(process.env.CLOUDFLARE_STREAM_CUSTOMER_HOST||'').trim().toLowerCase();
+ if(!accountId||!apiToken||!/^([a-z0-9.-]+)\.cloudflarestream\.com$/.test(customerHost))throw Object.assign(new Error('Secure tutor video hosting is not configured. Add the Cloudflare Stream settings in Netlify.'),{status:503});
+ return {accountId,apiToken,customerHost};
+}
+function streamAllowedOrigins(){
+ const raw=process.env.CONTEXT==='production'?[process.env.URL]:[process.env.DEPLOY_PRIME_URL||process.env.URL];
+ return Array.from(new Set(raw.map(value=>{try{return new URL(value).hostname.toLowerCase();}catch(_){return '';}}).filter(Boolean)));
+}
+async function streamApi(path,options={}){
+ const config=streamConfig(),headers={Authorization:'Bearer '+config.apiToken};let body;
+ if(options.body!==undefined){headers['Content-Type']='application/json';body=JSON.stringify(options.body);}
+ const result=await fetch('https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(config.accountId)+'/stream'+path,{method:options.method||'GET',headers,body});
+ let payload={};try{payload=await result.json();}catch(_){}
+ if(!result.ok||payload.success!==true){console.error('Tutor intro Stream API error:',result.status);throw Object.assign(new Error('Secure tutor video provider could not complete the request.'),{status:502});}
+ return payload.result||{};
+}
+async function tutorStreamPlaybackUrl(uid,durationSeconds=MAX_INTRO_VIDEO_SECONDS){
+ if(!/^[a-f0-9]{24,64}$/i.test(String(uid||'')))return '';
+ const video=await streamApi('/'+encodeURIComponent(uid));
+ if(video.requireSignedURLs!==true||video.readyToStream!==true)return '';
+ const tokenResult=await streamApi('/'+encodeURIComponent(uid)+'/token',{method:'POST',body:{exp:Math.floor(Date.now()/1000)+Math.max(20*60,Math.min(60*60,Math.ceil(Number(durationSeconds)||MAX_INTRO_VIDEO_SECONDS)+15*60)),downloadable:false}});
+ const token=clean(tokenResult.token,4096);if(!token)throw Object.assign(new Error('Secure tutor video provider returned an invalid playback token.'),{status:502});
+ const {customerHost}=streamConfig();return 'https://'+customerHost+'/'+encodeURIComponent(token)+'/iframe';
+}
 function decryptToken(value){const [iv,tag,data]=String(value||'').split('.');const d=crypto.createDecipheriv('aes-256-gcm',encryptionKey(),Buffer.from(iv,'base64url'));d.setAuthTag(Buffer.from(tag,'base64url'));return Buffer.concat([d.update(Buffer.from(data,'base64url')),d.final()]).toString();}
 async function createMeetEvent(store,tutor,booking,bookingRef){
- const conn=await store.collection(GOOGLE_CONNECTIONS).doc(tutor.id).get();if(!conn.exists||!conn.data().refreshToken)throw new Error('Connect your Google Calendar before confirming bookings.');
+ const conn=await store.collection(GOOGLE_CONNECTIONS).doc(tutor.id).get();if(!conn.exists||!conn.data().refreshToken)throw Object.assign(new Error('Connect your Google Calendar before confirming bookings.'),{status:409});
  const refreshToken=decryptToken(conn.data().refreshToken);
  const oauth=googleOAuthConfig();
  const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:oauth.clientId,client_secret:oauth.clientSecret,refresh_token:refreshToken,grant_type:'refresh_token'})});
@@ -103,11 +136,14 @@ exports.handler = async event => {
         .sort((a,b) => String(a.date).localeCompare(String(b.date)));
       const bookings = bookingSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
         .sort((a,b) => String(b.date || '').localeCompare(String(a.date || '')));
+      const introVideoPlaybackUrl = await tutorStreamPlaybackUrl(clean(tutor.introVideoUid, 80), Number(tutor.introVideoDurationSeconds) || MAX_INTRO_VIDEO_SECONDS).catch(() => '');
       return reply(200, {
         ok: true,
         tutorName: clean(tutor.name, 90),
         photoUrl: clean(tutor.photoUrl, 1600),
-        introVideoUrl: clean(tutor.introVideoUrl, 1600),
+        introVideoUid: clean(tutor.introVideoUid, 80),
+        introVideoPlaybackUrl,
+        hasLegacyIntroVideo: Boolean(tutor.introVideoUrl && !tutor.introVideoUid),
         introVideoDurationSeconds: Math.min(MAX_INTRO_VIDEO_SECONDS, Math.max(0, Number(tutor.introVideoDurationSeconds) || 0)),
         schedule: scheduleDoc.exists ? scheduleDoc.data().schedule || {} : {},
         blocks,
@@ -126,13 +162,37 @@ exports.handler = async event => {
       return reply(200,{ok:true,authUrl:'https://accounts.google.com/o/oauth2/v2/auth?'+params.toString()});
     }
 
+    if (body.action === 'create-intro-video-upload') {
+      const origins=streamAllowedOrigins();
+      if(!origins.length)throw Object.assign(new Error('Netlify must provide the site URL before protected tutor videos can be uploaded.'),{status:503});
+      const expiresAt=Date.now()+15*60*1000;
+      const created=await streamApi('/direct_upload',{method:'POST',body:{maxDurationSeconds:MAX_INTRO_VIDEO_SECONDS+2,expiry:new Date(expiresAt).toISOString(),requireSignedURLs:true,allowedOrigins:origins}});
+      const uid=clean(created.uid,80),uploadURL=clean(created.uploadURL,500);
+      if(!/^[a-f0-9]{24,64}$/i.test(uid)||!uploadURL.startsWith('https://upload.videodelivery.net/'))throw Object.assign(new Error('Secure video provider returned an invalid upload session.'),{status:502});
+      await store.collection('tutorVideoUploads'+suffix).doc(uid).set({uid,tutorId:tutor.id,tutorUid:tutor.uid,allowedOrigins:origins,createdAt:Date.now(),expiresAt});
+      return reply(200,{ok:true,uid,uploadURL});
+    }
+
     if (body.action === 'update-profile-media') {
-      const hasPhoto=Object.prototype.hasOwnProperty.call(body,'photoUrl'),hasVideo=Object.prototype.hasOwnProperty.call(body,'introVideoUrl');
-      if(!hasPhoto&&!hasVideo)return reply(400,{ok:false,error:'Choose a profile photo or intro video first.'});
+      const hasPhoto=Object.prototype.hasOwnProperty.call(body,'photoUrl'),hasVideo=Object.prototype.hasOwnProperty.call(body,'introVideoUid');
+      if(!hasPhoto&&!hasVideo)return reply(400,{ok:false,error:'Choose a profile photo or secure intro video first.'});
       const patch={updatedAt:admin.firestore.FieldValue.serverTimestamp(),updatedBy:tutor.uid};
+      let pendingVideoRef=null;
       if(hasPhoto)patch.photoUrl=mediaUrlForTutor(body.photoUrl,tutor.uid,'Profile photo');
-      if(hasVideo){const seconds=Number(body.introVideoDurationSeconds);if(!Number.isFinite(seconds)||seconds<=0||seconds>MAX_INTRO_VIDEO_SECONDS)return reply(400,{ok:false,error:'Your intro video must be no longer than 60 seconds.'});patch.introVideoUrl=mediaUrlForTutor(body.introVideoUrl,tutor.uid,'Intro video');patch.introVideoDurationSeconds=Math.round(seconds*10)/10;}
+      if(hasVideo){
+        const uid=clean(body.introVideoUid,80),seconds=Number(body.introVideoDurationSeconds);
+        if(!/^[a-f0-9]{24,64}$/i.test(uid))throw Object.assign(new Error('Upload your introduction through this dashboard first.'),{status:400});
+        if(!Number.isFinite(seconds)||seconds<=0||seconds>MAX_INTRO_VIDEO_SECONDS)throw Object.assign(new Error('Your intro video must be no longer than 60 seconds.'),{status:400});
+        const pendingRef=store.collection('tutorVideoUploads'+suffix).doc(uid),pendingSnap=await pendingRef.get(),pending=pendingSnap.exists?pendingSnap.data():null;
+        if(!pending||pending.tutorId!==tutor.id||pending.tutorUid!==tutor.uid||Number(pending.expiresAt||0)<Date.now())throw Object.assign(new Error('This secure upload expired or does not belong to your tutor account. Please upload again.'),{status:403});
+        const video=await streamApi('/'+encodeURIComponent(uid));
+        if(video.requireSignedURLs!==true)throw Object.assign(new Error('This video is not protected by signed playback.'),{status:409});
+        patch.introVideoUid=uid;patch.introVideoDurationSeconds=Math.round(seconds*10)/10;
+        patch.introVideoUrl=admin.firestore.FieldValue.delete();
+        pendingVideoRef=pendingRef;
+      }
       await store.collection(TUTORS).doc(tutor.id).set(patch,{merge:true});
+      if(pendingVideoRef)await pendingVideoRef.delete();
       return reply(200,{ok:true,message:'Tutor profile media saved.'});
     }
 

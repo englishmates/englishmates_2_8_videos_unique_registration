@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learning room | Englishmates</title>
+<script src="assets/ui-feedback.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="assets/site-config.js"></script><script src="assets/lms.js" defer></script>
+<style>body{background:#070b17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.panel{background:#10192b;border:1px solid #26344e}.field{background:#080f1e;border:1px solid #334155;color:#fff}.muted{color:#9aa9c0}.btn{background:linear-gradient(135deg,#2563eb,#7c3aed)}.hidden{display:none!important}</style>
+</head>
+<body>
+<header class="border-b border-white/10 bg-slate-950/80"><nav class="max-w-7xl mx-auto px-4 py-5 flex justify-between gap-4"><a href="./" class="font-black text-xl">ENGLISHMATES</a><a href="./student-dashboard.html" class="text-sm text-violet-300">← Student dashboard</a></nav></header>
+<main class="max-w-7xl mx-auto px-4 py-7">
+  <section id="authPanel" class="panel rounded-2xl p-5 max-w-2xl mx-auto"><h1 class="text-2xl font-black">Sign in to continue learning</h1><p class="muted mt-2">Sign in to watch the free demo lesson. Enrolled students can open every lesson.</p><p id="authIdentity" class="text-sm mt-4">Not signed in</p><p id="authMessage" class="text-sm mt-2"></p><div class="grid md:grid-cols-2 gap-3 mt-3"><input id="authEmail" type="email" placeholder="Email address" class="field rounded-xl px-3 py-3"><input id="authPassword" type="password" placeholder="Password" class="field rounded-xl px-3 py-3"></div><div class="flex flex-wrap gap-2 mt-3"><button id="signInBtn" class="rounded-xl border border-white/10 px-4 py-2">Sign in</button><button id="signUpBtn" class="rounded-xl border border-white/10 px-4 py-2">Create account</button><button id="googleBtn" class="rounded-xl border border-white/10 px-4 py-2">Continue with Google</button><button id="signOutBtn" class="hidden rounded-xl border border-white/10 px-4 py-2">Sign out</button></div></section>
+  <section id="learning" class="hidden mt-6">
+    <div class="flex flex-wrap justify-between items-end gap-3"><div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Learning room</p><h1 id="courseTitle" class="text-3xl md:text-4xl font-black mt-2"></h1><p id="authIdentity2" class="muted text-sm mt-2"></p></div><button id="logoutBtn" class="rounded-xl border border-white/10 px-4 py-2 text-sm">Sign out</button></div>
+    <div id="accessBanner" class="hidden rounded-2xl border border-violet-400/30 bg-gradient-to-r from-violet-500/15 to-blue-500/10 p-5 mt-6 flex flex-wrap items-center justify-between gap-4"><div><p class="font-black text-lg" id="bannerTitle"></p><p class="muted text-sm mt-1" id="bannerText"></p></div><a id="bannerCta" class="btn rounded-xl px-5 py-3 font-bold text-white" href="#">Enroll to unlock</a></div>
+    <div class="grid lg:grid-cols-[320px_1fr] gap-5 mt-6">
+      <aside class="panel rounded-2xl p-4 h-fit"><h2 class="font-black text-lg">Course lessons</h2><div id="lessonMenu" class="space-y-4 mt-4"></div>
+        <div id="filesPanel" class="hidden mt-6 border-t border-white/10 pt-4"><h3 class="font-black">Practice files</h3><p class="muted text-xs mt-1">Open and practise at your own pace.</p><div id="filesList" class="grid gap-2 mt-3"></div></div></aside>
+      <section class="panel rounded-2xl overflow-hidden">
+        <div id="videoPlaceholder" class="aspect-video bg-black flex items-center justify-center p-6 text-center muted">Choose a lesson from the course outline.</div>
+        <iframe id="video" class="hidden w-full aspect-video bg-black" title="Englishmates course lesson" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <div class="p-5 md:p-7"><div class="flex flex-wrap items-start justify-between gap-3"><div><p id="moduleName" class="text-sm text-violet-300"></p><h2 id="lessonTitle" class="text-2xl font-black mt-2">Select a lesson</h2><p id="lessonDescription" class="muted leading-7 mt-3"></p></div><button id="completeBtn" class="hidden btn rounded-xl px-4 py-3 font-bold">Mark complete</button></div><div class="flex flex-wrap justify-between gap-2 mt-5"><button id="previousBtn" class="rounded-xl border border-white/10 px-4 py-2 text-sm">← Previous lesson</button><button id="nextBtn" class="rounded-xl border border-white/10 px-4 py-2 text-sm">Next lesson →</button></div><p id="learningMessage" class="text-sm mt-4" role="status"></p><div class="grid md:grid-cols-2 gap-4 mt-5"><section id="notesPanel" class="hidden rounded-xl bg-white/[.03] p-4"><h3 class="font-bold">Lesson notes</h3><p id="lessonNotes" class="muted text-sm leading-6 mt-2 whitespace-pre-wrap"></p></section><section id="assignmentPanel" class="hidden rounded-xl bg-white/[.03] p-4"><h3 class="font-bold">Practice / assignment</h3><p id="lessonAssignment" class="muted text-sm leading-6 mt-2 whitespace-pre-wrap"></p><a id="resourceLink" class="hidden text-violet-300 underline text-sm mt-3 inline-block" target="_blank" rel="noopener">Open lesson resource</a></section></div><p class="muted text-xs mt-5">Lessons are hosted on YouTube. Unlisted videos can still be shared by someone who has access to their link.</p></div>
+      </section>
+    </div>
+  </section>
+  <p id="pageError" class="text-center text-rose-200 text-sm mt-5" role="status"></p>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const $ = id => document.getElementById(id);
+  const courseId = new URLSearchParams(location.search).get('courseId') || '';
+  let modules = [], selected = null, enrolled = false;
+  LMS.bindAuth();
+  async function load() {
+    if (!courseId) throw new Error('Course is missing from this link.');
+    const data = await LMS.api('lesson-list', { courseId });
+    modules = data.modules || [];
+    $('courseTitle').textContent = data.course.title;
+    $('authIdentity2').textContent = LMS.auth.currentUser.email;
+    enrolled = !!data.enrolled;
+    let number = 0;
+    $('lessonMenu').innerHTML = modules.map(m =>
+      '<section><h3 class="text-xs uppercase tracking-widest text-slate-400 font-bold">' + LMS.escape(m.title) + '</h3><div class="space-y-2 mt-2">' +
+      m.lessons.map(l => {
+        number++;
+        const badge = l.completed ? '<span class="text-emerald-300">✓ Completed</span>' : (l.locked ? '<span>🔒 Locked</span>' : (l.preview && !enrolled ? '<span class="text-emerald-300 font-bold">🔓 Free demo</span>' : '<span>' + (l.durationMinutes ? l.durationMinutes + ' min' : 'Lesson') + '</span>'));
+        return '<button data-lesson="' + LMS.escape(l.id) + '" data-module-id="' + LMS.escape(m.id) + '" class="w-full text-left rounded-xl border border-white/5 bg-white/[.03] hover:bg-white/[.08] p-3 text-sm flex gap-3 items-start ' + (l.locked ? 'opacity-70' : '') + '"><span class="shrink-0 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-xs font-black text-violet-200">' + (l.locked ? '🔒' : number) + '</span><span class="min-w-0"><span class="block font-semibold">' + LMS.escape(l.title) + '</span><span class="text-xs muted">' + badge + '</span></span></button>';
+      }).join('') +
+      '</div></section>').join('') || '<p class="muted text-sm">No published lessons yet. Please contact your instructor.</p>';
+    const total = modules.reduce((n, m) => n + m.lessons.length, 0);
+    $('accessBanner').classList.toggle('hidden', enrolled);
+    if (!enrolled) {
+      $('bannerTitle').textContent = 'You are watching the free demo';
+      $('bannerText').textContent = 'Enroll to unlock all ' + total + ' lessons, track your progress and earn a certificate.';
+      $('bannerCta').href = './course-details.html?id=' + encodeURIComponent(courseId);
+    }
+    document.querySelectorAll('[data-lesson]').forEach(button => button.addEventListener('click', () => {
+      const module = modules.find(m => m.id === button.dataset.moduleId);
+      const lesson = module && module.lessons.find(l => l.id === button.dataset.lesson);
+      if (lesson) selectLesson(module, lesson);
+    }));
+    $('authPanel').classList.add('hidden'); $('learning').classList.remove('hidden');
+    loadFiles();
+    if (enrolled && data.lastLessonId) {
+      for (const module of modules) {
+        const lesson = module.lessons.find(l => l.id === data.lastLessonId);
+        if (lesson) { selectLesson(module, lesson); return; }
+      }
+    }
+    const all = modules.flatMap(m => m.lessons.map(l => ({ module: m, lesson: l })));
+    const first = enrolled ? all[0] : (all.find(x => x.lesson.preview) || all[0]);
+    if (first) selectLesson(first.module, first.lesson);
+  }
+  const fileLabels = { workbook: ['📘', 'Workbook'], pdf: ['📄', 'PDF file'] };
+  async function loadFiles() {
+    $('filesPanel').classList.add('hidden'); $('filesList').innerHTML = '';
+    if (!enrolled) return;
+    try {
+      const result = await LMS.api('course-materials', { courseId });
+      const kinds = Object.keys(result.files || {});
+      if (!kinds.length) return;
+      $('filesList').innerHTML = kinds.map(k => '<button type="button" data-file="' + k + '" class="btn rounded-xl px-4 py-3 text-sm font-bold text-white text-left pr-10">' + fileLabels[k][0] + ' ' + fileLabels[k][1] + '<span class="block text-xs font-normal opacity-80 truncate">' + LMS.escape(result.files[k].name) + '</span></button>').join('');
+      $('filesPanel').classList.remove('hidden');
+      document.querySelectorAll('[data-file]').forEach(btn => btn.addEventListener('click', async () => {
+        const win = window.open('about:blank', '_blank');
+        try { const fresh = await LMS.api('course-materials', { courseId }); const f = fresh.files[btn.dataset.file]; if (!f) throw new Error('File not available.'); if (win) win.location = f.url; else location.href = f.url; }
+        catch (e) { if (win) win.close(); $('learningMessage').textContent = e.message; EMUI.toast(e.message, 'error'); }
+      }));
+    } catch (_) { /* practice files are optional */ }
+  }
+  function flatLessons() { return modules.flatMap(m => m.lessons.map(l => ({ module: m, lesson: l }))); }
+  function moveLesson(offset) { const all = flatLessons(); const index = all.findIndex(x => x.lesson.id === (selected && selected.lesson.id)); const next = all[index + offset]; if (next) selectLesson(next.module, next.lesson); }
+  $('previousBtn').addEventListener('click', () => moveLesson(-1)); $('nextBtn').addEventListener('click', () => moveLesson(1));
+  async function selectLesson(module, lesson) {
+    selected = { module, lesson };
+    $('previousBtn').disabled = flatLessons().findIndex(x => x.lesson.id === lesson.id) <= 0;
+    $('nextBtn').disabled = flatLessons().findIndex(x => x.lesson.id === lesson.id) >= flatLessons().length - 1;
+    $('lessonNotes').textContent = lesson.notes || '';
+    $('notesPanel').classList.toggle('hidden', !lesson.notes);
+    $('lessonAssignment').textContent = lesson.assignment || '';
+    $('assignmentPanel').classList.toggle('hidden', !lesson.assignment && !lesson.resourceUrl);
+    if (lesson.resourceUrl) { $('resourceLink').href = lesson.resourceUrl; $('resourceLink').classList.remove('hidden'); } else $('resourceLink').classList.add('hidden');
+    $('moduleName').textContent = module.title;
+    $('lessonTitle').textContent = lesson.title;
+    $('lessonDescription').textContent = lesson.description || '';
+    $('learningMessage').textContent = '';
+    $('completeBtn').classList.add('hidden');
+    $('video').removeAttribute('src');
+    $('video').classList.add('hidden');
+    $('videoPlaceholder').classList.remove('hidden');
+    $('videoPlaceholder').textContent = 'Opening lesson…';
+    if (lesson.locked) {
+      $('videoPlaceholder').innerHTML = '<div><div class="text-5xl" aria-hidden="true">🔒</div><p class="font-black text-xl text-white mt-3">This lesson is locked</p><p class="muted mt-2">Enroll in the course to unlock all videos.</p><a class="btn inline-flex rounded-xl px-5 py-3 font-bold mt-5 text-white" href="./course-details.html?id=' + encodeURIComponent(courseId) + '">Enroll to unlock</a></div>';
+      return;
+    }
+    if (!lesson.hasVideo) {
+      $('videoPlaceholder').textContent = 'This lesson is waiting for its secure video upload. Please contact your instructor.';
+      return;
+    }
+    $('videoPlaceholder').textContent = 'Preparing secure playback…';
+    try {
+      const result = await LMS.api('lesson-playback', { courseId, moduleId: module.id, lessonId: lesson.id });
+      if (!selected || selected.module.id !== module.id || selected.lesson.id !== lesson.id) return;
+      $('video').src = result.playbackUrl;
+      $('video').setAttribute('referrerpolicy', 'strict-origin');
+      $('video').classList.remove('hidden');
+      $('videoPlaceholder').classList.add('hidden');
+      $('completeBtn').classList.toggle('hidden', !enrolled);
+      $('completeBtn').textContent = lesson.completed ? 'Completed ✓' : 'Mark complete';
+      $('completeBtn').disabled = !!lesson.completed;
+      if (enrolled) LMS.api('track-lesson', { courseId, lessonId: lesson.id }).catch(e => { $('learningMessage').textContent = e.message; });
+    } catch (e) {
+      if (!selected || selected.module.id !== module.id || selected.lesson.id !== lesson.id) return;
+      $('videoPlaceholder').textContent = e.message || 'Secure video playback could not start. Please try again.';
+    }
+  }
+  $('completeBtn').addEventListener('click', async () => {
+    if (!selected) return;
+    $('completeBtn').disabled = true;
+    try {
+      await LMS.api('mark-progress', { courseId, lessonId: selected.lesson.id });
+      selected.lesson.completed = true;
+      $('completeBtn').textContent = 'Completed ✓';
+      $('learningMessage').textContent = 'Progress saved.';
+      const button = document.querySelector('[data-lesson="' + CSS.escape(selected.lesson.id) + '"]');
+      const badge = button && button.querySelector('.text-xs.muted'); if (badge) badge.innerHTML = '<span class="text-emerald-300">✓ Completed</span>';
+    } catch (e) { $('learningMessage').textContent = e.message; $('completeBtn').disabled = false; }
+  });
+  $('logoutBtn').addEventListener('click', () => LMS.auth.signOut());
+  document.addEventListener('lms-auth-changed', async event => {
+    const user = event.detail.user;
+    $('learning').classList.add('hidden');
+    $('authPanel').classList.remove('hidden');
+    if (user && event.detail.verified) {
+      try { await load(); } catch (e) { $('pageError').textContent = e.message; $('authPanel').classList.remove('hidden'); }
+    }
+  });
+});
+</script>
+</body>
+</html>

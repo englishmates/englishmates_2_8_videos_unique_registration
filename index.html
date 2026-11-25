@@ -15,11 +15,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/ui-feedback.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
   <style>
     :root{--bg:#070b17;--panel:#0d1424;--panel2:#111b30;--line:#22304a;--blue:#60a5fa;--purple:#a78bfa;--coral:#fb7185;--green:#34d399}
@@ -42,8 +44,13 @@
     .modal-backdrop{background:rgba(0,0,0,.78);backdrop-filter:blur(8px)}
     .hide-scrollbar::-webkit-scrollbar{display:none}
     @media(max-width:640px){.hero-title{font-size:2.65rem;line-height:1.05}.section-pad{padding-top:4.5rem;padding-bottom:4.5rem}}
+      .panel{background:rgba(15,23,42,.72);border:1px solid rgba(148,163,184,.18)}
+    .field{background:rgba(2,6,23,.7);border:1px solid rgba(148,163,184,.25);color:#f8fafc}
+    .field::placeholder{color:#64748b}
+    .muted{color:#94a3b8}
   </style>
   <script src="assets/site-config.js"></script>
+    <script src="assets/lms.js" defer></script>
 </head>
 <body>
   <div class="fixed inset-0 grid-bg opacity-30 pointer-events-none"></div>
@@ -55,11 +62,11 @@
         <img src="assets/englishmates-logo.jpg" alt="Englishmates logo" class="w-[190px] sm:w-[220px] h-auto object-contain">
       </a>
       <div class="hidden md:flex items-center gap-7 text-sm font-semibold">
-        <a class="nav-link" href="#programs">Programs</a>
+        <a class="nav-link" href="#programs">See All Courses</a>
         <a class="nav-link" href="#tutor-preview">Find a Tutor</a>
         <a class="nav-link" href="./tutor-apply.html">Become a Tutor</a>
-        <a class="nav-link" href="./calling-community.html">Calling Community</a>
-        <a class="nav-link" href="#ai-lab">AI Lab</a>
+        <a class="nav-link" href="./calling-community.html">Calling Community</a><a class="nav-link" href="./student-dashboard.html">My Learning</a>
+        <a class="nav-link" href="#ai-lab">Learning Hub</a>
         <a class="nav-link" href="#gallery">Activities</a>
         <a class="nav-link" href="#results">Why Englishmates</a>
         <a class="nav-link" href="#about">About</a>
@@ -69,7 +76,7 @@
     </nav>
     <div id="mobileMenu" class="hidden md:hidden px-5 pb-5 border-t border-white/5">
       <div class="flex flex-col gap-4 pt-4 text-sm font-semibold">
-        <a class="nav-link" href="#programs">Programs</a><a class="nav-link" href="#tutor-preview">Find a Tutor</a><a class="nav-link" href="./tutor-apply.html">Become a Tutor</a><a class="nav-link" href="./calling-community.html">Calling Community</a><a class="nav-link" href="#ai-lab">AI Lab</a>
+        <a class="nav-link" href="#programs">See All Courses</a><a class="nav-link" href="#tutor-preview">Find a Tutor</a><a class="nav-link" href="./tutor-apply.html">Become a Tutor</a><a class="nav-link" href="./calling-community.html">Calling Community</a><a class="nav-link" href="./student-dashboard.html">My Learning</a><a class="nav-link" href="#ai-lab">Learning Hub</a>
         <a class="nav-link" href="#results">Why Englishmates</a><a class="nav-link" href="#about">About</a>
         <a href="#enroll" class="btn-coral text-white text-center px-5 py-3 rounded-xl">Book a Demo</a>
       </div>
@@ -97,7 +104,7 @@
               </p>
               <div class="flex flex-col sm:flex-row gap-3 mt-8">
                 <a href="#enroll" class="btn-primary transition-card text-white px-7 py-4 rounded-xl font-bold text-center inline-flex items-center justify-center gap-2">Book Free Demo <i data-lucide="arrow-right" class="w-5 h-5"></i></a>
-                <a href="#programs" class="px-7 py-4 rounded-xl font-bold text-center border border-white/10 bg-white/5 hover:bg-white/10 transition">Explore Programs</a>
+                <a href="#programs" class="px-7 py-4 rounded-xl font-bold text-center border border-white/10 bg-white/5 hover:bg-white/10 transition">Explore Courses</a>
               </div>
               <div class="flex flex-wrap gap-x-6 gap-y-3 mt-8 text-sm text-slate-400">
                 <span class="flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Practical speaking</span>
@@ -132,14 +139,21 @@
     </section>
 
     <!-- PROGRAMS -->
-    <section id="programs" class="section-pad py-20 px-4 lg:px-8">
+    <section id="programs" class="section-pad py-16 md:py-20 px-4 lg:px-8">
       <div class="max-w-7xl mx-auto">
-        <div class="max-w-2xl reveal">
-          <span class="text-blue-400 text-xs font-extrabold uppercase tracking-[.2em]">Learn by doing</span>
-          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Programs built for <span class="gradient-text">real growth.</span></h2>
-          <p class="text-slate-400 mt-5 leading-7">Choose one skill or combine them. Every program is designed to turn knowledge into confidence and action.</p>
+        <div class="max-w-3xl reveal">
+          <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Explore · Compare · Enroll</span>
+          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">See All Courses</h2>
+          <p class="text-slate-400 mt-4 leading-7">Browse the complete course list, compare details and reviews, then open any course to enroll or continue your learning.</p>
         </div>
-        <div id="publicCourseGrid" class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-10"><div class="text-slate-400">Loading courses…</div></div>
+        <div class="panel rounded-2xl p-4 mt-7 grid md:grid-cols-[1fr_220px_200px] gap-3">
+          <input id="lmsCourseSearch" class="field rounded-xl px-4 py-3" type="search" placeholder="Search courses, skills or instructor" aria-label="Search all courses">
+          <select id="lmsCourseCategory" class="field rounded-xl px-4 py-3" aria-label="Filter courses by category"><option value="">All categories</option></select>
+          <select id="lmsCourseSort" class="field rounded-xl px-4 py-3" aria-label="Sort courses"><option value="recommended">Recommended</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="latest">Latest courses</option><option value="popular">Popularity</option></select>
+        </div>
+        <p id="lmsCourseStatus" class="text-slate-400 text-sm mt-5" role="status">Loading courses…</p>
+        <section id="lmsCourseGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-4"></section>
+        <div class="text-center mt-8"><a href="./student-dashboard.html" class="inline-flex px-6 py-3 rounded-xl bg-violet-500/15 text-violet-200 font-bold">My Learning dashboard →</a></div>
       </div>
     </section>
 
@@ -149,11 +163,11 @@
         <div class="max-w-3xl reveal">
           <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Learn with the right guide</span>
           <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Meet your <span class="gradient-text">Tutor.</span></h2>
-          <p class="text-slate-400 mt-4 leading-7">Get personal guidance from experienced educators. Explore the tutor experience we are building at Englishmates.</p>
+          <p class="text-slate-400 mt-4 leading-7">Browse approved tutors, watch protected introduction videos, review teaching experience and request an open 30-minute session.</p>
         </div>
         <article class="card rounded-3xl p-6 md:p-8 mt-9 reveal">
           <div class="flex flex-col sm:flex-row gap-6 items-start">
-            <img src="bhagirath-dayma-profile.png" alt="Bhagirath Dayma, Founder and Lead Trainer" class="w-28 h-28 rounded-2xl object-cover object-center border border-violet-400/40">
+            <div class="w-full sm:w-80 shrink-0 aspect-video rounded-2xl border border-violet-400/40 bg-black overflow-hidden relative"><video controls controlslist="nodownload noplaybackrate" disablepictureinpicture playsinline preload="none" class="w-full h-full bg-black" aria-label="Lead tutor introduction video"></video><div class="absolute inset-0 grid place-items-center text-center pointer-events-none"><div><span class="inline-grid place-items-center w-12 h-12 rounded-full bg-violet-500/80 text-white text-xl">▶</span><p class="text-white font-bold mt-3">Lead tutor video introduction</p><p class="text-slate-400 text-xs mt-1">Video will appear here</p></div></div></div>
             <div class="flex-1">
               <span class="text-xs text-emerald-300 font-bold uppercase tracking-wide">Englishmates · Lead Trainer</span>
               <h3 class="text-2xl font-extrabold text-white mt-2">Bhagirath Dayma</h3>
@@ -173,8 +187,8 @@
         <div class="grid md:grid-cols-2 gap-5 mt-6">
           <article class="card rounded-3xl p-6">
             <div class="flex items-center gap-3"><i data-lucide="graduation-cap" class="w-6 h-6 text-blue-300"></i><h3 class="font-extrabold text-white">Student Experience</h3></div>
-            <p class="text-sm text-slate-400 leading-6 mt-3">A future student dashboard will help learners explore tutor profiles and manage class requests.</p>
-            <span class="inline-flex mt-4 px-3 py-2 rounded-full bg-amber-400/10 text-amber-300 text-xs font-bold">Coming soon</span>
+            <p class="text-sm text-slate-400 leading-6 mt-3">Review each approved tutor’s experience and subjects, watch a protected introduction, and request an open class slot.</p>
+            <span class="inline-flex mt-4 px-3 py-2 rounded-full bg-emerald-400/10 text-emerald-300 text-xs font-bold">Approved tutor profiles</span>
           </article>
           <article class="card rounded-3xl p-6">
             <div class="flex items-center gap-3"><i data-lucide="calendar-check" class="w-6 h-6 text-violet-300"></i><h3 class="font-extrabold text-white">Tutor Experience</h3></div>
@@ -186,6 +200,33 @@
         <div class="card rounded-3xl p-6 md:p-8 mt-6" id="studentTutorBooking">
           <div class="flex flex-wrap justify-between items-start gap-3"><div><span class="text-violet-300 text-xs font-extrabold uppercase tracking-widest">30-minute sessions</span><h3 class="text-2xl font-extrabold text-white mt-2">Find an available tutor</h3><p class="text-sm text-slate-400 mt-2">Choose an approved tutor and request a convenient 30-minute slot.</p></div><button id="reloadTutorSlots" class="text-sm text-violet-200 border border-white/10 rounded-xl px-4 py-2">Refresh slots</button></div>
           <div id="publicTutorList" class="grid md:grid-cols-2 gap-4 mt-6"><p class="text-sm text-slate-400">Loading available tutors…</p></div>
+          <div id="studentAuthBox" class="mt-6 border-t border-white/10 pt-6">
+            <div id="studentSignedOut">
+              <h4 class="font-bold text-white">Sign in to request a class</h4>
+              <p class="text-sm text-slate-400 mt-1">A free student account prevents spam and lets you track your requests.</p>
+              <div class="grid sm:grid-cols-2 gap-3 mt-4">
+                <input id="studentAuthEmail" type="email" autocomplete="email" placeholder="Email address" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
+                <input id="studentAuthPassword" type="password" autocomplete="current-password" placeholder="Password (at least 6 characters)" class="rounded-xl bg-black/20 border border-white/10 p-3 text-white">
+                <button type="button" id="studentSignInBtn" class="btn-primary rounded-xl p-3 text-white font-bold">Sign in</button>
+                <button type="button" id="studentSignUpBtn" class="rounded-xl p-3 border border-white/10 text-white font-bold hover:bg-white/5">Create account</button>
+                <button type="button" id="studentGoogleBtn" class="sm:col-span-2 rounded-xl p-3 border border-white/10 text-white font-bold hover:bg-white/5">Continue with Google</button>
+              </div>
+              <button type="button" id="studentResetBtn" class="text-xs text-violet-200 mt-3 underline">Forgot password?</button>
+            </div>
+            <div id="studentSignedIn" class="hidden flex flex-wrap items-center justify-between gap-3">
+              <p id="studentWho" class="text-sm text-slate-300"></p>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" id="studentVerifiedBtn" class="hidden text-sm rounded-xl px-4 py-2 border border-white/10 text-white">I have verified my email</button>
+                <button type="button" id="studentResendBtn" class="hidden text-sm rounded-xl px-4 py-2 border border-white/10 text-white">Resend verification email</button>
+                <button type="button" id="studentSignOutBtn" class="text-sm rounded-xl px-4 py-2 border border-white/10 text-slate-300">Sign out</button>
+              </div>
+            </div>
+            <p id="studentAuthMsg" role="status" class="text-sm mt-3"></p>
+          </div>
+          <div id="myBookingsBox" class="hidden mt-6 border-t border-white/10 pt-6">
+            <div class="flex items-center justify-between gap-3"><h4 class="font-bold text-white">My class requests</h4><button type="button" id="refreshMyBookings" class="text-sm text-violet-200 border border-white/10 rounded-xl px-4 py-2">Refresh</button></div>
+            <div id="myBookingsList" class="grid gap-3 mt-4"></div>
+          </div>
           <form id="studentBookingForm" class="hidden mt-6 border-t border-white/10 pt-6 grid sm:grid-cols-2 gap-3">
             <div class="sm:col-span-2"><h4 class="font-bold text-white">Request your class</h4><p id="selectedTutorLabel" class="text-sm text-violet-200 mt-1"></p></div>
             <input type="hidden" name="tutorId"><input type="hidden" name="date"><input type="hidden" name="startTime">
@@ -196,7 +237,6 @@
             <p id="bookingFormMessage" role="status" class="text-sm sm:col-span-2"></p>
           </form>
         </div>
-        <dialog id="tutorIntroDialog" class="w-[min(92vw,760px)] rounded-3xl border border-white/10 bg-[#10192b] text-white p-0 backdrop:bg-black/80"><div class="p-5 md:p-6"><div class="flex items-center justify-between gap-4"><div><p class="text-xs text-violet-300 font-bold uppercase tracking-widest">Tutor introduction</p><h3 id="tutorIntroTitle" class="text-xl font-extrabold mt-1"></h3></div><button id="closeTutorIntro" type="button" class="text-slate-300 hover:text-white text-2xl" aria-label="Close introduction">×</button></div><video id="tutorIntroVideo" controls preload="metadata" playsinline class="w-full aspect-video rounded-2xl bg-black mt-5"></video></div></dialog>
         <p class="text-xs text-slate-500 mt-5">Class requests remain pending until the tutor confirms them. Confirmed sessions are scheduled through the tutor’s connected Google Calendar with a Google Meet link. All times are India Standard Time (IST).</p>
       </div>
     </section>
@@ -227,25 +267,66 @@
       </div>
     </section>
 
-    <!-- AI LAB -->
-    <section id="ai-lab" class="section-pad py-20 px-4 lg:px-8">
-      <div class="max-w-5xl mx-auto">
-        <div class="text-center reveal">
-          <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">AI Lab</span>
-          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Try the <span class="gradient-text">AI Skill Booster.</span></h2>
-          <p class="text-slate-400 mt-4">A small taste of the practical AI experience students can build with Englishmates.</p>
+    <!-- ENGLISHMATES LEARNING HUB -->
+    <section id="ai-lab" class="section-pad py-20 px-4 lg:px-8 bg-[#050916] border-y border-white/5">
+      <div class="max-w-6xl mx-auto">
+        <div class="max-w-3xl mx-auto text-center">
+          <span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Englishmates Learning Hub</span>
+          <h2 class="text-4xl md:text-5xl font-extrabold text-white mt-3">Your next step starts <span class="gradient-text">here.</span></h2>
+          <p class="text-slate-400 mt-4 leading-7">Courses, speaking practice and tutor support—connected in one place. Choose what you want to do and jump straight in.</p>
         </div>
-        <div class="card rounded-[2rem] mt-10 overflow-hidden reveal">
-          <div class="flex border-b border-white/5 overflow-x-auto hide-scrollbar">
-            <button class="aiTab flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 border-violet-400 text-white" data-mode="polish">Polish English</button>
-            <button class="aiTab flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 border-transparent text-slate-500" data-mode="prompt">Create Prompt</button>
-            <button class="aiTab flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 border-transparent text-slate-500" data-mode="vocab">Improve Vocabulary</button>
+        <div class="flex justify-center mt-8">
+          <div class="inline-flex rounded-2xl border border-white/10 bg-white/[.035] p-1.5" role="group" aria-label="Choose learner or tutor tools">
+            <button type="button" data-hub-role="learner" aria-pressed="true" class="rounded-xl px-5 py-3 text-sm font-bold text-white bg-violet-500/20 border border-violet-300/20">For learners</button>
+            <button type="button" data-hub-role="tutor" aria-pressed="false" class="rounded-xl px-5 py-3 text-sm font-bold text-slate-400 border border-transparent hover:text-white">For tutors</button>
           </div>
-          <div class="p-6 md:p-8">
-            <textarea id="aiInput" class="w-full h-32 bg-black/20 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-violet-400 resize-none" placeholder="Type a sentence you want to improve..."></textarea>
-            <button id="aiBtn" class="btn-primary w-full mt-4 py-4 rounded-xl text-white font-bold">Generate</button>
-            <div id="aiResult" class="hidden mt-5 p-5 rounded-2xl bg-black/20 border border-white/10 text-slate-200 whitespace-pre-wrap leading-7"></div>
-          </div>
+        </div>
+        <p id="hubIntro" class="text-center text-sm text-slate-400 mt-5">Find a course, practise speaking, meet a tutor, or continue a lesson.</p>
+        <div id="learnerHubCards" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[250px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-blue-400/10 text-blue-200"><i data-lucide="book-open" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-200">Learn</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">Explore courses</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Compare course details, levels and fees, then open a course to enroll.</p>
+            <a href="#programs" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Browse courses <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[250px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-emerald-400/10 text-emerald-200"><i data-lucide="headphones" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-200">Speak</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">Calling Community</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Meet speaking partners and practise live voice conversations in a friendly space.</p>
+            <a href="./calling-community.html" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Practise speaking <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[250px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-violet-400/10 text-violet-200"><i data-lucide="messages-square" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-violet-200">Get guidance</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">Find a tutor</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Watch tutor introductions, check availability and request a 30-minute session.</p>
+            <a href="#studentTutorBooking" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Meet the tutors <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[250px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-amber-400/10 text-amber-200"><i data-lucide="graduation-cap" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-amber-200">My progress</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">My Learning</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Return to your student dashboard to see enrollments and continue lessons.</p>
+            <a href="./student-dashboard.html" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Open dashboard <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+        </div>
+        <div id="tutorHubCards" class="hidden sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[230px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-violet-400/10 text-violet-200"><i data-lucide="calendar-check" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-violet-200">Tutor tools</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">Teacher dashboard</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Update your introduction video, set teaching hours, manage blocked dates and respond to booking requests.</p>
+            <a href="./teacher-dashboard.html" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Open teacher dashboard <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[230px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-blue-400/10 text-blue-200"><i data-lucide="user-round-plus" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-200">Join as a tutor</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">Apply to teach</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Create your tutor profile and send it to the Englishmates team for review.</p>
+            <a href="./tutor-apply.html" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">Start an application <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
+          <article class="card rounded-2xl p-5 flex flex-col min-h-[230px]">
+            <div class="flex items-center justify-between"><span class="inline-grid place-items-center w-11 h-11 rounded-xl bg-emerald-400/10 text-emerald-200"><i data-lucide="eye" class="w-5 h-5"></i></span><span class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-200">Public profile</span></div>
+            <h3 class="text-lg font-extrabold text-white mt-5">See the tutor listing</h3>
+            <p class="text-sm text-slate-400 leading-6 mt-2 flex-1">Check how approved tutor profiles, introduction videos and available sessions appear to learners.</p>
+            <a href="#studentTutorBooking" class="inline-flex items-center justify-between gap-2 mt-5 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">View tutor profiles <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
+          </article>
         </div>
       </div>
     </section>
@@ -390,6 +471,7 @@
 
   <!-- ADMIN / COURSE MANAGEMENT -->
   <section id="adminArea" class="hidden py-16 px-4 lg:px-8 bg-[#02050d] border-y border-violet-500/10">
+    <div id="previewBanner" class="hidden max-w-6xl mx-auto mb-6 rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4 text-amber-100 text-sm flex flex-wrap items-center justify-between gap-3"><span><b>View-only preview.</b> You are looking at real student records. Changes are blocked here; edit them on the live site.</span><a href="./admin-lms.html" class="rounded-xl bg-white/10 px-4 py-2 font-bold">Open LMS admin (test data) →</a></div>
     <div class="max-w-7xl mx-auto">
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-5">
         <div><span class="text-violet-400 text-xs font-extrabold uppercase tracking-[.2em]">Private dashboard</span>
@@ -524,7 +606,18 @@
       appId: "1:501474121790:web:5097a43a6be4e7bc07996f6"
     };
     // IMPORTANT: use the same email address in firestore.rules.
-    const ADMIN_EMAIL = "bddayma12@gmail.com";
+    const ADMIN_EMAIL = "bddayma12@gmail.com"; const IS_DEPLOY_PREVIEW = /^deploy-preview-\d+--englishmates-ratangarh\.netlify\.app$/.test(location.hostname);
+    /* Preview safety: the old admin dashboard reads the REAL student records. On a deploy preview it opens in
+       view-only mode, and every Firestore write is blocked in the browser while it is open. */
+    (function(){
+      if(!IS_DEPLOY_PREVIEW||!window.firebase||!firebase.firestore)return;
+      const blocked=()=>{ if(window.EMUI)window.EMUI.toast('View-only in preview: this change was not saved.','error'); return Promise.reject(new Error('View-only preview: changes are blocked.')); };
+      const wrap=(proto,name)=>{ if(!proto||!proto[name])return; const orig=proto[name]; proto[name]=function(){ return window.__adminViewOnly?blocked():orig.apply(this,arguments); }; };
+      const F=firebase.firestore;
+      ['set','update','delete'].forEach(m=>wrap(F.DocumentReference&&F.DocumentReference.prototype,m));
+      wrap(F.CollectionReference&&F.CollectionReference.prototype,'add');
+      wrap(F.WriteBatch&&F.WriteBatch.prototype,'commit');
+    })();
     const ENGLISHMATES_FCM_VAPID_KEY = "BB49q-PCD2hDUUEK7IjxJmESlU5Fe8px5urKh-SdVjtrZt86rhw1NWTK29zBhOrWtftEE1Tdzw64pplrDVLAHtE";
     let db=null, auth=null;
     try{
@@ -786,12 +879,10 @@
     function slugCourse(name){return String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||('course-'+Date.now());}
     function renderPublicCourses(){
       const visible=courseCatalog.filter(c=>c.active&&!c.archived).sort((a,b)=>(a.order||999)-(b.order||999));
-      $('#publicCourseGrid').innerHTML=visible.length?visible.map((c,i)=>`<div class="card transition-card rounded-3xl p-7 reveal show"><div class="w-12 h-12 rounded-2xl bg-violet-500/10 text-violet-300 flex items-center justify-center"><i data-lucide="graduation-cap"></i></div><h3 class="text-xl font-bold text-white mt-6">${esc(c.name)}</h3><div class="text-3xl font-extrabold text-white mt-4">${esc(c.fee||'Contact us')}</div><div class="text-xs text-violet-300 font-bold mt-1">${esc(c.duration||c.tag||'Course')}</div><p class="text-slate-400 text-sm leading-6 mt-3">${esc(c.description||'')}</p><div class="mt-5 text-xs text-slate-300 space-y-2">${(c.features||[]).map(f=>`<div>✓ ${esc(f)}</div>`).join('')}</div><button data-course="${esc(c.name)}" class="courseBtn mt-7 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Enroll / Enquire</button></div>`).join(''):'<p class="text-slate-400">New courses will be announced soon.</p>';
       $('#courseSelect').innerHTML=visible.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
       COURSE_FEES={}; visible.forEach(c=>COURSE_FEES[c.name]=c.fee||'Contact us'); COURSES=courseCatalog.filter(c=>!c.archived).map(c=>c.name);
-      $$('.courseBtn').forEach(b=>b.addEventListener('click',()=>{$('#courseSelect').value=b.dataset.course;updateSelectedCourseFee();openModal('#enrollModal')}));
       if(!visible.some(c=>c.name===$('#courseSelect').value)&&visible.length)$('#courseSelect').value=visible[0].name;
-      updateSelectedCourseFee(); lucide.createIcons();
+      updateSelectedCourseFee();
     }
     async function loadCourses(){
       if(!db){courseCatalog=DEFAULT_COURSES;renderPublicCourses();return;}
@@ -950,70 +1041,78 @@
     }
     async function showAdmin(){
       $('#adminArea').classList.remove('hidden'); $('#adminArea').scrollIntoView({behavior:'smooth'});
+      if(IS_DEPLOY_PREVIEW){
+        window.__adminViewOnly=true; $('#previewBanner').classList.remove('hidden');
+        try{renderCourseManager();}catch(_){}
+        subscribeAdmin(); return;
+      }
       try{await seedDefaultCourses();renderCourseManager();}catch(err){$('#courseManagerMsg').textContent='Course controls need Firestore rules allowing owner access to the courses collection.';}
       subscribeAdmin();
     }
-    $('#adminLink').addEventListener('click',()=>auth&&auth.currentUser?showAdmin():openModal('#adminLoginModal'));
+    $('#adminLink').addEventListener('click',()=>{auth&&auth.currentUser&&(auth.currentUser.email||'').toLowerCase()===ADMIN_EMAIL.toLowerCase()?showAdmin():openModal('#adminLoginModal');});
     $('#adminLoginForm').addEventListener('submit',async e=>{
       e.preventDefault(); const m=$('#adminLoginMsg');
       if(ADMIN_EMAIL.startsWith('YOUR_ADMIN_EMAIL')){m.textContent='Set your real admin email in index.html before logging in.';m.className='text-sm text-center text-amber-300';return;}
       try{
         await auth.signInWithEmailAndPassword($('#adminEmail').value.trim(),$('#adminPassword').value);
         if((auth.currentUser.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await auth.signOut();throw new Error('not-admin');}
-        closeAll(); showAdmin(); setTimeout(async()=>{ if(Notification.permission==='default') await enableNotifications(); else if(Notification.permission==='granted') await setupFCM(); },400);
+        closeAll(); showAdmin(); if(!IS_DEPLOY_PREVIEW) setTimeout(async()=>{ if(Notification.permission==='default') await enableNotifications(); else if(Notification.permission==='granted') await setupFCM(); },400);
       }catch(err){console.error('Englishmates admin login error:',err.code,err.message);m.textContent=err.message==='not-admin'?'This account is not the Englishmates owner account.':`Login failed (${err.code||'unknown'}). ${err.message||'Check Firebase Authentication.'}`;m.className='text-sm text-center text-rose-400'}
     });
     $('#logoutBtn').addEventListener('click',async()=>{if(adminUnsubscribe)adminUnsubscribe();knownStudentIds.clear();adminFirstLoad=true;$('#adminArea').classList.add('hidden');await auth.signOut()});
     if(auth) auth.onAuthStateChanged(u=>{ if(u && !$('#adminArea').classList.contains('hidden')) subscribeAdmin(); });
 
-    // Lightweight AI demo that works without exposing an API key in the browser.
-    let aiMode='polish';
-    $$('.aiTab').forEach(tab=>tab.addEventListener('click',()=>{
-      aiMode=tab.dataset.mode;
-      $$('.aiTab').forEach(x=>{x.classList.remove('text-white','border-violet-400');x.classList.add('text-slate-500','border-transparent')});
-      tab.classList.add('text-white','border-violet-400');tab.classList.remove('text-slate-500','border-transparent');
-      $('#aiInput').placeholder = aiMode==='polish'?'Type a sentence you want to improve...':aiMode==='prompt'?'Describe what you want AI to do...':'Enter a word or simple sentence...';
-      $('#aiResult').classList.add('hidden');
+    // Simple audience switch makes the site's real tools easy to find.
+    const hubRoleButtons=$$('[data-hub-role]'), learnerHubCards=$('#learnerHubCards'), tutorHubCards=$('#tutorHubCards'), hubIntro=$('#hubIntro');
+    hubRoleButtons.forEach(button=>button.addEventListener('click',()=>{
+      const isTutor=button.dataset.hubRole==='tutor';
+      hubRoleButtons.forEach(item=>{
+        const active=item===button;
+        item.setAttribute('aria-pressed',String(active));
+        item.classList.toggle('text-white',active);
+        item.classList.toggle('text-slate-400',!active);
+        item.classList.toggle('bg-violet-500/20',active);
+        item.classList.toggle('border-violet-300/20',active);
+        item.classList.toggle('border-transparent',!active);
+      });
+      learnerHubCards.classList.toggle('hidden',isTutor);
+      tutorHubCards.classList.toggle('hidden',!isTutor);
+      tutorHubCards.classList.toggle('grid',isTutor);
+      hubIntro.textContent=isTutor
+        ?'Manage your tutor profile and availability, or apply to join the teaching team.'
+        :'Find a course, practise speaking, meet a tutor, or continue a lesson.';
     }));
-    $('#aiBtn').addEventListener('click',()=>{
-      const v=$('#aiInput').value.trim(); if(!v)return;
-      let r='';
-      if(aiMode==='polish') r=`Better version:\\n“${v}”\\n\\nTip: Keep your sentence clear, natural and specific. In the full Englishmates AI lab, students can practise rewriting, grammar and professional communication.`;
-      if(aiMode==='prompt') r=`Starter prompt:\\n“Act as an expert assistant. Help me with: ${v}. Ask any important clarifying question first, then give a practical answer with examples.”\\n\\nTip: Good prompts give AI a role, task and desired output.`;
-      if(aiMode==='vocab') r=`Vocabulary practice for “${v}”:\\n• Understand the meaning in context\\n• Learn 2–3 useful alternatives\\n• Make your own sentence\\n• Use the word in tomorrow’s conversation`;
-      $('#aiResult').textContent=r; $('#aiResult').classList.remove('hidden');
-    });
 
 
-    // Student-facing tutor availability and 30-minute booking requests.
+    // Student-facing approved tutor directory and 30-minute booking requests.
     const tutorList=$('#publicTutorList'), bookingForm=$('#studentBookingForm');
     let publicTutors=[];
-    const safeTutorPhoto=(url)=>/^https:\/\//i.test(url)?url:'';
-    const safeTutorVideo=(url)=>/^https:\/\/firebasestorage\.googleapis\.com\//i.test(url)?url:'';
-    const tutorIntroDialog=$('#tutorIntroDialog'),tutorIntroVideo=$('#tutorIntroVideo');
-    function closeTutorIntro(){tutorIntroVideo.pause();tutorIntroVideo.removeAttribute('src');tutorIntroVideo.load();if(tutorIntroDialog.open)tutorIntroDialog.close();}
-    function openTutorIntro(tutor){const video=safeTutorVideo(tutor.introVideoUrl);if(!video)return;tutorIntroVideo.src=video;$('#tutorIntroTitle').textContent=tutor.name+' · introduction';tutorIntroDialog.showModal();tutorIntroVideo.play().catch(()=>{});}
-    $('#closeTutorIntro').addEventListener('click',closeTutorIntro);tutorIntroDialog.addEventListener('close',()=>{tutorIntroVideo.pause();tutorIntroVideo.removeAttribute('src');tutorIntroVideo.load();});
+    function safeTutorPlayback(value){try{const url=new URL(String(value||''));return url.protocol==='https:'&&/^[a-z0-9.-]+\.cloudflarestream\.com$/i.test(url.hostname)&&/^\/[A-Za-z0-9._~-]+\/iframe$/.test(url.pathname)?url.href:'';}catch(_){return '';}}
     async function loadPublicTutors(){
-      tutorList.innerHTML='<p class="text-sm text-slate-400">Loading available tutors…</p>';
+      tutorList.innerHTML='<p class="text-sm text-slate-400">Loading approved tutors…</p>';
       try{
         const r=await fetch(Englishmates.api('student-bookings'),{cache:'no-store'}),data=await r.json();
         if(!r.ok||!data.ok)throw new Error(data.error||'Could not load tutors.');
         publicTutors=data.tutors||[];
-        if(!publicTutors.length){tutorList.innerHTML='<p class="text-sm text-slate-400">No tutor slots are available right now. Please check again later.</p>';return;}
-        tutorList.innerHTML=publicTutors.map(t=>{const photo=safeTutorPhoto(t.photoUrl),intro=safeTutorVideo(t.introVideoUrl),avatar=photo?'<img src="'+esc(photo)+'" alt="" class="w-14 h-14 rounded-xl object-cover">':'<div class="w-14 h-14 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-200 font-bold text-xl">'+esc((t.name||'T').slice(0,1).toUpperCase())+'</div>';return '<article class="rounded-2xl border border-white/10 bg-white/[.025] p-4">'+
-          '<div class="flex items-center gap-3">'+(intro?'<button type="button" data-watch-intro="'+esc(t.id)+'" class="relative shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400" aria-label="Watch '+esc(t.name)+' introduction">'+avatar+'<span class="absolute inset-0 grid place-items-center rounded-xl bg-black/45 text-white text-lg">▶</span></button>':avatar)+
-          '<div><h4 class="font-extrabold text-white">'+esc(t.name)+'</h4><p class="text-xs text-violet-200">'+esc(t.subjects||'Englishmates Tutor')+'</p></div></div>'+
-          (t.bio?'<p class="text-sm text-slate-400 mt-3">'+esc(t.bio)+'</p>':'')+
-          (intro?'<button type="button" data-watch-intro="'+esc(t.id)+'" class="text-sm text-violet-200 font-bold mt-3">▶ Watch '+esc(String(Math.round(t.introVideoDurationSeconds||0)||1))+'-second introduction</button>':'')+
-          '<label class="block text-xs text-slate-400 mt-4">Available 30-minute slots</label><select data-tutor-slot="'+esc(t.id)+'" class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white"><option value="">Choose a date and time</option>'+t.slots.map(s=>'<option value="'+esc(s.date+'|'+s.startTime)+'">'+esc(s.date)+' · '+esc(s.startTime)+'–'+esc(s.endTime)+' IST</option>').join('')+'</select><button type="button" data-book-tutor="'+esc(t.id)+'" class="btn-primary rounded-xl px-4 py-2.5 text-sm font-bold text-white mt-3">Request this tutor</button></article>';}).join('');
+        if(!publicTutors.length){tutorList.innerHTML='<p class="text-sm text-slate-400">No approved tutor profiles are available right now.</p>';return;}
+        tutorList.innerHTML=publicTutors.map(t=>{
+          const name=t.name||'Englishmates Tutor',video=safeTutorPlayback(t.introVideoPlaybackUrl),slots=Array.isArray(t.slots)?t.slots:[];
+          const player=video
+            ?'<iframe src="'+esc(video)+'" title="'+esc(name)+' introduction video" class="w-full aspect-video bg-black" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>'
+            :'<div class="w-full aspect-video bg-gradient-to-br from-slate-950 via-violet-950/50 to-slate-900 grid place-items-center text-center p-6" aria-label="Tutor introduction video not available yet"><div><span class="inline-grid place-items-center w-12 h-12 rounded-full bg-white/10 text-violet-200 text-xl">▶</span><p class="text-white font-bold mt-3">Introduction video coming soon</p><p class="text-slate-400 text-xs mt-1">A protected introduction video will appear here when ready.</p></div></div>';
+          const experience=t.experience?'<span class="shrink-0 text-xs rounded-full bg-violet-400/10 text-violet-200 px-3 py-1">'+esc(t.experience)+'</span>':'';
+          const booking=slots.length
+            ?'<label class="block text-xs text-slate-400 mt-4">Available 30-minute slots</label><select data-tutor-slot="'+esc(t.id)+'" class="w-full mt-2 rounded-xl bg-[#080f1e] border border-white/10 p-3 text-white"><option value="">Choose a date and time</option>'+slots.map(s=>'<option value="'+esc(s.date+'|'+s.startTime)+'">'+esc(s.date)+' · '+esc(s.startTime)+'–'+esc(s.endTime)+' IST</option>').join('')+'</select><button type="button" data-book-tutor="'+esc(t.id)+'" class="btn-primary rounded-xl px-4 py-2.5 text-sm font-bold text-white mt-3">Request this tutor</button>'
+            :'<div class="mt-4 rounded-xl border border-white/10 bg-white/[.025] p-3 text-sm text-slate-400">No open class slots right now.</div><button type="button" disabled class="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-400 bg-white/5 mt-3 cursor-not-allowed">Currently unavailable</button>';
+          return '<article class="rounded-2xl border border-white/10 bg-white/[.025] overflow-hidden">'+player+'<div class="p-5"><div class="flex flex-wrap items-start justify-between gap-3"><div><h4 class="font-extrabold text-white text-lg">'+esc(name)+'</h4><p class="text-sm text-violet-200 mt-1">'+esc(t.subjects||'Englishmates Tutor')+'</p></div>'+experience+'</div>'+(t.bio?'<p class="text-sm text-slate-300 leading-6 mt-4">'+esc(t.bio)+'</p>':'')+booking+'</div></article>';
+        }).join('');
       }catch(e){tutorList.innerHTML='<p class="text-sm text-rose-300">'+esc(e.message)+'</p>';}
     }
     tutorList.addEventListener('click',e=>{
-      const intro=e.target.closest('[data-watch-intro]');if(intro){const tutor=publicTutors.find(t=>t.id===intro.dataset.watchIntro);if(tutor)openTutorIntro(tutor);return;}
-      const btn=e.target.closest('[data-book-tutor]');if(!btn)return;
+      const btn=e.target.closest('[data-book-tutor]');if(!btn||btn.disabled)return;
       const tutor=publicTutors.find(t=>t.id===btn.dataset.bookTutor),select=tutorList.querySelector('[data-tutor-slot="'+btn.dataset.bookTutor+'"]');
-      if(!tutor||!select.value){alert('Please choose an available 30-minute slot first.');return;}
+      if(!tutor||!select||!select.value){alert('Please choose an available 30-minute slot first.');return;}
+      if(!(auth&&auth.currentUser&&auth.currentUser.emailVerified)){studentMsg('Please sign in with a verified email to request a class.',true);$('#studentAuthBox').scrollIntoView({behavior:'smooth',block:'center'});return;}
       const [date,startTime]=select.value.split('|');
       bookingForm.elements.tutorId.value=tutor.id;bookingForm.elements.date.value=date;bookingForm.elements.startTime.value=startTime;
       $('#selectedTutorLabel').textContent=tutor.name+' · '+date+' · '+startTime+' IST (30 minutes)';
@@ -1022,16 +1121,96 @@
     bookingForm.addEventListener('submit',async e=>{
       e.preventDefault();const btn=$('#sendBookingRequest');btn.disabled=true;$('#bookingFormMessage').textContent='Sending your request…';
       const payload=Object.fromEntries(new FormData(bookingForm).entries());
-      try{const r=await fetch(Englishmates.api('student-bookings'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not send request.');
-        $('#bookingFormMessage').textContent=data.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-emerald-300';bookingForm.reset();bookingForm.classList.add('hidden');await loadPublicTutors();
+      try{if(!(auth&&auth.currentUser))throw new Error('Please sign in first.');const r=await fetch(Englishmates.api('student-bookings'),{method:'POST',headers:await studentHeaders(),body:JSON.stringify(payload)}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not send request.');
+        $('#bookingFormMessage').textContent=data.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-emerald-300';bookingForm.reset();bookingForm.classList.add('hidden');await loadPublicTutors();loadMyBookings();
       }catch(err){$('#bookingFormMessage').textContent=err.message;$('#bookingFormMessage').className='text-sm sm:col-span-2 text-rose-300';await loadPublicTutors();}
       finally{btn.disabled=false;}
     });
+    // ---- Student account (required for class requests) ----
+    const studentMsg=(t,bad)=>{const m=$('#studentAuthMsg');m.textContent=t||'';m.className='text-sm mt-3 '+(bad?'text-rose-300':'text-emerald-300');};
+    const studentError=e=>({'auth/email-already-in-use':'This email already has an account. Please sign in.','auth/invalid-email':'Enter a valid email address.','auth/weak-password':'Choose a password with at least 6 characters.','auth/invalid-credential':'The email or password is incorrect.','auth/popup-closed-by-user':'Google sign-in was cancelled.','auth/unauthorized-domain':'This website domain is not authorised in Firebase Authentication.'}[e&&e.code]||(e&&e.message)||'Something went wrong. Please try again.');
+    async function studentHeaders(){return {'Content-Type':'application/json',Authorization:'Bearer '+await auth.currentUser.getIdToken()};}
+    function renderStudentAuth(){
+      const u=auth&&auth.currentUser;
+      $('#studentSignedOut').classList.toggle('hidden',!!u);$('#studentSignedIn').classList.toggle('hidden',!u);
+      $('#myBookingsBox').classList.toggle('hidden',!(u&&u.emailVerified));
+      if(!u)return;
+      $('#studentWho').textContent='Signed in as '+u.email+(u.emailVerified?'':' — email not verified yet');
+      $('#studentVerifiedBtn').classList.toggle('hidden',u.emailVerified);$('#studentResendBtn').classList.toggle('hidden',u.emailVerified);
+      if(u.emailVerified){bookingForm.elements.email.value=u.email;bookingForm.elements.email.readOnly=true;if(!bookingForm.elements.studentName.value&&u.displayName)bookingForm.elements.studentName.value=u.displayName;}
+    }
+    async function loadMyBookings(){
+      const list=$('#myBookingsList');if(!(auth&&auth.currentUser&&auth.currentUser.emailVerified))return;
+      try{
+        const r=await fetch(Englishmates.api('student-bookings')+'?mine=1',{headers:await studentHeaders(),cache:'no-store'}),data=await r.json();
+        if(!r.ok||!data.ok)throw new Error(data.error||'Could not load your requests.');
+        const label={pending:'Waiting for tutor',confirmed:'Confirmed',rejected:'Declined',cancelled:'Cancelled'},tone={pending:'text-amber-300',confirmed:'text-emerald-300',rejected:'text-rose-300',cancelled:'text-slate-400'};
+        list.innerHTML=data.bookings.length?data.bookings.map(b=>'<article class="rounded-2xl border border-white/10 bg-white/[.025] p-4 flex flex-wrap items-center justify-between gap-3"><div><p class="font-bold text-white">'+esc(b.tutorName)+'</p><p class="text-sm text-slate-400">'+esc(b.date)+' · '+esc(b.startTime)+'–'+esc(b.endTime)+' IST</p><p class="text-xs font-bold mt-1 '+(tone[b.status]||'text-slate-400')+'">'+esc(label[b.status]||b.status)+'</p></div><div class="flex gap-2">'+(b.status==='confirmed'&&/^https:\/\//i.test(b.meetLink)?'<a href="'+esc(b.meetLink)+'" target="_blank" rel="noopener" class="btn-primary rounded-xl px-4 py-2 text-sm font-bold text-white">Join Google Meet</a>':'')+(b.status==='pending'?'<button type="button" data-cancel-booking="'+esc(b.id)+'" class="rounded-xl px-4 py-2 text-sm border border-white/10 text-slate-300 hover:bg-white/5">Cancel request</button>':'')+'</div></article>').join(''):'<p class="text-sm text-slate-400">You have not requested any classes yet.</p>';
+      }catch(err){list.innerHTML='<p class="text-sm text-rose-300">'+esc(err.message)+'</p>';}
+    }
+    $('#myBookingsList').addEventListener('click',async e=>{
+      const b=e.target.closest('[data-cancel-booking]');if(!b)return;b.disabled=true;
+      try{const r=await fetch(Englishmates.api('student-bookings'),{method:'POST',headers:await studentHeaders(),body:JSON.stringify({action:'cancel',bookingId:b.dataset.cancelBooking})}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not cancel.');studentMsg(data.message);}
+      catch(err){studentMsg(err.message,true);}
+      await loadPublicTutors();loadMyBookings();
+    });
+    $('#refreshMyBookings').addEventListener('click',loadMyBookings);
+    const studentCreds=()=>({email:$('#studentAuthEmail').value.trim(),password:$('#studentAuthPassword').value});
+    $('#studentSignInBtn').addEventListener('click',async()=>{try{const c=studentCreds();await auth.signInWithEmailAndPassword(c.email,c.password);studentMsg('');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentSignUpBtn').addEventListener('click',async()=>{try{const c=studentCreds();const cred=await auth.createUserWithEmailAndPassword(c.email,c.password);await cred.user.sendEmailVerification();studentMsg('Account created. We sent a verification link to '+c.email+'. Open it, then press “I have verified my email”.');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentGoogleBtn').addEventListener('click',async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());studentMsg('');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentResetBtn').addEventListener('click',async()=>{try{const email=$('#studentAuthEmail').value.trim();if(!email)throw new Error('Enter your email address first.');await auth.sendPasswordResetEmail(email);studentMsg('Password reset email sent.');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentResendBtn').addEventListener('click',async()=>{try{await auth.currentUser.sendEmailVerification();studentMsg('Verification email sent again. Check your inbox and spam folder.');}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentVerifiedBtn').addEventListener('click',async()=>{try{await auth.currentUser.reload();await auth.currentUser.getIdToken(true);renderStudentAuth();if(auth.currentUser.emailVerified){studentMsg('Email verified. You can request a class now.');loadMyBookings();}else studentMsg('Not verified yet. Open the link in the email first.',true);}catch(e){studentMsg(studentError(e),true);}});
+    $('#studentSignOutBtn').addEventListener('click',async()=>{await auth.signOut();});
+    if(auth)auth.onAuthStateChanged(()=>{renderStudentAuth();loadMyBookings();});
     $('#reloadTutorSlots').addEventListener('click',loadPublicTutors);loadPublicTutors();
 
     // Reveal animations
     const io=new IntersectionObserver(entries=>entries.forEach(en=>{if(en.isIntersecting){en.target.classList.add('show');io.unobserve(en.target)}}),{threshold:.08});
     $$('.reveal').forEach(el=>io.observe(el));
   </script>
+<script>
+(function () {
+  document.addEventListener('DOMContentLoaded', async function () {
+    const byId = id => document.getElementById(id);
+    let courses = [];
+    function render() {
+      const term = byId('lmsCourseSearch').value.trim().toLowerCase();
+      const category = byId('lmsCourseCategory').value;
+      let list = courses.filter(c => (!category || c.category === category) &&
+        (!term || [c.title,c.description,c.category,c.instructorName,c.level].join(' ').toLowerCase().includes(term)));
+      const mode = byId('lmsCourseSort').value;
+      if (mode === 'price-low') list.sort((a,b) => (a.pricePaise || 0) - (b.pricePaise || 0));
+      if (mode === 'price-high') list.sort((a,b) => (b.pricePaise || 0) - (a.pricePaise || 0));
+      if (mode === 'latest') list.sort((a,b) => String(b.createdAt || b.startDate || '').localeCompare(String(a.createdAt || a.startDate || '')));
+      if (mode === 'popular') list.sort((a,b) => (b.popularity || 0) - (a.popularity || 0));
+      byId('lmsCourseGrid').innerHTML = list.length ? list.map(c => {
+        const image = c.thumbnailUrl ? '<img src="' + LMS.escape(c.thumbnailUrl) + '" alt="" loading="lazy" class="w-full h-48 object-cover">' :
+          '<div class="w-full h-48 bg-gradient-to-br from-blue-600/30 via-violet-600/30 to-rose-500/20 flex items-center justify-center text-5xl">✦</div>';
+        const price = c.pricePaise === null ? 'Fee on request' : LMS.formatMoney(c.pricePaise);
+        return '<article class="card rounded-2xl overflow-hidden transition hover:-translate-y-1"><a href="./course-details.html?id=' + encodeURIComponent(c.id) + '" class="block">' + image +
+          '<div class="p-5"><div class="flex items-center justify-between gap-2"><span class="text-xs text-violet-200 bg-violet-400/10 rounded-full px-3 py-1">' + LMS.escape(c.category) + '</span><span class="text-xs muted">' + LMS.escape(c.level) + '</span></div>' +
+          '<h3 class="text-xl font-bold mt-4">' + LMS.escape(c.title) + '</h3>' + (c.reviewCount ? '<p class="text-amber-200 text-xs mt-1">★ ' + Number(c.ratingAverage).toFixed(1) + ' · ' + c.reviewCount + ' reviews</p>' : '') +
+          '<p class="muted text-sm mt-2 min-h-10">' + LMS.escape(c.shortDescription || c.description || '') + '</p>' +
+          '<div class="flex items-end justify-between mt-5"><div><p class="text-xs muted">Instructor</p><p class="font-semibold text-sm mt-1">' + LMS.escape(c.instructorName) + '</p></div><div class="text-right"><p class="text-xs muted">' + LMS.escape(c.duration || '') + '</p><p class="text-lg font-black text-white mt-1">' + price + '</p></div></div>' +
+          '<span class="inline-flex btn rounded-xl px-4 py-3 font-bold mt-5 w-full justify-center">View course &amp; enroll</span></div></a></article>';
+      }).join('') : '<div class="panel rounded-2xl p-8 md:col-span-3 text-center"><h3 class="font-bold text-xl">No courses found</h3><p class="muted mt-2">Try another search, or check back when the next course is published.</p></div>';
+      byId('lmsCourseStatus').textContent = list.length + (list.length === 1 ? ' course' : ' courses');
+    }
+    ['lmsCourseSearch','lmsCourseCategory','lmsCourseSort'].forEach(id => byId(id).addEventListener('input', render));
+    try {
+      const result = await LMS.api('public-courses');
+      courses = result.courses || [];
+      const categories = Array.from(new Set(courses.map(c => c.category).filter(Boolean))).sort();
+      byId('lmsCourseCategory').innerHTML = '<option value="">All categories</option>' + categories.map(c => '<option value="' + LMS.escape(c) + '">' + LMS.escape(c) + '</option>').join('');
+      render();
+    } catch (error) {
+      byId('lmsCourseStatus').textContent = error.message;
+      byId('lmsCourseGrid').innerHTML = '<div class="panel rounded-2xl p-8 text-center text-rose-200">' + LMS.escape(error.message) + '</div>';
+    }
+  });
+}());
+</script>
 </body>
 </html>

@@ -4,7 +4,7 @@ const {
 } = require('../lib/calling');
 const cors = require('../lib/cors');
 
-const STATUSES = ['pending', 'approved', 'rejected', 'suspended'];
+const STATUSES = ['approved', 'rejected', 'suspended'];
 
 function profileForAdmin(snapshot) {
   const value = snapshot.data();
@@ -12,10 +12,28 @@ function profileForAdmin(snapshot) {
     uid: snapshot.id, fullName: value.fullName, alias: value.alias, email: value.email,
     age: value.age, city: value.city, state: value.state, level: value.level,
     interests: value.interests || [], goals: value.goals, preferredLanguage: value.preferredLanguage,
-    locationPreference: value.locationPreference, status: value.status || 'pending',
-    countryStatus: value.countryStatus || 'pending', createdAt: iso(value.createdAt),
+    locationPreference: value.locationPreference, status: value.status || 'approved', approvalMethod: value.approvalMethod || null,
+    countryStatus: value.countryStatus || 'approved', createdAt: iso(value.createdAt),
     updatedAt: iso(value.updatedAt), reviewedAt: iso(value.reviewedAt), reviewedBy: value.reviewedBy || null
   };
+}
+
+async function activatePendingProfiles(db) {
+  const pending = await db.collection(COLLECTIONS.profiles).where('status', '==', 'pending').get();
+  const profiles = pending.docs;
+  for (let start = 0; start < profiles.length; start += 450) {
+    const batch = db.batch();
+    profiles.slice(start, start + 450).forEach(doc => {
+      const suspended = doc.data().moderationStatus === 'suspended';
+      batch.update(doc.ref, {
+        status: suspended ? 'suspended' : 'approved',
+        countryStatus: 'approved',
+        ...(suspended ? {} : { approvalMethod: 'automatic', approvedAt: admin.firestore.FieldValue.serverTimestamp() }),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    await batch.commit();
+  }
 }
 
 exports.handler = async event => {
@@ -24,21 +42,27 @@ exports.handler = async event => {
     const user = await authenticatedUser(event);
     requireAdmin(user);
     if (event.httpMethod === 'GET') {
+      await activatePendingProfiles(db);
       const requested = clean(event.queryStringParameters?.status, 20);
       const status = STATUSES.includes(requested) ? requested : null;
       let query = db.collection(COLLECTIONS.profiles).orderBy('createdAt', 'desc').limit(100);
       if (status) query = db.collection(COLLECTIONS.profiles).where('status', '==', status).limit(100);
-      const [profiles, reports, sessions, auditSnap] = await Promise.all([
+      const [profiles, reports, sessions, auditSnap, approvedCount, completedCount, activeCount, failureCount] = await Promise.all([
         query.get(),
         db.collection(COLLECTIONS.reports).where('status', '==', 'open').limit(100).get(),
         db.collection(COLLECTIONS.sessions).where('status', 'in', ['invited', 'accepted', 'active']).limit(50).get(),
-        db.collection(COLLECTIONS.audit).orderBy('createdAt', 'desc').limit(100).get()
+        db.collection(COLLECTIONS.audit).orderBy('createdAt', 'desc').limit(100).get(),
+        db.collection(COLLECTIONS.profiles).where('status', '==', 'approved').count().get(),
+        db.collection(COLLECTIONS.sessions).where('callCompleted', '==', true).count().get(),
+        db.collection(COLLECTIONS.sessions).where('status', 'in', ['invited', 'accepted', 'active']).count().get(),
+        db.collection(COLLECTIONS.failures).where('createdAt', '>=', admin.firestore.Timestamp.fromMillis(Date.now() - 24 * 60 * 60 * 1000)).count().get()
       ]);
       return reply(200, { ok: true,
         profiles: profiles.docs.map(profileForAdmin),
         reports: reports.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: iso(doc.data().createdAt), resolvedAt: iso(doc.data().resolvedAt) })),
         sessions: sessions.docs.map(doc => ({ id: doc.id, status: doc.data().status, participants: doc.data().participants || [], createdAt: iso(doc.data().createdAt), expiresAt: iso(doc.data().expiresAt) })),
-        audit: auditSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: iso(doc.data().createdAt) }))
+        audit: auditSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: iso(doc.data().createdAt) })),
+        metrics: { approvedLearners: approvedCount.data().count, completedCalls: completedCount.data().count, activeCalls: activeCount.data().count, callFailures24h: failureCount.data().count }
       });
     }
     if (event.httpMethod !== 'POST') return reply(405, { ok: false, error: 'Method not allowed.' });
@@ -51,7 +75,7 @@ exports.handler = async event => {
       if (!snap.exists) throw httpError(404, 'Learner profile not found.');
       await ref.update({ status, countryStatus: status === 'approved' ? 'approved' : 'pending', moderationStatus: status === 'suspended' ? 'suspended' : 'active', reviewedAt: admin.firestore.FieldValue.serverTimestamp(), reviewedBy: user.email, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
       await audit(db, user, `profile_${status}`, uid);
-      return reply(200, { ok: true, message: `Learner marked ${status}.` });
+      return reply(200, { ok: true, message: status === 'approved' ? 'Learner access restored.' : status === 'rejected' ? 'Learner access blocked.' : 'Learner access suspended.' });
     }
     if (action === 'resolve-report') {
       const id = clean(body.id, 160); const outcome = clean(body.outcome, 120);

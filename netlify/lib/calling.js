@@ -11,7 +11,10 @@ const COLLECTIONS = Object.freeze({
   blocks: `callingBlocks${suffix}`,
   reports: `callingReports${suffix}`,
   audit: `callingModerationAudit${suffix}`,
-  limits: `callingRateLimits${suffix}`
+  limits: `callingRateLimits${suffix}`,
+  partnerRequests: `callingPartnerRequests${suffix}`,
+  connections: `callingPartnerConnections${suffix}`,
+  failures: `callingFailures${suffix}`
 });
 
 function store() {
@@ -56,6 +59,23 @@ function iso(value) {
   return value?.toDate?.().toISOString?.() || null;
 }
 
+function containsContactDetails(value) {
+  const text = String(value || '');
+  const digits = text.replace(/\D/g, '');
+  return /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(text) || /0?[6-9]\d{9}/.test(digits);
+}
+
+function safeAvatar(value) {
+  const text = String(value || '').trim();
+  if (text.length <= 30000 && /^data:image\/(?:webp|png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(text)) return text;
+  try {
+    const url = new URL(text);
+    const host = url.hostname.toLowerCase();
+    const allowed = host === 'googleusercontent.com' || host.endsWith('.googleusercontent.com') || host === 'firebasestorage.googleapis.com';
+    return url.protocol === 'https:' && allowed ? url.href.slice(0, 1000) : null;
+  } catch (_) { return null; }
+}
+
 async function authenticatedUser(event) {
   const headers = event.headers || {};
   const token = String(headers.authorization || headers.Authorization || '').replace(/^Bearer\s+/i, '');
@@ -64,7 +84,7 @@ async function authenticatedUser(event) {
   if (!decoded.email || !decoded.email_verified) {
     throw httpError(403, 'Verify your email address before using Calling Community.');
   }
-  return { uid: decoded.uid, email: String(decoded.email).toLowerCase(), claims: decoded };
+  return { uid: decoded.uid, email: String(decoded.email).toLowerCase(), signInProvider: decoded.firebase?.sign_in_provider || '', claims: decoded };
 }
 
 async function ownProfile(db, user, required = true) {
@@ -75,8 +95,8 @@ async function ownProfile(db, user, required = true) {
 }
 
 function requireEligible(profile) {
-  if (profile.status !== 'approved') throw httpError(403, 'Your community profile must be approved before you can find a partner.');
-  if (profile.countryCode !== 'IN' || profile.countryStatus !== 'approved') throw httpError(403, 'India eligibility is still awaiting approval.');
+  if (profile.status !== 'approved') throw httpError(403, 'Complete and activate your community profile before you can find a partner.');
+  if (profile.countryCode !== 'IN' || profile.countryStatus !== 'approved') throw httpError(403, 'Your profile must confirm that you are an adult in India before you can find a partner.');
   if (profile.adultConfirmed !== true) throw httpError(403, 'Calling Community is available only to adults aged 18 and above.');
   if (profile.moderationStatus && profile.moderationStatus !== 'active') {
     throw httpError(403, 'Calling Community access is currently unavailable for this account.');
@@ -85,7 +105,11 @@ function requireEligible(profile) {
 
 function adminAllowed(user) {
   // This is deliberately enforced in the Netlify function, not trusted to the UI.
-  return user.email === PRIMARY_ADMIN_EMAIL;
+  return user.email === PRIMARY_ADMIN_EMAIL && user.signInProvider === 'password';
+}
+
+function requireCommunityLearner(user) {
+  if (!['google.com', 'password'].includes(user.signInProvider)) throw httpError(403, 'Sign in with Google or verified email and password to use Calling Community.');
 }
 
 function requireAdmin(user) {
@@ -124,12 +148,8 @@ async function areBlocked(db, firstUid, secondUid) {
 }
 
 function publicProfile(profile) {
-  return {
-    alias: clean(profile.alias, 32),
-    level: clean(profile.level, 20),
-    topics: Array.isArray(profile.topics) ? profile.topics.slice(0, 5) : [],
-    preferredLanguage: clean(profile.preferredLanguage, 30)
-  };
+  const alias = clean(profile.alias, 32);
+  return { alias: containsContactDetails(alias) ? 'English learner' : alias || 'English learner', avatarURL: safeAvatar(profile.avatarURL) };
 }
 
 function audit(db, actor, action, targetUid, details = {}) {
@@ -153,13 +173,16 @@ module.exports = {
   authenticatedUser,
   blockId,
   clean,
+  containsContactDetails,
   consumeLimit,
   httpError,
   iso,
   ownProfile,
   publicProfile,
   reply,
+  safeAvatar,
   requireAdmin,
+  requireCommunityLearner,
   requireEligible,
   store
 };
