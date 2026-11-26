@@ -539,14 +539,22 @@ async function handle(event) {
       const profile = await ensureProfile(user.uid, user, { name, phone, qualification, city, state });
       const enrollmentId = crypto.createHash('sha256').update(user.uid + ':' + courseId).digest('hex').slice(0, 40);
       const ref = col('enrollments').doc(enrollmentId);
+      const capacityRef = col('lmsCourseCapacity').doc(courseId);
       let alreadyExists = false;
       await db().runTransaction(async tx => {
         const snap = await tx.get(ref);
         if (snap.exists) { alreadyExists = true; return; }
+        let seatsAfterEnrollment = null;
         if (p.seatLimit) {
-          const sameCourse = await tx.get(col('enrollments').where('courseId', '==', courseId));
-          const reserved = sameCourse.docs.filter(item => ['active', 'pending_payment', 'pending_review'].includes(item.data().status)).length;
+          const [capacitySnap, sameCourse] = await Promise.all([
+            tx.get(capacityRef),
+            tx.get(col('enrollments').where('courseId', '==', courseId))
+          ]);
+          const reservedFromRecords = sameCourse.docs.filter(item => ['active', 'pending_payment', 'pending_review'].includes(item.data().status)).length;
+          const trackedReserved = capacitySnap.exists ? Number(capacitySnap.data().reservedSeats || 0) : 0;
+          const reserved = Math.max(reservedFromRecords, Number.isFinite(trackedReserved) ? trackedReserved : 0);
           if (reserved >= p.seatLimit) throw fail(409, 'This course has reached its enrollment limit. Please contact Englishmates for the next batch.');
+          seatsAfterEnrollment = reserved + 1;
         }
         const free = amount === 0;
         const data = {
@@ -562,6 +570,7 @@ async function handle(event) {
           createdAt: now(), updatedAt: now()
         };
         tx.create(ref, data);
+        if (seatsAfterEnrollment !== null) tx.set(capacityRef, { courseId, reservedSeats: seatsAfterEnrollment, updatedAt: now() }, { merge: true });
       });
       const enrollment = serialize(await ref.get());
       return response(event, 200, { ok: true, existing: alreadyExists, enrollment });
