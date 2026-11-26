@@ -1162,13 +1162,44 @@ async function handle(event) {
       const status = body.status === 'suspended' ? 'suspended' : body.status === 'active' ? 'active' : '';
       if (!enrollmentId || !status) throw fail(400, 'Choose active or suspended.');
       const ref = col('enrollments').doc(enrollmentId);
-      const snap = await ref.get();
-      if (!snap.exists) throw fail(404, 'Enrollment not found.');
-      const e = snap.data();
-      if (status === 'active' && !['paid', 'not_required'].includes(e.paymentStatus)) {
-        throw fail(409, 'Confirm payment before restoring course access.');
-      }
-      await ref.set({ status, updatedAt: now(), reviewedBy: actor.email }, { merge: true });
+      let courseId = '';
+      await db().runTransaction(async tx => {
+        const enrollmentSnap = await tx.get(ref);
+        if (!enrollmentSnap.exists) throw fail(404, 'Enrollment not found.');
+        const e = enrollmentSnap.data();
+        courseId = clean(e.courseId, 120);
+        if (status === 'active' && !['paid', 'not_required'].includes(e.paymentStatus)) {
+          throw fail(409, 'Confirm payment before restoring course access.');
+        }
+        const wasReserved = ['active', 'pending_payment', 'pending_review'].includes(e.status);
+        const willBeReserved = ['active', 'pending_payment', 'pending_review'].includes(status);
+        let capacityRef = null, capacityAfter = null;
+        if (courseId && wasReserved !== willBeReserved) {
+          capacityRef = col('lmsCourseCapacity').doc(courseId);
+          const courseRef = e.courseSource === 'legacy'
+            ? db().collection('courses').doc(courseId)
+            : col('lmsCourses').doc(courseId);
+          const [capacitySnap, courseSnap, enrollmentRows] = await Promise.all([
+            tx.get(capacityRef),
+            tx.get(courseRef),
+            tx.get(col('enrollments').where('courseId', '==', courseId))
+          ]);
+          const tracked = capacitySnap.exists ? Number(capacitySnap.data().reservedSeats || 0) : 0;
+          const fromRecords = enrollmentRows.docs.filter(row =>
+            ['active', 'pending_payment', 'pending_review'].includes(row.data().status)).length;
+          const reserved = Math.max(fromRecords, Number.isFinite(tracked) ? tracked : 0);
+          const courseData = courseSnap.exists ? courseSnap.data() : {};
+          const limit = Number(courseData.seatLimit || 0);
+          if (willBeReserved && limit > 0 && reserved >= limit) {
+            throw fail(409, 'This course has reached its enrollment limit. Please contact Englishmates for the next batch.');
+          }
+          capacityAfter = Math.max(0, reserved + (willBeReserved ? 1 : -1));
+        }
+        tx.set(ref, { status, updatedAt: now(), reviewedBy: actor.email }, { merge: true });
+        if (capacityRef && capacityAfter !== null) {
+          tx.set(capacityRef, { courseId, reservedSeats: capacityAfter, updatedAt: now() }, { merge: true });
+        }
+      });
       await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'set-enrollment-status', enrollmentId, status, createdAt: now() });
       return response(event, 200, { ok: true });
     }
