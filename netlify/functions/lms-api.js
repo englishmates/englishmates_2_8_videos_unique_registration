@@ -138,6 +138,11 @@ function parseMoneyPaise(course) {
   return digits ? Number(digits) * 100 : null;
 }
 
+function normalizeCourseType(value) {
+  const type = String(value || '').trim().toLowerCase();
+  return ['recorded', 'online', 'offline'].includes(type) ? type : 'recorded';
+}
+
 function publicCourse(id, c, source) {
   return {
     id,
@@ -147,6 +152,15 @@ function publicCourse(id, c, source) {
     description: clean(c.description || c.shortDescription, 1600),
     shortDescription: clean(c.shortDescription || c.description, 260),
     category: clean(c.category || c.tag || 'Spoken English', 80),
+    courseType: normalizeCourseType(c.courseType),
+    audience: clean(c.audience, 240),
+    seatLimit: c.seatLimit != null && c.seatLimit !== '' && Number.isFinite(Number(c.seatLimit)) && Number(c.seatLimit) > 0 ? Math.round(Number(c.seatLimit)) : null,
+    classSchedule: clean(c.classSchedule, 240),
+    sessionCount: c.sessionCount != null && Number(c.sessionCount) > 0 ? Math.round(Number(c.sessionCount)) : null,
+    sessionDurationMinutes: c.sessionDurationMinutes != null && Number(c.sessionDurationMinutes) > 0 ? Math.round(Number(c.sessionDurationMinutes)) : null,
+    timeZone: clean(c.timeZone || 'Asia/Kolkata', 80),
+    venueName: clean(c.venueName, 140),
+    venueAddress: clean(c.venueAddress, 500),
     level: clean(c.level || 'All levels', 40),
     language: clean(c.language || 'English', 60),
     duration: clean(c.duration, 80),
@@ -529,12 +543,19 @@ async function handle(event) {
       await db().runTransaction(async tx => {
         const snap = await tx.get(ref);
         if (snap.exists) { alreadyExists = true; return; }
+        if (p.seatLimit) {
+          const sameCourse = await tx.get(col('enrollments').where('courseId', '==', courseId));
+          const reserved = sameCourse.docs.filter(item => ['active', 'pending_payment', 'pending_review'].includes(item.data().status)).length;
+          if (reserved >= p.seatLimit) throw fail(409, 'This course has reached its enrollment limit. Please contact Englishmates for the next batch.');
+        }
         const free = amount === 0;
         const data = {
           uid: user.uid, studentId: profile.studentId, studentName: name,
           email: String(user.email).toLowerCase(), phone, qualification, city, state,
-          courseId, courseName: p.title, courseSource: course.source,
+          courseId, courseName: p.title, courseSource: course.source, courseType: p.courseType,
           courseStartDate: p.startDate, courseEndDate: p.endDate, duration: p.duration,
+          classSchedule: p.classSchedule, sessionCount: p.sessionCount, sessionDurationMinutes: p.sessionDurationMinutes,
+          timeZone: p.timeZone, venueName: p.venueName, venueAddress: p.venueAddress,
           amountPaise: amount, totalLessons: Number(p.lectureCount || 0), completedLessons: 0,
           paymentStatus: free ? 'not_required' : 'unpaid',
           status: free ? 'active' : 'pending_payment',
@@ -837,9 +858,18 @@ async function handle(event) {
       const description = clean(body.description, 1600);
       const pricePaise = Math.round(Number(body.pricePaise));
       const originalPricePaise = Math.round(Number(body.originalPricePaise || body.pricePaise));
+      const courseType = normalizeCourseType(body.courseType);
+      const status = body.status === 'published' ? 'published' : 'draft';
+      const classSchedule = clean(body.classSchedule, 240);
+      const venueName = clean(body.venueName, 140);
+      const venueAddress = clean(body.venueAddress, 500);
+      const seatLimit = body.seatLimit == null || body.seatLimit === '' ? null : Math.round(Number(body.seatLimit));
       if (title.length < 3 || description.length < 10 || !Number.isFinite(pricePaise) || pricePaise < 0 || !Number.isFinite(originalPricePaise) || originalPricePaise < pricePaise) {
         throw fail(400, 'Enter a course title, description and valid prices.');
       }
+      if (seatLimit !== null && (!Number.isFinite(seatLimit) || seatLimit < 1 || seatLimit > 10000)) throw fail(400, 'Set an enrollment limit from 1 to 10,000, or leave it blank.');
+      if (status === 'published' && courseType === 'online' && !classSchedule) throw fail(400, 'Add the online class schedule before publishing.');
+      if (status === 'published' && courseType === 'offline' && (!classSchedule || !venueName || !venueAddress)) throw fail(400, 'Add the offline schedule, venue name and venue address before publishing.');
       const courseId = slug(body.courseId || title) || slug(title);
       if (!courseId) throw fail(400, 'Course ID could not be created.');
       const ref = col('lmsCourses').doc(courseId);
@@ -847,6 +877,15 @@ async function handle(event) {
         title, name: title, description,
         shortDescription: clean(body.shortDescription || description, 260),
         category: clean(body.category || 'Spoken English', 80),
+        courseType,
+        audience: clean(body.audience, 240),
+        seatLimit,
+        classSchedule,
+        sessionCount: body.sessionCount == null || body.sessionCount === '' ? null : Math.max(1, Math.min(500, Math.round(Number(body.sessionCount)))),
+        sessionDurationMinutes: body.sessionDurationMinutes == null || body.sessionDurationMinutes === '' ? null : Math.max(1, Math.min(600, Math.round(Number(body.sessionDurationMinutes)))),
+        timeZone: clean(body.timeZone || 'Asia/Kolkata', 80),
+        venueName,
+        venueAddress,
         level: clean(body.level || 'Beginner', 40),
         language: clean(body.language || 'English', 60),
         duration: clean(body.duration, 80),
@@ -865,7 +904,7 @@ async function handle(event) {
         faqs: Array.isArray(body.faqs) ? body.faqs.slice(0, 12).map(x => ({ question: clean(x.question, 180), answer: clean(x.answer, 600) })) : [],
         demoVideoId: clean(body.demoVideoId, 20),
         popularity: Math.max(0, Number(body.popularity || 0)),
-        status: body.status === 'published' ? 'published' : 'draft',
+        status,
         order: Math.max(1, Number(body.order || 999)),
         updatedAt: now()
       };
@@ -926,6 +965,7 @@ async function handle(event) {
       }
       const courseSnap = await col('lmsCourses').doc(courseId).get();
       if (!courseSnap.exists) throw fail(404, 'Save or import this LMS course before adding lessons.');
+      if (normalizeCourseType(courseSnap.data().courseType) !== 'recorded') throw fail(400, 'Lesson videos can only be added to a Recorded course.');
       const pendingRef = youtubeId ? null : col('lmsVideoUploads').doc(videoUid);
       if (pendingRef) {
         const pendingSnap = await pendingRef.get();
@@ -1020,6 +1060,48 @@ async function handle(event) {
       const courseId = clean(body.courseId, 120);
       if (!courseId) throw fail(400, 'Choose a course.');
       return response(event, 200, { ok: true, modules: await getContent(courseId) });
+    }
+
+    if (action === 'reorder-course-module' || action === 'reorder-course-lesson') {
+      const actor = await requireAdmin(event);
+      const courseId = clean(body.courseId, 120);
+      const direction = body.direction === 'up' ? -1 : body.direction === 'down' ? 1 : 0;
+      if (!courseId || !direction) throw fail(400, 'Choose a course and a valid move direction.');
+      const contentRef = col('lmsCourseContent').doc(courseId);
+      if (action === 'reorder-course-module') {
+        const moduleId = slug(body.moduleId);
+        if (!moduleId) throw fail(400, 'Choose a module.');
+        const collection = contentRef.collection('modules');
+        const snapshot = await collection.orderBy('order').get();
+        const docs = snapshot.docs.slice();
+        const index = docs.findIndex(item => item.id === moduleId);
+        const target = index + direction;
+        if (index < 0) throw fail(404, 'Module not found.');
+        if (target < 0 || target >= docs.length) return response(event, 200, { ok: true });
+        docs.splice(target, 0, docs.splice(index, 1)[0]);
+        if (docs.length > 450) throw fail(409, 'Too many modules to reorder at once.');
+        const batch = db().batch();
+        docs.forEach((item, i) => batch.set(item.ref, { order: (i + 1) * 10, updatedAt: now() }, { merge: true }));
+        await batch.commit();
+        await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'reorder-course-module', courseId, createdAt: now() });
+      } else {
+        const moduleId = slug(body.moduleId), lessonId = slug(body.lessonId);
+        if (!moduleId || !lessonId) throw fail(400, 'Choose a module and lesson.');
+        const collection = contentRef.collection('modules').doc(moduleId).collection('lessons');
+        const snapshot = await collection.orderBy('order').get();
+        const docs = snapshot.docs.slice();
+        const index = docs.findIndex(item => item.id === lessonId);
+        const target = index + direction;
+        if (index < 0) throw fail(404, 'Lesson not found.');
+        if (target < 0 || target >= docs.length) return response(event, 200, { ok: true });
+        docs.splice(target, 0, docs.splice(index, 1)[0]);
+        if (docs.length > 450) throw fail(409, 'Too many lessons to reorder at once.');
+        const batch = db().batch();
+        docs.forEach((item, i) => batch.set(item.ref, { order: (i + 1) * 10, updatedAt: now() }, { merge: true }));
+        await batch.commit();
+        await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'reorder-course-lesson', courseId, moduleId, createdAt: now() });
+      }
+      return response(event, 200, { ok: true });
     }
 
     if (action === 'set-lesson-preview') {
