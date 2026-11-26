@@ -353,10 +353,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const parts = lines[i].split('|').map(x => x.trim());
         const withTitle = parts.length > 1;
         const url = withTitle ? parts[1] : parts[0];
-        const title = withTitle ? parts[0] : 'Lesson ' + (existingCount + saved + 1);
+        const moduleTitle = $('moduleTitle').value.trim() || 'Course videos';
+        const moduleOrder = selectedModuleOrder();
+        const moduleBaseOrder = selectedModuleLessonCount();
+        const title = withTitle ? parts[0] : 'Lesson ' + (moduleBaseOrder + saved + 1);
         const minutes = withTitle && parts[2] ? Number(parts[2]) : 0;
         setMessage('Adding video ' + (i + 1) + ' of ' + lines.length + '…', false);
-        try { await LMS.api('save-lesson', { courseId, title, youtubeUrl: url, durationMinutes: minutes, preview: false, published: true }); saved++; }
+        try { await LMS.api('save-lesson', { courseId, moduleTitle, moduleOrder, order: moduleBaseOrder + saved + 1, title, youtubeUrl: url, durationMinutes: minutes, preview: false, published: true }); saved++; }
         catch (e) { failed.push('Line ' + (i + 1) + ': ' + e.message); }
       }
       $('ytLinks').value = failed.length ? lines.filter((_, i) => failed.some(f => f.startsWith('Line ' + (i + 1) + ':'))).join('\n') : '';
@@ -372,6 +375,20 @@ document.addEventListener('DOMContentLoaded', function () {
   let courseHasDemo = false;
   let courseModules = [];
   const maxBytes = 200 * 1024 * 1024;
+  function selectedModule() {
+    const title = $('moduleTitle').value.trim() || 'Course videos';
+    const id = slug(title);
+    return courseModules.find(m => m.id === id || String(m.title || '').toLowerCase() === title.toLowerCase()) || null;
+  }
+  function selectedModuleLessonCount() { const m = selectedModule(); return m ? (m.lessons || []).length : 0; }
+  function selectedModuleOrder() { const m = selectedModule(); return m ? Number(m.order || 1) : Math.max(1, Number($('moduleOrder').value || courseModules.length + 1)); }
+  function syncModuleOrder() {
+    const m = selectedModule();
+    $('moduleOrder').value = m ? Number(m.order || 1) : Math.max(1, courseModules.length + 1);
+    existingCount = selectedModuleLessonCount();
+    renderQueue();
+  }
+  $('moduleTitle').addEventListener('input', syncModuleOrder);
   function prettyTitle(name) { return String(name).replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim(); }
   function readMinutes(file) {
     return new Promise(resolve => {
@@ -388,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function () {
     box.innerHTML = queue.map((q, i) =>
       '<div class="rounded-xl bg-white/[.03] border border-white/5 p-3">' +
         '<div class="grid md:grid-cols-[44px_1fr_96px_auto_36px] gap-3 items-center">' +
-          '<span class="font-black text-violet-300">#' + (existingCount + i + 1) + '</span>' +
+          '<span class="font-black text-violet-300">#' + (selectedModuleLessonCount() + i + 1) + '</span>' +
           '<input data-q-title="' + i + '" value="' + LMS.escape(q.title) + '" maxlength="180" aria-label="Video title" class="field rounded-lg px-3 py-2">' +
           '<input data-q-min="' + i + '" type="number" min="1" max="180" value="' + (q.minutes || '') + '" placeholder="Minutes" aria-label="Length in minutes" class="field rounded-lg px-3 py-2">' +
           '<label class="flex items-center gap-2 text-sm whitespace-nowrap"><input data-q-free="' + i + '" type="checkbox" class="w-4 h-4" ' + (q.preview ? 'checked' : '') + '> Free demo</label>' +
@@ -427,27 +444,50 @@ document.addEventListener('DOMContentLoaded', function () {
   ['dragover', 'dragenter'].forEach(t => $('dropZone').addEventListener(t, e => { e.preventDefault(); }));
   $('dropZone').addEventListener('drop', e => { e.preventDefault(); addFiles(e.dataTransfer.files); });
   $('clearQueue').addEventListener('click', () => { queue = []; renderQueue(); });
-  $('lessonCourse').addEventListener('change', () => { refreshLessons(); renderQueue(); });
+  $('lessonCourse').addEventListener('change', () => { refreshLessons().then(syncModuleOrder).catch(() => {}); updateCourseModeFields(); renderQueue(); });
 
   async function refreshLessons() {
     const courseId = $('lessonCourse').value;
     const box = $('courseLessons');
-    if (!courseId) { box.innerHTML = '<p class="muted text-sm">Choose a course to see its videos.</p>'; existingCount = 0; courseHasDemo = false; return; }
+    if (!courseId) {
+      courseModules = []; existingCount = 0; courseHasDemo = false;
+      $('moduleOptions').innerHTML = '';
+      box.innerHTML = '<p class="muted text-sm">Choose a recorded course to see its modules and lessons.</p>';
+      updateCourseModeFields(); renderQueue(); return;
+    }
     try {
       const result = await LMS.api('admin-lessons', { courseId });
       courseModules = result.modules || [];
-      const rows = [];
-      courseModules.forEach(m => m.lessons.forEach(l => rows.push({ m, l })));
-      existingCount = rows.length;
-      courseHasDemo = rows.some(r => r.l.preview);
-      box.innerHTML = rows.length ? rows.map((r, i) =>
-        '<div class="flex items-center justify-between gap-3 rounded-xl bg-white/[.03] border border-white/5 px-4 py-3">' +
-          '<div class="min-w-0"><p class="font-semibold text-sm truncate">' + (i + 1) + '. ' + LMS.escape(r.l.title) + '</p><p class="muted text-xs mt-0.5">' + (r.l.durationMinutes || '?') + ' min' + (r.l.hasVideo ? '' : ' · video missing') + '</p></div>' +
-          '<button data-module="' + LMS.escape(r.m.id) + '" data-lesson="' + LMS.escape(r.l.id) + '" data-preview="' + (r.l.preview ? '1' : '0') + '" type="button" class="shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ' + (r.l.preview ? 'bg-emerald-400/15 text-emerald-200 border border-emerald-300/30' : 'bg-white/5 text-slate-300 border border-white/10') + '">' + (r.l.preview ? '🔓 Free demo' : '🔒 Locked') + '</button>' +
-        '</div>').join('') : '<p class="muted text-sm">No videos yet. Add YouTube links above; tap a badge to make one the free demo.</p>';
-      box.querySelectorAll('[data-lesson]').forEach(btn => btn.addEventListener('click', async () => {
+      $('moduleOptions').innerHTML = courseModules.map(m => '<option value="' + LMS.escape(m.title || '') + '"></option>').join('');
+      const allLessons = courseModules.flatMap(m => m.lessons || []);
+      courseHasDemo = allLessons.some(l => l.preview);
+      existingCount = selectedModuleLessonCount();
+      if (!courseModules.some(m => m.id === slug($('moduleTitle').value || 'Course videos')) && courseModules.length && $('moduleTitle').value === 'Course videos') {
+        $('moduleTitle').value = courseModules[0].title || 'Course videos';
+      }
+      syncModuleOrder();
+      box.innerHTML = courseModules.length ? courseModules.map((m, moduleIndex) =>
+        '<section class="rounded-xl border border-white/10 p-3"><div class="flex flex-wrap items-center justify-between gap-2 mb-2"><div><p class="font-bold">' + LMS.escape(m.title || 'Module') + '</p><p class="muted text-xs">Module ' + (moduleIndex + 1) + ' · ' + (m.lessons || []).length + ' lesson(s)</p></div><div class="flex gap-1"><button data-module-move="up" data-module="' + LMS.escape(m.id) + '" type="button" aria-label="Move module up" ' + (moduleIndex === 0 ? 'disabled' : '') + ' class="rounded-lg border border-white/10 px-3 py-1.5 text-sm disabled:opacity-30">↑</button><button data-module-move="down" data-module="' + LMS.escape(m.id) + '" type="button" aria-label="Move module down" ' + (moduleIndex === courseModules.length - 1 ? 'disabled' : '') + ' class="rounded-lg border border-white/10 px-3 py-1.5 text-sm disabled:opacity-30">↓</button></div></div>' +
+        ((m.lessons || []).length ? m.lessons.map((l, lessonIndex) =>
+          '<div class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white/[.03] px-3 py-2 mt-2"><div class="min-w-0"><p class="font-semibold text-sm truncate">' + (lessonIndex + 1) + '. ' + LMS.escape(l.title) + '</p><p class="muted text-xs mt-0.5">' + (l.durationMinutes || '?') + ' min' + (l.hasVideo ? '' : ' · video missing') + '</p></div><div class="flex items-center gap-1"><button data-module="' + LMS.escape(m.id) + '" data-lesson="' + LMS.escape(l.id) + '" data-preview="' + (l.preview ? '1' : '0') + '" type="button" class="rounded-full px-3 py-1.5 text-xs font-bold ' + (l.preview ? 'bg-emerald-400/15 text-emerald-200 border border-emerald-300/30' : 'bg-white/5 text-slate-300 border border-white/10') + '">' + (l.preview ? '🔓 Free demo' : '🔒 Locked') + '</button><button data-lesson-move="up" data-module="' + LMS.escape(m.id) + '" data-lesson="' + LMS.escape(l.id) + '" type="button" aria-label="Move lesson up" ' + (lessonIndex === 0 ? 'disabled' : '') + ' class="rounded-lg border border-white/10 px-2 py-1 text-sm disabled:opacity-30">↑</button><button data-lesson-move="down" data-module="' + LMS.escape(m.id) + '" data-lesson="' + LMS.escape(l.id) + '" type="button" aria-label="Move lesson down" ' + (lessonIndex === m.lessons.length - 1 ? 'disabled' : '') + ' class="rounded-lg border border-white/10 px-2 py-1 text-sm disabled:opacity-30">↓</button></div></div>'
+        ).join('') : '<p class="muted text-sm mt-2">No lessons in this module yet.</p>') +
+        '</section>').join('') : '<p class="muted text-sm">No modules or lessons yet. Upload a video or add an unlisted YouTube lesson.</p>';
+      box.querySelectorAll('[data-lesson]').forEach(btn => {
+        if (btn.hasAttribute('data-lesson-move')) return;
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try { await LMS.api('set-lesson-preview', { courseId, moduleId: btn.dataset.module, lessonId: btn.dataset.lesson, preview: btn.dataset.preview !== '1' }); await refreshLessons(); }
+          catch (e) { setMessage(e.message, true); btn.disabled = false; }
+        });
+      });
+      box.querySelectorAll('[data-module-move]').forEach(btn => btn.addEventListener('click', async () => {
         btn.disabled = true;
-        try { await LMS.api('set-lesson-preview', { courseId, moduleId: btn.dataset.module, lessonId: btn.dataset.lesson, preview: btn.dataset.preview !== '1' }); await refreshLessons(); }
+        try { await LMS.api('reorder-course-module', { courseId, moduleId: btn.dataset.module, direction: btn.dataset.moduleMove }); await refreshLessons(); }
+        catch (e) { setMessage(e.message, true); btn.disabled = false; }
+      }));
+      box.querySelectorAll('[data-lesson-move]').forEach(btn => btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try { await LMS.api('reorder-course-lesson', { courseId, moduleId: btn.dataset.module, lessonId: btn.dataset.lesson, direction: btn.dataset.lessonMove }); await refreshLessons(); }
         catch (e) { setMessage(e.message, true); btn.disabled = false; }
       }));
       renderQueue();
@@ -473,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setRow(i, 'Uploading…', 0);
         await uploadSecureVideo(upload.uploadURL, q.file, $('qp-' + i));
         setRow(i, 'Saving…', 100);
-        await LMS.api('save-lesson', { videoUid: upload.uid, courseId, title: String(q.title).trim(), durationMinutes: q.minutes, preview: q.preview === true, published: true });
+        await LMS.api('save-lesson', { videoUid: upload.uid, courseId, moduleTitle: $('moduleTitle').value.trim() || 'Course videos', moduleOrder: selectedModuleOrder(), order: selectedModuleLessonCount() + i + 1, title: String(q.title).trim(), durationMinutes: q.minutes, preview: q.preview === true, published: true });
         q.status = 'done'; saved++;
         setRow(i, '✓ Saved', 100);
       } catch (e) { q.status = 'error'; q.error = e.message; setRow(i, '⚠ ' + e.message, null, true); }
