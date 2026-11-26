@@ -88,8 +88,9 @@
 <section class="panel rounded-2xl p-5 md:p-6">
 <h2 class="text-xl font-black">Send course announcement</h2><p class="muted text-sm mt-1">Send an update to students with active access for one course.</p><form id="announcementForm" class="grid gap-3 mt-4"><select name="courseId" id="announcementCourse" required class="field rounded-xl px-3 py-3"><option value="">Choose a course</option></select><input name="title" required maxlength="140" placeholder="Announcement title" class="field rounded-xl px-3 py-3"><textarea name="message" required minlength="5" maxlength="600" rows="3" placeholder="Announcement message" class="field rounded-xl px-3 py-3"></textarea><button class="btn rounded-xl px-5 py-3 font-bold">Send announcement</button></form>
 </section>
-<section class="panel rounded-2xl p-5 md:p-6">
-<h2 class="text-xl font-black">Enrollment and payment review</h2><p class="muted text-sm mt-1">Confirm manual UPI payments against your account before activating course access.</p>
+<section id="payment-review" class="panel rounded-2xl p-5 md:p-6">
+<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-xl font-black">Enrollment and payment review</h2><p class="muted text-sm mt-1">Confirm manual UPI payments against your account before activating course access.</p></div><button id="refreshPayments" type="button" class="rounded-xl border border-white/10 px-4 py-2 text-sm">Refresh</button></div>
+<div id="paymentAlerts" class="grid gap-2 mt-4"></div>
 <input id="studentSearch" type="search" placeholder="Search student name, phone, email or course" class="field rounded-xl px-3 py-3 mt-4"><div id="enrollmentList" class="overflow-x-auto mt-4"></div>
 </section>
 </div>
@@ -103,6 +104,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const adminEmail = 'bddayma12@gmail.com';
   function slug(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0,72); }
   function setMessage(message, error) { $('adminMessage').textContent = message || ''; $('adminMessage').className = 'text-sm mt-4 ' + (error ? 'text-rose-300' : 'text-emerald-300'); }
+  $('refreshPayments').addEventListener('click', async () => {
+    const button = $('refreshPayments');
+    const done = EMUI.busy(button, 'Refreshing…');
+    try { await load(); setMessage('Payment reviews refreshed.', false); }
+    catch (error) { setMessage(error.message, true); }
+    finally { done(); }
+  });
   async function load() {
     const result = await LMS.api('admin-dashboard');
     data = result;
@@ -110,6 +118,11 @@ document.addEventListener('DOMContentLoaded', function () {
     $('countEnrollments').textContent = data.enrollments.length;
     $('countPayments').textContent = data.payments.filter(p => p.status === 'under_review').length;
     $('countActive').textContent = data.enrollments.filter(e => e.status === 'active').length;
+    const alerts = (data.adminNotifications || []).filter(item => item.type === 'payment_review').slice(0, 5);
+    $('paymentAlerts').innerHTML = alerts.length ? alerts.map(item => {
+      const when = item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Just now';
+      return '<article class="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3"><p class="text-sm font-semibold text-amber-100">' + LMS.escape(item.title || 'Payment submitted') + '</p><p class="muted text-xs mt-1">' + LMS.escape(item.message || '') + '</p><p class="muted text-[11px] mt-1">' + LMS.escape(when) + '</p></article>';
+    }).join('') : '<p class="muted text-sm">No payment alerts yet.</p>';
     $('coursesList').innerHTML = data.courses.length ? data.courses.map(c =>
       '<article class="rounded-xl bg-white/[.03] border border-white/5 p-4 flex flex-wrap justify-between gap-3"><div><p class="font-bold">' + LMS.escape(c.title || c.name) + '</p><p class="muted text-xs mt-1">' + LMS.escape(c.category || '') + ' · ' + LMS.escape(c.status || 'draft') + '</p><p class="text-sm mt-2">' + (c.pricePaise == null ? 'Fee not set' : LMS.formatMoney(c.pricePaise)) + '</p></div><div class="flex gap-2"><button data-edit="' + LMS.escape(c.id) + '" class="rounded-lg border border-white/10 px-3 py-2 text-sm">Edit</button><button data-archive="' + LMS.escape(c.id) + '" class="rounded-lg border border-rose-400/20 text-rose-200 px-3 py-2 text-sm">Archive</button></div></article>').join('') : '<p class="muted text-sm">No LMS courses yet. Copy the existing catalog or add the first course.</p>';
     const courseOptions = '<option value="">Choose a course</option>' + data.courses.map(c => '<option value="' + LMS.escape(c.id) + '">' + LMS.escape(c.title || c.name) + '</option>').join('');
