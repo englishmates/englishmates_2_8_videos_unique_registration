@@ -100,6 +100,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (courseType === 'online') deliveryFacts.push(['Time zone', c.timeZone === 'Asia/Kolkata' ? 'IST (Asia/Kolkata)' : (c.timeZone || 'IST')]);
     if (courseType === 'offline' && c.venueName) deliveryFacts.push(['Venue', c.venueName]);
     if (courseType === 'offline' && c.venueAddress) deliveryFacts.push(['Address', c.venueAddress]);
+    if (courseType === 'offline' && c.venueDirections) deliveryFacts.push(['Directions', c.venueDirections]);
+    if (courseType === 'offline' && c.contactInfo) deliveryFacts.push(['Contact', c.contactInfo]);
     if (c.seatLimit) deliveryFacts.push(['Batch size', 'Up to ' + c.seatLimit + ' learners']);
     if (courseType === 'recorded') deliveryFacts.push(['Course lessons', c.lectureCount ? c.lectureCount + ' protected lessons' : 'Recorded lessons are added by the instructor']);
     $('deliverySummary').textContent = courseType === 'recorded' ? 'Access protected lessons after enrollment and payment approval.' : courseType === 'online' ? 'Class access details are shared with enrolled students for the scheduled sessions.' : 'Attend the listed Englishmates venue at the scheduled batch time.';
