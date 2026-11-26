@@ -313,8 +313,7 @@ async function sendAdminPaymentPush(alert) {
     const snap = await db().collection('adminDevices').get();
     const tokens = snap.docs.map(d => d.data().token).filter(Boolean);
     if (!tokens.length) return;
-    const siteUrl = String(process.env.URL || 'https://englishmates-ratangarh.netlify.app').replace(/\\/$/, '');
-    const link = siteUrl + '/admin-lms.html#payment-review';
+    const link = new URL('/admin-lms.html#payment-review', process.env.URL || 'https://englishmates-ratangarh.netlify.app').toString();
     const result = await admin.messaging().sendEachForMulticast({
       tokens,
       notification: { title: alert.title, body: alert.message },
