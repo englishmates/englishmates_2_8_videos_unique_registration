@@ -125,6 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
   $('dataSourceBadge').textContent = isDeployPreview ? 'Preview data · separate from live' : 'Live production data';
   $('dataSourceBadge').classList.add(isDeployPreview ? 'bg-amber-300/10' : 'bg-emerald-300/10', isDeployPreview ? 'text-amber-200' : 'text-emerald-200');
   function slug(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0,72); }
+  function courseTypeLabel(type) { return ({ recorded: 'Recorded', online: 'Online', offline: 'Offline' })[type] || 'Recorded'; }
   function setMessage(message, error) { $('adminMessage').textContent = message || ''; $('adminMessage').className = 'text-sm mt-4 ' + (error ? 'text-rose-300' : 'text-emerald-300'); }
   $('refreshPayments').addEventListener('click', async () => {
     const button = $('refreshPayments');
@@ -146,9 +147,12 @@ document.addEventListener('DOMContentLoaded', function () {
       return '<article class="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3"><p class="text-sm font-semibold text-amber-100">' + LMS.escape(item.title || 'Payment submitted') + '</p><p class="muted text-xs mt-1">' + LMS.escape(item.message || '') + '</p><p class="muted text-[11px] mt-1">' + LMS.escape(when) + '</p></article>';
     }).join('') : '<p class="muted text-sm">No payment alerts yet.</p>';
     $('coursesList').innerHTML = data.courses.length ? data.courses.map(c =>
-      '<article class="rounded-xl bg-white/[.03] border border-white/5 p-4 flex flex-wrap justify-between gap-3"><div><p class="font-bold">' + LMS.escape(c.title || c.name) + '</p><p class="muted text-xs mt-1">' + LMS.escape(c.category || '') + ' · ' + LMS.escape(c.status || 'draft') + '</p><p class="text-sm mt-2">' + (c.pricePaise == null ? 'Fee not set' : LMS.formatMoney(c.pricePaise)) + '</p></div><div class="flex gap-2"><button data-edit="' + LMS.escape(c.id) + '" class="rounded-lg border border-white/10 px-3 py-2 text-sm">Edit</button><button data-archive="' + LMS.escape(c.id) + '" class="rounded-lg border border-rose-400/20 text-rose-200 px-3 py-2 text-sm">Archive</button></div></article>').join('') : '<p class="muted text-sm">No LMS courses yet. Copy the existing catalog or add the first course.</p>';
+      '<article class="rounded-xl bg-white/[.03] border border-white/5 p-4 flex flex-wrap justify-between gap-3"><div><p class="font-bold">' + LMS.escape(c.title || c.name) + '</p><p class="muted text-xs mt-1">' + LMS.escape(courseTypeLabel(c.courseType || 'recorded')) + ' · ' + LMS.escape(c.category || '') + ' · ' + LMS.escape(c.status || 'draft') + '</p><p class="text-sm mt-2">' + (c.pricePaise == null ? 'Fee not set' : LMS.formatMoney(c.pricePaise)) + '</p></div><div class="flex gap-2"><button data-edit="' + LMS.escape(c.id) + '" class="rounded-lg border border-white/10 px-3 py-2 text-sm">Edit</button><button data-archive="' + LMS.escape(c.id) + '" class="rounded-lg border border-rose-400/20 text-rose-200 px-3 py-2 text-sm">Archive</button></div></article>').join('') : '<p class="muted text-sm">No LMS courses yet. Copy the existing catalog or add the first course.</p>';
     const courseOptions = '<option value="">Choose a course</option>' + data.courses.map(c => '<option value="' + LMS.escape(c.id) + '">' + LMS.escape(c.title || c.name) + '</option>').join('');
-    const keepCourse = $('lessonCourse').value; $('lessonCourse').innerHTML = courseOptions; $('lessonCourse').value = keepCourse; $('announcementCourse').innerHTML = courseOptions; if (typeof refreshLessons === 'function') refreshLessons();
+    const lessonCourses = data.courses.filter(c => (c.courseType || 'recorded') === 'recorded');
+    const lessonOptions = '<option value="">Choose a recorded course</option>' + lessonCourses.map(c => '<option value="' + LMS.escape(c.id) + '">' + LMS.escape(c.title || c.name) + '</option>').join('');
+    const keepCourse = $('lessonCourse').value; $('lessonCourse').innerHTML = lessonOptions; $('lessonCourse').value = lessonCourses.some(c => c.id === keepCourse) ? keepCourse : ''; $('announcementCourse').innerHTML = courseOptions; if (typeof refreshLessons === 'function') refreshLessons();
+    updateCourseModeFields();
     const payments = {}; data.payments.forEach(p => { if (!payments[p.enrollmentId]) payments[p.enrollmentId] = p; });
     $('enrollmentList').innerHTML = data.enrollments.length ? '<table class="w-full text-sm"><thead><tr class="text-left muted border-b border-white/10"><th class="p-2">Student / course</th><th class="p-2">Status</th><th class="p-2">Progress</th><th class="p-2">Payment</th><th class="p-2">Review</th></tr></thead><tbody>' + data.enrollments.map(e => {
       const p = payments[e.id];
@@ -183,7 +187,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const c = data.courses.find(item => item.id === id);
     if (!c) return;
     const f = form.elements;
-    f.courseId.value = c.id; f.title.value = c.title || c.name || ''; f.category.value = c.category || '';
+    f.courseId.value = c.id; f.title.value = c.title || c.name || ''; f.courseType.value = c.courseType || 'recorded'; f.category.value = c.category || '';
+    f.shortDescription.value = c.shortDescription || ''; f.audience.value = c.audience || ''; f.seatLimit.value = c.seatLimit || ''; f.classSchedule.value = c.classSchedule || ''; f.sessionCount.value = c.sessionCount || ''; f.sessionDurationMinutes.value = c.sessionDurationMinutes || ''; f.timeZone.value = c.timeZone || 'Asia/Kolkata'; f.venueName.value = c.venueName || ''; f.venueAddress.value = c.venueAddress || '';
     f.level.value = c.level || 'Beginner'; f.language.value = c.language || 'English'; f.duration.value = c.duration || '';
     f.price.value = c.pricePaise == null ? '' : Number(c.pricePaise) / 100; f.originalPrice.value = c.originalPricePaise == null ? (c.pricePaise == null ? '' : Number(c.pricePaise) / 100) : Number(c.originalPricePaise) / 100;
     f.startDate.value = c.startDate || ''; f.endDate.value = c.endDate || ''; f.enrollmentDeadline.value = c.enrollmentDeadline || '';
@@ -192,11 +197,37 @@ document.addEventListener('DOMContentLoaded', function () {
     f.syllabus.value = (c.syllabus || []).join('\n'); f.requirements.value = c.requirements || ''; f.demoVideoId.value = c.demoVideoId || '';
     f.order.value = c.order || 1; f.popularity.value = c.popularity || 0; f.faqs.value = (c.faqs || []).map(x => x.question + ' | ' + x.answer).join('\n'); f.published.checked = c.status === 'published';
     resetFiles(c.materials);
-    if (c.demoVideoId || c.requirements || c.faqs && c.faqs.length) form.querySelector('details').open = true;
+    if (c.demoVideoId || c.requirements || c.faqs && c.faqs.length || c.audience || c.classSchedule || c.venueAddress) form.querySelector('details').open = true;
+    updateCourseModeFields();
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-  $('newCourse').addEventListener('click', () => { form.reset(); resetFiles(); form.elements.courseId.value = ''; form.elements.language.value = 'English'; form.elements.order.value = '1'; form.scrollIntoView({ behavior: 'smooth' }); });
-  $('clearCourse').addEventListener('click', () => { form.reset(); resetFiles(); });
+  $('newCourse').addEventListener('click', () => { form.reset(); resetFiles(); form.elements.courseId.value = ''; form.elements.courseType.value = 'recorded'; form.elements.language.value = 'English'; form.elements.timeZone.value = 'Asia/Kolkata'; form.elements.order.value = '1'; updateCourseModeFields(); form.scrollIntoView({ behavior: 'smooth' }); });
+  $('clearCourse').addEventListener('click', () => { form.reset(); resetFiles(); form.elements.courseType.value = 'recorded'; form.elements.timeZone.value = 'Asia/Kolkata'; updateCourseModeFields(); });
+  form.elements.courseType.addEventListener('change', updateCourseModeFields);
+  function updateCourseModeFields() {
+    const type = form.elements.courseType.value || 'recorded';
+    $('liveCourseFields').classList.toggle('hidden', type === 'recorded');
+    $('offlineCourseFields').classList.toggle('hidden', type !== 'offline');
+    const selected = data.courses.find(item => item.id === $('lessonCourse').value);
+    const canEditLessons = !selected || (selected.courseType || 'recorded') === 'recorded';
+    $('recordedLessonEditor').classList.toggle('hidden', !canEditLessons);
+    $('recordedCourseNotice').classList.toggle('hidden', canEditLessons);
+  }
+  $('lessonCourse').addEventListener('change', updateCourseModeFields);
+  $('previewCourseBtn').addEventListener('click', () => {
+    const f = form.elements, type = f.courseType.value || 'recorded';
+    const facts = [f.duration.value && 'Duration: ' + f.duration.value, f.audience.value && 'For: ' + f.audience.value,
+      f.seatLimit.value && 'Batch limit: ' + f.seatLimit.value,
+      type !== 'recorded' && f.classSchedule.value && 'Schedule: ' + f.classSchedule.value,
+      type === 'online' && 'Time zone: ' + (f.timeZone.value || 'Asia/Kolkata'),
+      type === 'offline' && f.venueName.value && 'Venue: ' + f.venueName.value,
+      type === 'offline' && f.venueAddress.value && 'Address: ' + f.venueAddress.value,
+      f.startDate.value && 'Starts: ' + f.startDate.value, f.enrollmentDeadline.value && 'Enroll by: ' + f.enrollmentDeadline.value].filter(Boolean);
+    $('coursePreviewContent').innerHTML = '<article class="rounded-2xl border border-white/10 bg-white/[.03] p-5"><p class="text-xs uppercase tracking-widest text-violet-200">' + LMS.escape(courseTypeLabel(type)) + ' · ' + LMS.escape(f.category.value || 'Course') + '</p><h4 class="text-2xl font-black mt-2">' + LMS.escape(f.title.value || 'Course title') + '</h4><p class="muted mt-3">' + LMS.escape(f.shortDescription.value || f.description.value || 'Course description will appear here.') + '</p><p class="text-2xl font-black mt-5">' + LMS.formatMoney(Math.round(Number(f.price.value || 0) * 100)) + '</p><div class="grid sm:grid-cols-2 gap-2 mt-4">' + facts.map(x => '<p class="rounded-lg bg-white/5 p-3 text-sm">' + LMS.escape(x) + '</p>').join('') + '</div><h5 class="font-bold mt-5">What learners will learn</h5><ul class="muted list-disc pl-5 mt-2">' + f.outcomes.value.split('\\n').map(x => x.trim()).filter(Boolean).map(x => '<li>' + LMS.escape(x) + '</li>').join('') + '</ul><p class="muted text-sm mt-4">' + LMS.escape(f.requirements.value || 'No prior experience required unless stated.') + '</p><p class="text-xs text-violet-200 mt-5">' + (f.published.checked ? 'This course is set to publish after saving.' : 'This course will remain a draft.') + '</p></article>';
+    $('coursePreview').classList.remove('hidden');
+  });
+  $('closeCoursePreview').addEventListener('click', () => $('coursePreview').classList.add('hidden'));
+  $('coursePreview').addEventListener('click', event => { if (event.target === $('coursePreview')) $('coursePreview').classList.add('hidden'); });
   $('importLegacy').addEventListener('click', async () => {
     if (!confirm('Copy the existing public course catalog into this deployment’s LMS drafts? No existing course records will be changed.')) return;
     try { const result = await LMS.api('import-legacy-courses'); setMessage('Copied ' + result.imported + ' course(s) as drafts.', false); await load(); }
@@ -209,7 +240,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const pricePaise = Math.round(Number(f.price.value) * 100);
     const body = {
       courseId: f.courseId.value.trim() || slug(f.title.value),
-      title: f.title.value.trim(), category: f.category.value.trim(), level: f.level.value,
+      title: f.title.value.trim(), courseType: f.courseType.value, category: f.category.value.trim(),
+      shortDescription: f.shortDescription.value.trim(), audience: f.audience.value.trim(), seatLimit: f.seatLimit.value ? Number(f.seatLimit.value) : null,
+      classSchedule: f.classSchedule.value.trim(), sessionCount: f.sessionCount.value ? Number(f.sessionCount.value) : null,
+      sessionDurationMinutes: f.sessionDurationMinutes.value ? Number(f.sessionDurationMinutes.value) : null, timeZone: f.timeZone.value.trim(), venueName: f.venueName.value.trim(), venueAddress: f.venueAddress.value.trim(),
+      level: f.level.value,
       language: f.language.value.trim(), duration: f.duration.value.trim(),
       startDate: f.startDate.value, endDate: f.endDate.value, enrollmentDeadline: f.enrollmentDeadline.value,
       instructorName: f.instructorName.value.trim(), instructorPhoto: f.instructorPhoto.value.trim(),
