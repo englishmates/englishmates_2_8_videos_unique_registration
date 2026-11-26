@@ -349,7 +349,7 @@ async function adminDashboard() {
     col('lmsCourses').get(),
     col('enrollments').limit(300).get(),
     col('payments').limit(300).get(),
-    col('adminNotifications').limit(100).get()
+    col('adminNotifications').orderBy('createdAt', 'desc').limit(100).get()
   ]);
   const courseMap = new Map(courses.docs.map(d => [d.id, d.data()]));
   const enrollmentRows = enrollments.docs.map(d => {
