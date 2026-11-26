@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const form = $('courseForm');
   let data = { courses: [], enrollments: [], payments: [] };
   const adminEmail = 'bddayma12@gmail.com';
-  const isDeployPreview = /^deploy-preview-\\d+--englishmates-ratangarh\\.netlify\\.app$/.test(location.hostname);
+  const isDeployPreview = location.hostname.startsWith('deploy-preview-') && location.hostname.endsWith('--englishmates-ratangarh.netlify.app');
   $('dataSourceBadge').textContent = isDeployPreview ? 'Preview data · separate from live' : 'Live production data';
   $('dataSourceBadge').classList.add(isDeployPreview ? 'bg-amber-300/10' : 'bg-emerald-300/10', isDeployPreview ? 'text-amber-200' : 'text-emerald-200');
   function slug(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0,72); }
