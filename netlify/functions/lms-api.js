@@ -864,10 +864,14 @@ async function handle(event) {
       const venueName = clean(body.venueName, 140);
       const venueAddress = clean(body.venueAddress, 500);
       const seatLimit = body.seatLimit == null || body.seatLimit === '' ? null : Math.round(Number(body.seatLimit));
+      const sessionCount = body.sessionCount == null || body.sessionCount === '' ? null : Math.round(Number(body.sessionCount));
+      const sessionDurationMinutes = body.sessionDurationMinutes == null || body.sessionDurationMinutes === '' ? null : Math.round(Number(body.sessionDurationMinutes));
       if (title.length < 3 || description.length < 10 || !Number.isFinite(pricePaise) || pricePaise < 0 || !Number.isFinite(originalPricePaise) || originalPricePaise < pricePaise) {
         throw fail(400, 'Enter a course title, description and valid prices.');
       }
       if (seatLimit !== null && (!Number.isFinite(seatLimit) || seatLimit < 1 || seatLimit > 10000)) throw fail(400, 'Set an enrollment limit from 1 to 10,000, or leave it blank.');
+      if (sessionCount !== null && (!Number.isFinite(sessionCount) || sessionCount < 1 || sessionCount > 500)) throw fail(400, 'Set a session count from 1 to 500, or leave it blank.');
+      if (sessionDurationMinutes !== null && (!Number.isFinite(sessionDurationMinutes) || sessionDurationMinutes < 1 || sessionDurationMinutes > 600)) throw fail(400, 'Set a session length from 1 to 600 minutes, or leave it blank.');
       if (status === 'published' && courseType === 'online' && !classSchedule) throw fail(400, 'Add the online class schedule before publishing.');
       if (status === 'published' && courseType === 'offline' && (!classSchedule || !venueName || !venueAddress)) throw fail(400, 'Add the offline schedule, venue name and venue address before publishing.');
       const courseId = slug(body.courseId || title) || slug(title);
@@ -881,8 +885,8 @@ async function handle(event) {
         audience: clean(body.audience, 240),
         seatLimit,
         classSchedule,
-        sessionCount: body.sessionCount == null || body.sessionCount === '' ? null : Math.max(1, Math.min(500, Math.round(Number(body.sessionCount)))),
-        sessionDurationMinutes: body.sessionDurationMinutes == null || body.sessionDurationMinutes === '' ? null : Math.max(1, Math.min(600, Math.round(Number(body.sessionDurationMinutes)))),
+        sessionCount,
+        sessionDurationMinutes,
         timeZone: clean(body.timeZone || 'Asia/Kolkata', 80),
         venueName,
         venueAddress,
