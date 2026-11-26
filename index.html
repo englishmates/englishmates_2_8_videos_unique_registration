@@ -1048,9 +1048,11 @@
         '<div class="w-full h-48 bg-gradient-to-br from-blue-600/30 via-violet-600/30 to-rose-500/20 flex items-center justify-center text-5xl">✦</div>';
       const price = c.pricePaise == null ? 'Fee on request' : LMS.formatMoney(c.pricePaise);
       const delivery = type === 'offline' ? (c.venueName || 'In-person class') : type === 'online' ? (c.classSchedule || 'Live online class') : (c.lectureCount ? c.lectureCount + ' recorded lessons' : 'Self-paced lessons');
+      const facts = [c.level || 'All levels', c.duration || '', c.seatLimit ? 'Batch limit: ' + c.seatLimit : '', c.enrollmentDeadline ? 'Enroll by ' + c.enrollmentDeadline : 'Enrollment open'].filter(Boolean);
       return '<article class="card rounded-2xl overflow-hidden transition hover:-translate-y-1"><a href="./course-details.html?id=' + encodeURIComponent(c.id) + '" class="block">' + image +
         '<div class="p-5"><div class="flex items-center justify-between gap-2"><span class="text-xs text-violet-200 bg-violet-400/10 rounded-full px-3 py-1">' + LMS.escape(c.category || '') + '</span><span class="text-xs rounded-full px-2 py-1 ' + typeTone + '">' + typeNames[type] + '</span></div>' +
         '<h3 class="text-xl font-bold mt-4">' + LMS.escape(c.title || '') + '</h3><p class="muted text-sm mt-2 min-h-10">' + LMS.escape(c.shortDescription || c.description || '') + '</p>' +
+        '<div class="flex flex-wrap gap-2 mt-4">' + facts.map(item => '<span class="rounded-full bg-white/5 px-2.5 py-1 text-xs muted">' + LMS.escape(item) + '</span>').join('') + '</div>' +
         '<div class="flex items-end justify-between mt-5"><div><p class="text-xs muted">Instructor</p><p class="font-semibold text-sm mt-1">' + LMS.escape(c.instructorName || 'Englishmates') + '</p></div><div class="text-right"><p class="text-xs muted">' + LMS.escape(delivery) + '</p><p class="text-lg font-black text-white mt-1">' + price + '</p></div></div>' +
         '<span class="inline-flex btn rounded-xl px-4 py-3 font-bold mt-5 w-full justify-center">View course &amp; enroll</span></div></a></article>';
     }
