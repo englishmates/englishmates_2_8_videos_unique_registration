@@ -30,8 +30,10 @@
 <h2 class="text-xl font-black">Add or edit a course</h2><p class="muted text-sm mt-1">Use rupee amounts; the server stores the price in paise.</p>
 <form id="courseForm" class="grid md:grid-cols-2 gap-3 mt-4">
 <input name="title" required maxlength="140" placeholder="Course name" class="field rounded-xl px-3 py-3">
+<select name="courseType" class="field rounded-xl px-3 py-3" aria-label="Course format"><option value="recorded">Recorded course</option><option value="online">Online course</option><option value="offline">Offline course</option></select>
 <input name="price" required type="number" min="0" step="1" placeholder="Fee (₹)" class="field rounded-xl px-3 py-3">
-<textarea name="description" required minlength="10" maxlength="1600" rows="3" placeholder="Short description" class="field rounded-xl px-3 py-3 md:col-span-2"></textarea>
+<textarea name="description" required minlength="10" maxlength="1600" rows="3" placeholder="Full course description" class="field rounded-xl px-3 py-3 md:col-span-2"></textarea>
+<input name="shortDescription" maxlength="260" placeholder="Short description for course cards" class="field rounded-xl px-3 py-3 md:col-span-2">
 <div class="md:col-span-2"><p class="text-sm font-bold">Workbook</p>
 <label class="dz mt-2 flex flex-col items-center justify-center text-center rounded-2xl border-2 border-dashed border-violet-400/40 bg-violet-500/5 hover:bg-violet-500/10 p-5 cursor-pointer" id="dz_workbook"><span class="font-semibold text-sm">Drag &amp; drop here, or click to choose</span><span class="muted text-xs mt-1">Students practise from it · PDF, Word, Excel or PowerPoint · up to 25 MB</span><span id="dzName_workbook" class="text-xs text-violet-200 mt-2 break-all"></span><progress id="dzBar_workbook" class="hidden w-full h-1.5 mt-3" value="0" max="100"></progress><input id="file_workbook" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" class="hidden"></label>
 <button type="button" id="dzRemove_workbook" class="hidden text-xs text-rose-300 mt-2 underline">Remove this file</button></div>
@@ -42,7 +44,19 @@
 <details class="md:col-span-2 rounded-xl border border-white/10 p-4"><summary class="cursor-pointer text-sm muted">More options (optional)</summary>
 <div class="grid md:grid-cols-2 gap-3 mt-4">
 <input name="courseId" placeholder="Course ID (leave blank for new)" class="field rounded-xl px-3 py-3">
-<input name="category" placeholder="Category, e.g. Spoken English" class="field rounded-xl px-3 py-3">
+<input name="category" placeholder="Subject/category, e.g. Spoken English" class="field rounded-xl px-3 py-3">
+<input name="audience" maxlength="240" placeholder="Who is this course for? (audience)" class="field rounded-xl px-3 py-3">
+<input name="seatLimit" type="number" min="1" max="10000" placeholder="Enrollment limit (optional)" class="field rounded-xl px-3 py-3">
+<div id="liveCourseFields" class="hidden md:col-span-2 grid md:grid-cols-2 gap-3 border border-white/10 rounded-xl p-3">
+  <input name="classSchedule" maxlength="240" placeholder="Class schedule / batch timings" class="field rounded-xl px-3 py-3 md:col-span-2">
+  <input name="sessionCount" type="number" min="1" max="500" placeholder="Number of sessions (optional)" class="field rounded-xl px-3 py-3">
+  <input name="sessionDurationMinutes" type="number" min="1" max="600" placeholder="Minutes per session (optional)" class="field rounded-xl px-3 py-3">
+  <input name="timeZone" value="Asia/Kolkata" placeholder="Time zone" class="field rounded-xl px-3 py-3">
+  <div id="offlineCourseFields" class="hidden md:col-span-2 grid md:grid-cols-2 gap-3">
+    <input name="venueName" maxlength="140" placeholder="Offline venue / institute name" class="field rounded-xl px-3 py-3">
+    <textarea name="venueAddress" maxlength="500" rows="2" placeholder="Offline venue address" class="field rounded-xl px-3 py-3 md:col-span-2"></textarea>
+  </div>
+</div>
 <select name="level" class="field rounded-xl px-3 py-3"><option>Beginner</option><option>Intermediate</option><option>Advanced</option><option>All levels</option></select>
 <input name="language" placeholder="Language" value="English" class="field rounded-xl px-3 py-3">
 <input name="duration" placeholder="Duration, e.g. 12 weeks" class="field rounded-xl px-3 py-3">
@@ -60,13 +74,17 @@
 <input name="order" type="number" min="1" value="1" placeholder="Display order" class="field rounded-xl px-3 py-3">
 <input name="popularity" type="number" min="0" value="0" placeholder="Popularity score" class="field rounded-xl px-3 py-3">
 </div></details>
-<div class="flex flex-wrap gap-2 md:col-span-2"><button id="saveCourseBtn" class="btn rounded-xl px-5 py-3 font-bold">Save course</button><button id="clearCourse" type="button" class="rounded-xl border border-white/10 px-5 py-3">Clear</button></div>
+<div class="flex flex-wrap gap-2 md:col-span-2"><button id="saveCourseBtn" class="btn rounded-xl px-5 py-3 font-bold">Save course</button><button id="previewCourseBtn" type="button" class="rounded-xl border border-violet-300/30 text-violet-200 px-5 py-3 font-bold">Preview course</button><button id="clearCourse" type="button" class="rounded-xl border border-white/10 px-5 py-3">Clear</button></div>
 </form>
+<div id="coursePreview" class="hidden fixed inset-0 z-50 bg-black/80 p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="coursePreviewTitle"><div class="panel rounded-2xl p-6 max-w-2xl mx-auto mt-8"><div class="flex justify-between items-center gap-4"><h3 id="coursePreviewTitle" class="text-xl font-black">Course preview</h3><button id="closeCoursePreview" type="button" class="rounded-lg border border-white/10 px-3 py-2" aria-label="Close preview">Close</button></div><div id="coursePreviewContent" class="mt-5"></div></div></div>
 </section>
 <section class="panel rounded-2xl p-5 md:p-6 xl:col-span-2">
-<h2 class="text-xl font-black">Add course videos</h2>
-<p class="muted text-sm mt-1">Choose a course, select all its videos at once and press Upload. Mark one video as the free demo; every other video stays locked until the student enrolls.</p>
-<select id="lessonCourse" class="field rounded-xl px-3 py-3 mt-4"><option value="">Choose a course</option></select>
+<h2 class="text-xl font-black">Recorded course lessons</h2>
+<p class="muted text-sm mt-1">Add protected video lessons to Recorded Courses. Drag videos into the upload area or paste validated unlisted YouTube links.</p>
+<select id="lessonCourse" class="field rounded-xl px-3 py-3 mt-4"><option value="">Choose a recorded course</option></select>
+<div id="recordedCourseNotice" class="hidden mt-4 rounded-xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm text-amber-100">Lesson videos can only be added to a Recorded course. Choose a recorded course or set the course format to Recorded.</div>
+<div id="recordedLessonEditor">
+<div class="grid md:grid-cols-2 gap-3 mt-4"><label class="text-sm">Module / unit name<input id="moduleTitle" list="moduleOptions" value="Course videos" maxlength="120" class="field rounded-xl px-3 py-3 mt-1"><datalist id="moduleOptions"></datalist></label><label class="text-sm">Module order<input id="moduleOrder" type="number" min="1" value="1" class="field rounded-xl px-3 py-3 mt-1"></label></div>
 <div class="mt-4"><p class="text-sm font-bold">YouTube videos (unlisted)</p>
 <textarea id="ytLinks" rows="4" placeholder="One per line:&#10;Lesson 1 | https://youtu.be/XXXXXXXXXXX&#10;Lesson 2 | https://youtu.be/XXXXXXXXXXX | 25   (minutes optional)" class="field rounded-xl px-3 py-3 mt-2 text-sm"></textarea>
 <p class="muted text-xs mt-1">Set each video to <b>Unlisted</b> on YouTube. Students get the video only after they log in and are enrolled. Tap a badge below to make one a free demo.</p>
@@ -83,7 +101,8 @@
 </details>
 <h3 class="font-black mt-8">Videos in this course</h3>
 <p class="muted text-xs mt-1">Tap the badge to switch a video between free demo and locked.</p>
-<div id="courseLessons" class="grid gap-2 mt-3"><p class="muted text-sm">Choose a course to see its videos.</p></div>
+<div id="courseLessons" class="grid gap-3 mt-3"><p class="muted text-sm">Choose a recorded course to see its modules and lessons.</p></div>
+</div>
 </section>
 <section class="panel rounded-2xl p-5 md:p-6">
 <h2 class="text-xl font-black">Send course announcement</h2><p class="muted text-sm mt-1">Send an update to students with active access for one course.</p><form id="announcementForm" class="grid gap-3 mt-4"><select name="courseId" id="announcementCourse" required class="field rounded-xl px-3 py-3"><option value="">Choose a course</option></select><input name="title" required maxlength="140" placeholder="Announcement title" class="field rounded-xl px-3 py-3"><textarea name="message" required minlength="5" maxlength="600" rows="3" placeholder="Announcement message" class="field rounded-xl px-3 py-3"></textarea><button class="btn rounded-xl px-5 py-3 font-bold">Send announcement</button></form>
