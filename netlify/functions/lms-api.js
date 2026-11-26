@@ -307,11 +307,50 @@ async function hasActiveEnrollment(uid, courseId) {
   return snap.exists && snap.data().status === 'active' ? { id, data: snap.data() } : null;
 }
 
+async function sendAdminPaymentPush(alert) {
+  if (suffix) return; // Preview payments must never send a production admin alert.
+  try {
+    const snap = await db().collection('adminDevices').get();
+    const tokens = snap.docs.map(d => d.data().token).filter(Boolean);
+    if (!tokens.length) return;
+    const siteUrl = String(process.env.URL || 'https://englishmates-ratangarh.netlify.app').replace(/\\/$/, '');
+    const link = siteUrl + '/admin-lms.html#payment-review';
+    const result = await admin.messaging().sendEachForMulticast({
+      tokens,
+      notification: { title: alert.title, body: alert.message },
+      data: {
+        type: 'payment_review',
+        paymentId: String(alert.paymentId || ''),
+        enrollmentId: String(alert.enrollmentId || '')
+      },
+      webpush: {
+        notification: {
+          icon: '/bhagirath-dayma-profile.png',
+          badge: '/bhagirath-dayma-profile.png'
+        },
+        fcmOptions: { link }
+      }
+    });
+    const cleanup = [];
+    snap.docs.forEach((doc, i) => {
+      const response = result.responses[i];
+      if (response && !response.success) {
+        const code = response.error && response.error.code;
+        if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') cleanup.push(doc.ref.delete());
+      }
+    });
+    await Promise.all(cleanup);
+  } catch (error) {
+    console.error('Admin payment push failed:', error && error.message);
+  }
+}
+
 async function adminDashboard() {
-  const [courses, enrollments, payments] = await Promise.all([
+  const [courses, enrollments, payments, alerts] = await Promise.all([
     col('lmsCourses').get(),
     col('enrollments').limit(300).get(),
-    col('payments').limit(300).get()
+    col('payments').limit(300).get(),
+    col('adminNotifications').limit(100).get()
   ]);
   const courseMap = new Map(courses.docs.map(d => [d.id, d.data()]));
   const enrollmentRows = enrollments.docs.map(d => {
@@ -331,7 +370,8 @@ async function adminDashboard() {
       return item;
     }),
     enrollments: sortRecent(enrollmentRows),
-    payments: sortRecent(payments.docs.map(serialize))
+    payments: sortRecent(payments.docs.map(serialize)),
+    adminNotifications: sortRecent(alerts.docs.map(serialize)).slice(0, 30)
   };
 }
 
@@ -606,14 +646,31 @@ async function handle(event) {
       const exists = await admin.storage().bucket().file(proofPath).exists();
       if (!exists[0]) throw fail(400, 'Payment screenshot upload was not found. Please upload it again.');
       if (paymentSnap.data().status !== 'created') throw fail(409, 'This payment is already awaiting review.');
+      const alertRef = col('adminNotifications').doc();
+      let alert = null;
       await db().runTransaction(async tx => {
         const fresh = await tx.get(paymentRef);
         if (!fresh.exists || fresh.data().uid !== user.uid || fresh.data().status !== 'created') throw fail(409, 'This payment is already awaiting review.');
-        tx.update(paymentRef, { utr, proofPath, status: 'under_review', updatedAt: now() });
-        tx.update(col('enrollments').doc(fresh.data().enrollmentId), {
-          status: 'pending_review', paymentStatus: 'under_review', updatedAt: now()
-        });
+        const enrollmentRef = col('enrollments').doc(fresh.data().enrollmentId);
+        const enrollmentSnap = await tx.get(enrollmentRef);
+        if (!enrollmentSnap.exists || enrollmentSnap.data().uid !== user.uid) throw fail(404, 'Enrollment not found.');
+        const enrollment = enrollmentSnap.data();
+        const amountPaise = Number(fresh.data().amountPaise || 0);
+        alert = {
+          type: 'payment_review',
+          title: 'UPI payment submitted for review',
+          message: clean(enrollment.studentName || 'A student', 100) + ' submitted ₹' + (amountPaise / 100).toFixed(2) + ' for ' + clean(enrollment.courseName || fresh.data().courseName, 140) + '.',
+          paymentId, enrollmentId: fresh.data().enrollmentId, uid: user.uid,
+          studentName: clean(enrollment.studentName, 100),
+          email: clean(enrollment.email, 160),
+          courseName: clean(enrollment.courseName || fresh.data().courseName, 140),
+          amountPaise, read: false, createdAt: now()
+        };
+        tx.update(paymentRef, { utr, proofPath, status: 'under_review', studentName: alert.studentName, email: alert.email, updatedAt: now() });
+        tx.update(enrollmentRef, { status: 'pending_review', paymentStatus: 'under_review', updatedAt: now() });
+        tx.create(alertRef, alert);
       });
+      await sendAdminPaymentPush(alert);
       return response(event, 200, { ok: true, message: 'Payment details sent to the admin for review.' });
     }
 
