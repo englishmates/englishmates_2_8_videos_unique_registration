@@ -55,6 +55,8 @@
   <div id="offlineCourseFields" class="hidden md:col-span-2 grid md:grid-cols-2 gap-3">
     <input name="venueName" maxlength="140" placeholder="Offline venue / institute name" class="field rounded-xl px-3 py-3">
     <textarea name="venueAddress" maxlength="500" rows="2" placeholder="Offline venue address" class="field rounded-xl px-3 py-3 md:col-span-2"></textarea>
+    <textarea name="venueDirections" maxlength="600" rows="2" placeholder="Directions or nearby landmark (optional)" class="field rounded-xl px-3 py-3 md:col-span-2"></textarea>
+    <input name="contactInfo" maxlength="180" placeholder="Course contact details (optional)" class="field rounded-xl px-3 py-3 md:col-span-2">
   </div>
 </div>
 <select name="level" class="field rounded-xl px-3 py-3"><option>Beginner</option><option>Intermediate</option><option>Advanced</option><option>All levels</option></select>
@@ -188,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!c) return;
     const f = form.elements;
     f.courseId.value = c.id; f.title.value = c.title || c.name || ''; f.courseType.value = c.courseType || 'recorded'; f.category.value = c.category || '';
-    f.shortDescription.value = c.shortDescription || ''; f.audience.value = c.audience || ''; f.seatLimit.value = c.seatLimit || ''; f.classSchedule.value = c.classSchedule || ''; f.sessionCount.value = c.sessionCount || ''; f.sessionDurationMinutes.value = c.sessionDurationMinutes || ''; f.timeZone.value = c.timeZone || 'Asia/Kolkata'; f.venueName.value = c.venueName || ''; f.venueAddress.value = c.venueAddress || '';
+    f.shortDescription.value = c.shortDescription || ''; f.audience.value = c.audience || ''; f.seatLimit.value = c.seatLimit || ''; f.classSchedule.value = c.classSchedule || ''; f.sessionCount.value = c.sessionCount || ''; f.sessionDurationMinutes.value = c.sessionDurationMinutes || ''; f.timeZone.value = c.timeZone || 'Asia/Kolkata'; f.venueName.value = c.venueName || ''; f.venueAddress.value = c.venueAddress || ''; f.venueDirections.value = c.venueDirections || ''; f.contactInfo.value = c.contactInfo || '';
     f.level.value = c.level || 'Beginner'; f.language.value = c.language || 'English'; f.duration.value = c.duration || '';
     f.price.value = c.pricePaise == null ? '' : Number(c.pricePaise) / 100; f.originalPrice.value = c.originalPricePaise == null ? (c.pricePaise == null ? '' : Number(c.pricePaise) / 100) : Number(c.originalPricePaise) / 100;
     f.startDate.value = c.startDate || ''; f.endDate.value = c.endDate || ''; f.enrollmentDeadline.value = c.enrollmentDeadline || '';
@@ -197,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function () {
     f.syllabus.value = (c.syllabus || []).join('\n'); f.requirements.value = c.requirements || ''; f.demoVideoId.value = c.demoVideoId || '';
     f.order.value = c.order || 1; f.popularity.value = c.popularity || 0; f.faqs.value = (c.faqs || []).map(x => x.question + ' | ' + x.answer).join('\n'); f.published.checked = c.status === 'published';
     resetFiles(c.materials);
-    if (c.demoVideoId || c.requirements || c.faqs && c.faqs.length || c.audience || c.classSchedule || c.venueAddress) form.querySelector('details').open = true;
+    if (c.demoVideoId || c.requirements || c.faqs && c.faqs.length || c.audience || c.classSchedule || c.venueAddress || c.venueDirections || c.contactInfo) form.querySelector('details').open = true;
     updateCourseModeFields();
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -222,6 +224,8 @@ document.addEventListener('DOMContentLoaded', function () {
       type === 'online' && 'Time zone: ' + (f.timeZone.value || 'Asia/Kolkata'),
       type === 'offline' && f.venueName.value && 'Venue: ' + f.venueName.value,
       type === 'offline' && f.venueAddress.value && 'Address: ' + f.venueAddress.value,
+      type === 'offline' && f.venueDirections.value && 'Directions: ' + f.venueDirections.value,
+      type === 'offline' && f.contactInfo.value && 'Contact: ' + f.contactInfo.value,
       f.startDate.value && 'Starts: ' + f.startDate.value, f.enrollmentDeadline.value && 'Enroll by: ' + f.enrollmentDeadline.value].filter(Boolean);
     $('coursePreviewContent').innerHTML = '<article class="rounded-2xl border border-white/10 bg-white/[.03] p-5"><p class="text-xs uppercase tracking-widest text-violet-200">' + LMS.escape(courseTypeLabel(type)) + ' · ' + LMS.escape(f.category.value || 'Course') + '</p><h4 class="text-2xl font-black mt-2">' + LMS.escape(f.title.value || 'Course title') + '</h4><p class="muted mt-3">' + LMS.escape(f.shortDescription.value || f.description.value || 'Course description will appear here.') + '</p><p class="text-2xl font-black mt-5">' + LMS.formatMoney(Math.round(Number(f.price.value || 0) * 100)) + '</p><div class="grid sm:grid-cols-2 gap-2 mt-4">' + facts.map(x => '<p class="rounded-lg bg-white/5 p-3 text-sm">' + LMS.escape(x) + '</p>').join('') + '</div><h5 class="font-bold mt-5">What learners will learn</h5><ul class="muted list-disc pl-5 mt-2">' + f.outcomes.value.split('\n').map(x => x.trim()).filter(Boolean).map(x => '<li>' + LMS.escape(x) + '</li>').join('') + '</ul><p class="muted text-sm mt-4">' + LMS.escape(f.requirements.value || 'No prior experience required unless stated.') + '</p><p class="text-xs text-violet-200 mt-5">' + (f.published.checked ? 'This course is set to publish after saving.' : 'This course will remain a draft.') + '</p></article>';
     $('coursePreview').classList.remove('hidden');
@@ -243,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function () {
       title: f.title.value.trim(), courseType: f.courseType.value, category: f.category.value.trim(),
       shortDescription: f.shortDescription.value.trim(), audience: f.audience.value.trim(), seatLimit: f.seatLimit.value ? Number(f.seatLimit.value) : null,
       classSchedule: f.classSchedule.value.trim(), sessionCount: f.sessionCount.value ? Number(f.sessionCount.value) : null,
-      sessionDurationMinutes: f.sessionDurationMinutes.value ? Number(f.sessionDurationMinutes.value) : null, timeZone: f.timeZone.value.trim(), venueName: f.venueName.value.trim(), venueAddress: f.venueAddress.value.trim(),
+      sessionDurationMinutes: f.sessionDurationMinutes.value ? Number(f.sessionDurationMinutes.value) : null, timeZone: f.timeZone.value.trim(), venueName: f.venueName.value.trim(), venueAddress: f.venueAddress.value.trim(), venueDirections: f.venueDirections.value.trim(), contactInfo: f.contactInfo.value.trim(),
       level: f.level.value,
       language: f.language.value.trim(), duration: f.duration.value.trim(),
       startDate: f.startDate.value, endDate: f.endDate.value, enrollmentDeadline: f.enrollmentDeadline.value,
