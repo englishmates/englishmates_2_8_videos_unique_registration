@@ -152,7 +152,16 @@
           <select id="lmsCourseSort" class="field rounded-xl px-4 py-3" aria-label="Sort courses"><option value="recommended">Recommended</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="latest">Latest courses</option><option value="popular">Popularity</option></select>
         </div>
         <p id="lmsCourseStatus" class="text-slate-400 text-sm mt-5" role="status">Loading courses…</p>
-        <section id="lmsCourseGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-4"></section>
+        <nav class="grid md:grid-cols-3 gap-4 mt-7" aria-label="Browse course formats">
+          <a href="./courses.html#recordedCourses" class="card rounded-2xl p-5"><span class="text-emerald-200 text-xs font-bold uppercase tracking-widest">Learn anytime</span><h3 class="text-xl font-black mt-2">Recorded Courses</h3><p class="text-sm text-slate-400 mt-2">Protected lessons to learn at your own pace.</p><span class="inline-flex text-sm text-emerald-200 font-bold mt-4">Browse recorded →</span></a>
+          <a href="./courses.html#onlineCourses" class="card rounded-2xl p-5"><span class="text-blue-200 text-xs font-bold uppercase tracking-widest">Learn live</span><h3 class="text-xl font-black mt-2">Online Courses</h3><p class="text-sm text-slate-400 mt-2">Join a scheduled class with an instructor.</p><span class="inline-flex text-sm text-blue-200 font-bold mt-4">Browse online →</span></a>
+          <a href="./courses.html#offlineCourses" class="card rounded-2xl p-5"><span class="text-amber-200 text-xs font-bold uppercase tracking-widest">Learn in person</span><h3 class="text-xl font-black mt-2">Offline Courses</h3><p class="text-sm text-slate-400 mt-2">Attend an Englishmates classroom batch.</p><span class="inline-flex text-sm text-amber-200 font-bold mt-4">Browse offline →</span></a>
+        </nav>
+        <div class="grid gap-8 mt-8">
+          <section id="homeRecordedCourses"><h3 class="text-xl font-black text-white mb-3">Recorded Courses</h3><div id="lmsCourseGridRecorded" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div></section>
+          <section id="homeOnlineCourses"><h3 class="text-xl font-black text-white mb-3">Online Courses</h3><div id="lmsCourseGridOnline" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div></section>
+          <section id="homeOfflineCourses"><h3 class="text-xl font-black text-white mb-3">Offline Courses</h3><div id="lmsCourseGridOffline" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div></section>
+        </div>
         <div class="text-center mt-8"><a href="./student-dashboard.html" class="inline-flex px-6 py-3 rounded-xl bg-violet-500/15 text-violet-200 font-bold">My Learning dashboard →</a></div>
       </div>
     </section>
@@ -1030,28 +1039,39 @@
   document.addEventListener('DOMContentLoaded', async function () {
     const byId = id => document.getElementById(id);
     let courses = [];
+    const typeNames = { recorded:'Recorded Course', online:'Online Course', offline:'Offline Course' };
+    const typeGridIds = { recorded:'lmsCourseGridRecorded', online:'lmsCourseGridOnline', offline:'lmsCourseGridOffline' };
+    function courseCard(c) {
+      const type = ['recorded','online','offline'].includes(c.courseType) ? c.courseType : 'recorded';
+      const typeTone = { recorded:'text-emerald-200 bg-emerald-400/10', online:'text-blue-200 bg-blue-400/10', offline:'text-amber-200 bg-amber-400/10' }[type];
+      const image = c.thumbnailUrl ? '<img src="' + LMS.escape(c.thumbnailUrl) + '" alt="" loading="lazy" class="w-full h-48 object-cover">' :
+        '<div class="w-full h-48 bg-gradient-to-br from-blue-600/30 via-violet-600/30 to-rose-500/20 flex items-center justify-center text-5xl">✦</div>';
+      const price = c.pricePaise == null ? 'Fee on request' : LMS.formatMoney(c.pricePaise);
+      const delivery = type === 'offline' ? (c.venueName || 'In-person class') : type === 'online' ? (c.classSchedule || 'Live online class') : (c.lectureCount ? c.lectureCount + ' recorded lessons' : 'Self-paced lessons');
+      return '<article class="card rounded-2xl overflow-hidden transition hover:-translate-y-1"><a href="./course-details.html?id=' + encodeURIComponent(c.id) + '" class="block">' + image +
+        '<div class="p-5"><div class="flex items-center justify-between gap-2"><span class="text-xs text-violet-200 bg-violet-400/10 rounded-full px-3 py-1">' + LMS.escape(c.category || '') + '</span><span class="text-xs rounded-full px-2 py-1 ' + typeTone + '">' + typeNames[type] + '</span></div>' +
+        '<h3 class="text-xl font-bold mt-4">' + LMS.escape(c.title || '') + '</h3><p class="muted text-sm mt-2 min-h-10">' + LMS.escape(c.shortDescription || c.description || '') + '</p>' +
+        '<div class="flex items-end justify-between mt-5"><div><p class="text-xs muted">Instructor</p><p class="font-semibold text-sm mt-1">' + LMS.escape(c.instructorName || 'Englishmates') + '</p></div><div class="text-right"><p class="text-xs muted">' + LMS.escape(delivery) + '</p><p class="text-lg font-black text-white mt-1">' + price + '</p></div></div>' +
+        '<span class="inline-flex btn rounded-xl px-4 py-3 font-bold mt-5 w-full justify-center">View course &amp; enroll</span></div></a></article>';
+    }
     function render() {
       const term = byId('lmsCourseSearch').value.trim().toLowerCase();
       const category = byId('lmsCourseCategory').value;
-      let list = courses.filter(c => (!category || c.category === category) &&
-        (!term || [c.title,c.description,c.category,c.instructorName,c.level].join(' ').toLowerCase().includes(term)));
       const mode = byId('lmsCourseSort').value;
+      let list = courses.filter(c => (!category || c.category === category) &&
+        (!term || [c.title,c.description,c.shortDescription,c.category,c.instructorName,c.level,c.classSchedule,c.venueName].join(' ').toLowerCase().includes(term)));
       if (mode === 'price-low') list.sort((a,b) => (a.pricePaise || 0) - (b.pricePaise || 0));
       if (mode === 'price-high') list.sort((a,b) => (b.pricePaise || 0) - (a.pricePaise || 0));
       if (mode === 'latest') list.sort((a,b) => String(b.createdAt || b.startDate || '').localeCompare(String(a.createdAt || a.startDate || '')));
       if (mode === 'popular') list.sort((a,b) => (b.popularity || 0) - (a.popularity || 0));
-      byId('lmsCourseGrid').innerHTML = list.length ? list.map(c => {
-        const image = c.thumbnailUrl ? '<img src="' + LMS.escape(c.thumbnailUrl) + '" alt="" loading="lazy" class="w-full h-48 object-cover">' :
-          '<div class="w-full h-48 bg-gradient-to-br from-blue-600/30 via-violet-600/30 to-rose-500/20 flex items-center justify-center text-5xl">✦</div>';
-        const price = c.pricePaise === null ? 'Fee on request' : LMS.formatMoney(c.pricePaise);
-        return '<article class="card rounded-2xl overflow-hidden transition hover:-translate-y-1"><a href="./course-details.html?id=' + encodeURIComponent(c.id) + '" class="block">' + image +
-          '<div class="p-5"><div class="flex items-center justify-between gap-2"><span class="text-xs text-violet-200 bg-violet-400/10 rounded-full px-3 py-1">' + LMS.escape(c.category) + '</span><span class="text-xs muted">' + LMS.escape(c.level) + '</span></div>' +
-          '<h3 class="text-xl font-bold mt-4">' + LMS.escape(c.title) + '</h3>' + (c.reviewCount ? '<p class="text-amber-200 text-xs mt-1">★ ' + Number(c.ratingAverage).toFixed(1) + ' · ' + c.reviewCount + ' reviews</p>' : '') +
-          '<p class="muted text-sm mt-2 min-h-10">' + LMS.escape(c.shortDescription || c.description || '') + '</p>' +
-          '<div class="flex items-end justify-between mt-5"><div><p class="text-xs muted">Instructor</p><p class="font-semibold text-sm mt-1">' + LMS.escape(c.instructorName) + '</p></div><div class="text-right"><p class="text-xs muted">' + LMS.escape(c.duration || '') + '</p><p class="text-lg font-black text-white mt-1">' + price + '</p></div></div>' +
-          '<span class="inline-flex btn rounded-xl px-4 py-3 font-bold mt-5 w-full justify-center">View course &amp; enroll</span></div></a></article>';
-      }).join('') : '<div class="panel rounded-2xl p-8 md:col-span-3 text-center"><h3 class="font-bold text-xl">No courses found</h3><p class="muted mt-2">Try another search, or check back when the next course is published.</p></div>';
-      byId('lmsCourseStatus').textContent = list.length + (list.length === 1 ? ' course' : ' courses');
+      let count = 0;
+      ['recorded','online','offline'].forEach(type => {
+        const group = list.filter(c => (c.courseType || 'recorded') === type);
+        count += group.length;
+        byId(typeGridIds[type]).innerHTML = group.length ? group.map(courseCard).join('') :
+          '<div class="panel rounded-2xl p-6 text-center sm:col-span-2 lg:col-span-3"><p class="font-bold">' + (list.length ? 'No matching courses in this section.' : 'No published courses in this section yet.') + '</p><p class="muted text-sm mt-2">Check back soon for new Englishmates batches.</p></div>';
+      });
+      byId('lmsCourseStatus').textContent = count + (count === 1 ? ' course' : ' courses');
     }
     ['lmsCourseSearch','lmsCourseCategory','lmsCourseSort'].forEach(id => byId(id).addEventListener('input', render));
     try {
@@ -1062,7 +1082,7 @@
       render();
     } catch (error) {
       byId('lmsCourseStatus').textContent = error.message;
-      byId('lmsCourseGrid').innerHTML = '<div class="panel rounded-2xl p-8 text-center text-rose-200">' + LMS.escape(error.message) + '</div>';
+      ['recorded','online','offline'].forEach(type => { byId(typeGridIds[type]).innerHTML = '<div class="panel rounded-2xl p-8 text-center text-rose-200">' + LMS.escape(error.message) + '</div>'; });
     }
   });
 }());
