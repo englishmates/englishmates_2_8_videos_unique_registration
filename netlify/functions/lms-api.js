@@ -161,6 +161,8 @@ function publicCourse(id, c, source) {
     timeZone: clean(c.timeZone || 'Asia/Kolkata', 80),
     venueName: clean(c.venueName, 140),
     venueAddress: clean(c.venueAddress, 500),
+    venueDirections: clean(c.venueDirections, 600),
+    contactInfo: clean(c.contactInfo, 180),
     level: clean(c.level || 'All levels', 40),
     language: clean(c.language || 'English', 60),
     duration: clean(c.duration, 80),
@@ -564,6 +566,7 @@ async function handle(event) {
           courseStartDate: p.startDate, courseEndDate: p.endDate, duration: p.duration,
           classSchedule: p.classSchedule, sessionCount: p.sessionCount, sessionDurationMinutes: p.sessionDurationMinutes,
           timeZone: p.timeZone, venueName: p.venueName, venueAddress: p.venueAddress,
+          venueDirections: p.venueDirections, contactInfo: p.contactInfo,
           amountPaise: amount, totalLessons: Number(p.lectureCount || 0), completedLessons: 0,
           paymentStatus: free ? 'not_required' : 'unpaid',
           status: free ? 'active' : 'pending_payment',
@@ -872,6 +875,8 @@ async function handle(event) {
       const classSchedule = clean(body.classSchedule, 240);
       const venueName = clean(body.venueName, 140);
       const venueAddress = clean(body.venueAddress, 500);
+      const venueDirections = clean(body.venueDirections, 600);
+      const contactInfo = clean(body.contactInfo, 180);
       const seatLimit = body.seatLimit == null || body.seatLimit === '' ? null : Math.round(Number(body.seatLimit));
       const sessionCount = body.sessionCount == null || body.sessionCount === '' ? null : Math.round(Number(body.sessionCount));
       const sessionDurationMinutes = body.sessionDurationMinutes == null || body.sessionDurationMinutes === '' ? null : Math.round(Number(body.sessionDurationMinutes));
@@ -899,6 +904,8 @@ async function handle(event) {
         timeZone: clean(body.timeZone || 'Asia/Kolkata', 80),
         venueName,
         venueAddress,
+        venueDirections,
+        contactInfo,
         level: clean(body.level || 'Beginner', 40),
         language: clean(body.language || 'English', 60),
         duration: clean(body.duration, 80),
