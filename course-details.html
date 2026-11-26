@@ -21,11 +21,12 @@
       <div class="panel rounded-3xl overflow-hidden">
         <div id="banner" class="h-64 bg-gradient-to-br from-blue-600/30 via-violet-600/30 to-rose-500/20"></div>
         <div class="p-6 md:p-9"><p id="category" class="text-sm text-violet-300 font-bold"></p><h1 id="title" class="text-3xl md:text-5xl font-black mt-3"></h1><p id="description" class="muted mt-5 text-lg leading-8"></p>
-          <div class="grid sm:grid-cols-3 gap-3 mt-7"><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Level</p><p id="level" class="font-bold mt-1"></p></div><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Duration</p><p id="duration" class="font-bold mt-1"></p></div><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Language</p><p id="language" class="font-bold mt-1"></p></div></div>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-7"><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Format</p><p id="courseTypeLabel" class="font-bold mt-1"></p></div><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Level</p><p id="level" class="font-bold mt-1"></p></div><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Duration</p><p id="duration" class="font-bold mt-1"></p></div><div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">Language</p><p id="language" class="font-bold mt-1"></p></div></div>
         </div>
       </div>
       <aside class="panel rounded-3xl p-6 md:p-8 h-fit lg:sticky lg:top-6"><p class="muted text-sm">Course fee</p><p id="price" class="text-3xl font-black mt-1"></p><p id="originalPrice" class="text-sm muted mt-1"></p><p id="dates" class="text-sm text-slate-300 mt-5"></p><div class="border-t border-white/10 mt-6 pt-6"><p class="muted text-sm">Instructor</p><div class="flex items-center gap-3 mt-3"><img id="instructorPhoto" class="hidden w-12 h-12 rounded-full object-cover" alt=""><div id="instructorInitial" class="w-12 h-12 rounded-full bg-violet-500/20 text-violet-200 flex items-center justify-center font-black">E</div><p id="instructor" class="font-bold"></p></div><button id="enrollNow" class="btn rounded-xl w-full py-4 font-extrabold mt-7">Enroll now</button><a id="demoLink" href="#" class="hidden rounded-xl border border-emerald-300/30 text-emerald-200 w-full py-3 font-bold mt-3 inline-flex justify-center">▶ Try a free demo lesson</a><p id="enrollHint" class="muted text-xs mt-3">Enrollment is confirmed after payment review.</p></div></aside>
     </section>
+    <section id="deliveryDetails" class="hidden panel rounded-2xl p-6 mt-6"><p id="deliveryLabel" class="text-xs uppercase tracking-widest text-violet-200 font-bold"></p><h2 id="deliveryHeading" class="text-xl font-black mt-2">Course format and schedule</h2><p id="deliverySummary" class="muted mt-2"></p><div id="deliveryFacts" class="grid sm:grid-cols-2 gap-3 mt-4"></div></section>
     <section id="curriculum" class="hidden panel rounded-3xl p-6 md:p-8 mt-6">
       <div class="flex flex-wrap items-end justify-between gap-3"><div><h2 class="text-2xl font-black">Course videos</h2><p id="curriculumSummary" class="muted text-sm mt-1"></p></div><a id="curriculumDemo" href="#" class="hidden btn rounded-xl px-5 py-3 font-bold text-white">▶ Watch the free demo</a></div>
       <div id="curriculumList" class="grid gap-2 mt-5 max-h-[28rem] overflow-y-auto pr-1"></div>
@@ -85,6 +86,24 @@ document.addEventListener('DOMContentLoaded', async function () {
     $('loadStatus').classList.add('hidden'); $('courseContent').classList.remove('hidden');
     $('title').textContent = c.title; $('category').textContent = c.category + ' · ' + c.level;
     $('description').textContent = c.description || c.shortDescription || '';
+    const courseType = ['recorded','online','offline'].includes(c.courseType) ? c.courseType : 'recorded';
+    const modeNames = { recorded:'Recorded course', online:'Online course', offline:'Offline course' };
+    $('courseTypeLabel').textContent = modeNames[courseType];
+    $('deliveryDetails').classList.remove('hidden');
+    $('deliveryLabel').textContent = modeNames[courseType];
+    $('deliveryHeading').textContent = courseType === 'recorded' ? 'Learn at your own pace' : courseType === 'online' ? 'Live online classes' : 'In-person classroom course';
+    const deliveryFacts = [];
+    if (c.audience) deliveryFacts.push(['Who this is for', c.audience]);
+    if (c.classSchedule) deliveryFacts.push(['Class schedule', c.classSchedule]);
+    if (c.sessionCount) deliveryFacts.push(['Sessions', String(c.sessionCount)]);
+    if (c.sessionDurationMinutes) deliveryFacts.push(['Session length', c.sessionDurationMinutes + ' minutes']);
+    if (courseType === 'online') deliveryFacts.push(['Time zone', c.timeZone === 'Asia/Kolkata' ? 'IST (Asia/Kolkata)' : (c.timeZone || 'IST')]);
+    if (courseType === 'offline' && c.venueName) deliveryFacts.push(['Venue', c.venueName]);
+    if (courseType === 'offline' && c.venueAddress) deliveryFacts.push(['Address', c.venueAddress]);
+    if (c.seatLimit) deliveryFacts.push(['Batch size', 'Up to ' + c.seatLimit + ' learners']);
+    if (courseType === 'recorded') deliveryFacts.push(['Course lessons', c.lectureCount ? c.lectureCount + ' protected lessons' : 'Recorded lessons are added by the instructor']);
+    $('deliverySummary').textContent = courseType === 'recorded' ? 'Access protected lessons after enrollment and payment approval.' : courseType === 'online' ? 'Class access details are shared with enrolled students for the scheduled sessions.' : 'Attend the listed Englishmates venue at the scheduled batch time.';
+    $('deliveryFacts').innerHTML = deliveryFacts.map(item => '<div class="rounded-xl bg-white/5 p-4"><p class="muted text-xs">' + LMS.escape(item[0]) + '</p><p class="font-semibold mt-1">' + LMS.escape(item[1]) + '</p></div>').join('');
     $('level').textContent = c.level; $('duration').textContent = c.duration || 'To be announced';
     $('language').textContent = c.language; $('instructor').textContent = c.instructorName;
     $('price').textContent = c.pricePaise == null ? 'Fee on request' : LMS.formatMoney(c.pricePaise);
@@ -102,7 +121,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (c.instructorPhoto) { $('instructorPhoto').src = c.instructorPhoto; $('instructorPhoto').classList.remove('hidden'); $('instructorInitial').classList.add('hidden'); }
     if (c.demoVideoId) { $('demo').src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(c.demoVideoId); $('demoWrap').classList.remove('hidden'); }
     list('outcomes', c.outcomes); list('features', c.features); list('syllabus', c.syllabus);
-    LMS.api('public-lessons', { courseId }).then(res => renderCurriculum(res.modules || [])).catch(() => {});
+    if (courseType === 'recorded') LMS.api('public-lessons', { courseId }).then(res => renderCurriculum(res.modules || [])).catch(() => {});
     $('ratingSummary').textContent = c.reviewCount ? Number(c.ratingAverage).toFixed(1) + ' / 5 · ' + c.reviewCount + ' review(s)' : 'No reviews yet';
     async function loadReviews() { const res = await LMS.api('course-reviews', { courseId }); $('reviewsList').innerHTML = res.reviews.length ? res.reviews.map(r => '<article class="rounded-xl bg-white/[.03] p-4"><p class="font-bold">' + LMS.escape(r.name) + ' · ' + '★'.repeat(Math.max(1, Math.min(5, r.rating))) + '</p><p class="muted text-sm mt-2">' + LMS.escape(r.text) + '</p></article>').join('') : '<p class="muted text-sm">Be the first student to review this course.</p>'; }
     loadReviews().catch(e => $('reviewsList').textContent = e.message);
