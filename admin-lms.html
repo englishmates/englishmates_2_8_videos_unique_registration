@@ -14,7 +14,7 @@
 <body data-admin-auth="password">
 <header class="border-b border-white/10 bg-slate-950/80"><nav class="max-w-7xl mx-auto px-4 py-5 flex justify-between"><a href="./" class="font-black text-xl">ENGLISHMATES</a><a href="./courses.html" class="text-sm text-violet-300">View course marketplace</a></nav></header>
 <main class="max-w-7xl mx-auto px-4 py-8 md:py-12">
-<div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Restricted administration</p><h1 class="text-3xl md:text-4xl font-black mt-2">LMS course and enrollment manager</h1><p class="muted mt-3">Manage courses, protected video lessons, enrollments and manual payment reviews.</p></div>
+<div><p class="text-xs uppercase tracking-widest text-violet-300 font-bold">Restricted administration</p><h1 class="text-3xl md:text-4xl font-black mt-2">LMS course and enrollment manager</h1><p class="muted mt-3">Manage courses, protected video lessons, enrollments and manual payment reviews. <span id="dataSourceBadge" class="inline-block rounded-full px-2 py-1 text-xs font-semibold"></span></p></div>
 <section id="loginPanel" class="panel rounded-2xl p-6 max-w-xl mt-7"><h2 class="text-xl font-black">Admin sign in</h2><p class="muted text-sm mt-2">Use the verified Englishmates owner account.</p><form id="loginForm" class="grid gap-3 mt-5"><input id="adminEmail" type="email" required placeholder="Admin email" class="field rounded-xl px-3 py-3"><input id="adminPassword" type="password" required placeholder="Password" class="field rounded-xl px-3 py-3"><button class="btn rounded-xl px-4 py-3 font-bold">Sign in</button></form><p id="loginMessage" class="text-sm mt-3" role="status"></p></section>
 <section id="adminPanel" class="hidden mt-7">
 <div class="panel rounded-2xl p-4 flex justify-between items-center"><div><p class="text-xs muted">SIGNED IN AS</p><p id="identity" class="font-bold mt-1"></p></div><button id="logout" class="rounded-xl border border-white/10 px-4 py-2">Sign out</button></div>
@@ -102,6 +102,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const form = $('courseForm');
   let data = { courses: [], enrollments: [], payments: [] };
   const adminEmail = 'bddayma12@gmail.com';
+  const isDeployPreview = /^deploy-preview-\\d+--englishmates-ratangarh\\.netlify\\.app$/.test(location.hostname);
+  $('dataSourceBadge').textContent = isDeployPreview ? 'Preview data · separate from live' : 'Live production data';
+  $('dataSourceBadge').classList.add(isDeployPreview ? 'bg-amber-300/10' : 'bg-emerald-300/10', isDeployPreview ? 'text-amber-200' : 'text-emerald-200');
   function slug(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0,72); }
   function setMessage(message, error) { $('adminMessage').textContent = message || ''; $('adminMessage').className = 'text-sm mt-4 ' + (error ? 'text-rose-300' : 'text-emerald-300'); }
   $('refreshPayments').addEventListener('click', async () => {
