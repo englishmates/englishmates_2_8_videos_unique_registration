@@ -93,45 +93,48 @@ async function finishRoom(db, roomRef, reason, actorUid, adminActor) {
   return ended;
 }
 
+function needsCleanup(room) {
+  if (!room || room.status !== 'live') return false;
+  const current = now();
+  const members = Array.isArray(room.members) ? room.members : [];
+  const host = members.find(member => member.uid === room.hostUid);
+  return stampMs(room.expiresAt) <= current
+    || !host
+    || current - stampMs(host.lastSeenAt) > STALE_HOST_MS
+    || members.some(member => member.uid !== room.hostUid && current - stampMs(member.lastSeenAt) > STALE_MEMBER_MS);
+}
+
 async function cleanupRoom(db, roomRef) {
   await db.runTransaction(async tx => {
     const snap = await tx.get(roomRef);
     if (!snap.exists || snap.data().status !== 'live') return;
     const room = snap.data();
     const members = Array.isArray(room.members) ? room.members : [];
-    const refs = members.map(member => db.collection(COLLECTIONS.profiles).doc(member.uid));
-    const profiles = await Promise.all(refs.map(ref => tx.get(ref)));
     const current = now();
     const hostIndex = members.findIndex(member => member.uid === room.hostUid);
-    const hostProfile = hostIndex >= 0 ? (profiles[hostIndex].data() || {}) : {};
-    const hostStale = hostIndex < 0
-      || !profiles[hostIndex].exists
-      || hostProfile.status !== 'approved'
-      || hostProfile.moderationStatus === 'suspended'
-      || current - stampMs(members[hostIndex].lastSeenAt) > STALE_HOST_MS;
+    const hostStale = hostIndex < 0 || current - stampMs(members[hostIndex]?.lastSeenAt) > STALE_HOST_MS;
     const expired = stampMs(room.expiresAt) <= current;
     const ended = hostStale || expired;
-    const keep = members.filter((member, index) => {
-      if (ended) return false;
-      const profile = profiles[index].data() || {};
-      const stale = current - stampMs(member.lastSeenAt) > STALE_MEMBER_MS;
-      const ineligible = !profiles[index].exists || profile.status !== 'approved' || profile.moderationStatus === 'suspended';
-      return !stale && !ineligible;
-    });
-    const removed = members.filter(member => !keep.some(item => item.uid === member.uid));
-    if (!ended && !removed.length) return;
+    const removedIndexes = ended
+      ? members.map((_, index) => index)
+      : members.map((member, index) => member.uid !== room.hostUid && current - stampMs(member.lastSeenAt) > STALE_MEMBER_MS ? index : -1).filter(index => index >= 0);
+    if (!ended && !removedIndexes.length) return;
+    const refs = removedIndexes.map(index => db.collection(COLLECTIONS.profiles).doc(members[index].uid));
+    const profiles = await Promise.all(refs.map(ref => tx.get(ref)));
+    const keep = members.filter((_, index) => !removedIndexes.includes(index));
     if (ended) {
       tx.update(roomRef, { status: 'ended', endReason: expired ? 'time-limit' : 'host-unavailable', endedAt: admin.firestore.Timestamp.now(), endedBy: null, members: [], memberCount: 0, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
     } else {
       tx.update(roomRef, { members: keep, memberCount: keep.length, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
     }
-    removed.forEach(member => {
-      const index = members.findIndex(item => item.uid === member.uid);
-      if (index >= 0 && profiles[index].exists && profiles[index].data().activeRoomId === roomRef.id) {
-        const profile = profiles[index].data();
+    removedIndexes.forEach((memberIndex, index) => {
+      const profileRef = refs[index];
+      const profileSnap = profiles[index];
+      if (profileSnap.exists && profileSnap.data().activeRoomId === roomRef.id) {
+        const profile = profileSnap.data();
         const restoreAvailable = profile.availableForRequestsBeforeRoom === true;
         const restoreAvailability = profile.availabilityBeforeRoom === 'available' ? 'available' : 'offline';
-        tx.update(refs[index], {
+        tx.update(profileRef, {
           activeRoomId: admin.firestore.FieldValue.delete(),
           availableForRequests: restoreAvailable,
           availability: restoreAvailable ? restoreAvailability : 'offline',
@@ -155,11 +158,11 @@ async function roomForMember(db, user, own) {
 }
 
 async function listRooms(db, viewerUid) {
-  const snapshot = await db.collection(COLLECTIONS.rooms).where('status', '==', 'live').limit(50).get();
+  const snapshot = await db.collection(COLLECTIONS.rooms).where('status', '==', 'live').limit(25).get();
   const rooms = [];
   for (const item of snapshot.docs) {
     const ref = item.ref;
-    await cleanupRoom(db, ref);
+    if (needsCleanup(item.data())) await cleanupRoom(db, ref);
     const current = await ref.get();
     if (current.exists && current.data().status === 'live') rooms.push(publicRoom(current.id, current.data(), viewerUid));
   }
@@ -170,7 +173,7 @@ async function adminRooms(db) {
   const snapshot = await db.collection(COLLECTIONS.rooms).where('status', '==', 'live').limit(50).get();
   const rooms = [];
   for (const item of snapshot.docs) {
-    await cleanupRoom(db, item.ref);
+    if (needsCleanup(item.data())) await cleanupRoom(db, item.ref);
     const current = await item.ref.get();
     if (current.exists && current.data().status === 'live') rooms.push(publicRoom(current.id, current.data(), null));
   }
@@ -310,6 +313,7 @@ exports.handler = async event => {
           const members = roomSnap.data().members || [];
           const index = members.findIndex(item => item.uid === user.uid);
           if (index < 0 || !profileSnap.exists || profileSnap.data().activeRoomId !== roomId) throw httpError(403, 'You are no longer in this room.');
+          requireEligible(profileSnap.data());
           const next = [...members];
           next[index] = { ...next[index], lastSeenAt: admin.firestore.Timestamp.now() };
           tx.update(roomRef, { members: next, memberCount: next.length, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
