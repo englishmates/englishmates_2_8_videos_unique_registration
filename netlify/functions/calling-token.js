@@ -17,7 +17,7 @@ exports.handler = async event => {
     const appId = process.env.AGORA_APP_ID;
     const certificate = process.env.AGORA_APP_CERTIFICATE;
     if (!appId || !certificate) throw httpError(503, 'Audio is not configured yet.');
-    await consumeLimit(db, user.uid, 'audio_token', 30, 60 * 60 * 1000);
+    await consumeLimit(db, user.uid, roomId ? 'audio_room_token' : 'audio_token', roomId ? 60 : 30, 60 * 60 * 1000);
     const expiresAt = Math.floor(Date.now() / 1000) + (roomId ? 120 : 300);
 
     if (roomId) {
