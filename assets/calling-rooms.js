@@ -5,6 +5,7 @@
   let auth, data = null, timer = null, countdownTimer = null, working = false;
   let rtcClient = null, microphone = null, remoteTracks = new Map(), muted = false, joinedRoomId = null;
   const apiUrl = Englishmates.api('calling-rooms');
+  const inviteRoomId = new URLSearchParams(window.location.search).get('room') || '';
 
   function note(text, error) {
     const node = $('roomMessage');
@@ -39,13 +40,13 @@
   function renderRooms(rooms) {
     const target = $('roomList');
     target.replaceChildren();
-    const items = (rooms || []).filter(room => !data?.myRoom || room.id !== data.myRoom.id);
+    const items = (rooms || []).filter(room => !data?.myRoom || room.id !== data.myRoom.id).sort((a, b) => a.id === inviteRoomId ? -1 : b.id === inviteRoomId ? 1 : 0);
     if (!items.length) {
       target.append(make('p', 'muted text-sm', 'No open rooms right now. Start a room above, or check back in a moment.'));
       return;
     }
     items.forEach(room => {
-      const card = make('article', 'rounded-xl border border-slate-700 bg-slate-900/50 p-4');
+      const card = make('article', 'rounded-xl border ' + (room.id === inviteRoomId ? 'border-cyan-300/60 ring-1 ring-cyan-300/30 ' : 'border-slate-700 ') + 'bg-slate-900/50 p-4');
       const top = make('div', 'flex flex-wrap justify-between gap-2 items-start');
       const titleWrap = make('div', 'min-w-0');
       titleWrap.append(make('p', 'text-[11px] uppercase tracking-wider text-cyan-200 font-black', room.topic || 'Speaking room'));
@@ -56,7 +57,7 @@
       if (room.prompt) card.append(make('p', 'text-sm text-slate-200 mt-3', room.prompt));
       card.append(make('p', 'muted text-xs mt-2', String(room.memberCount) + '/' + String(room.capacity) + ' people · audio only'));
       const levelMismatch = room.level !== 'All levels' && data?.profileLevel && room.level !== data.profileLevel;
-      card.append(button(levelMismatch ? 'For ' + room.level + ' learners' : room.seatsLeft ? 'Join room' : 'Room full', room.seatsLeft && !levelMismatch && !data?.myRoom ? 'green w-full mt-3' : 'border border-slate-600 w-full mt-3', () => joinRoom(room.id), !room.seatsLeft || !!levelMismatch || !!data?.myRoom));
+      card.append(button(levelMismatch ? 'For ' + room.level + ' learners' : room.seatsLeft ? (room.id === inviteRoomId ? 'Join invited room' : 'Join room') : 'Room full', room.seatsLeft && !levelMismatch && !data?.myRoom ? 'green w-full mt-3' : 'border border-slate-600 w-full mt-3', () => joinRoom(room.id), !room.seatsLeft || !!levelMismatch || !!data?.myRoom));
       target.append(card);
     });
   }
@@ -272,6 +273,13 @@
     $('roomCreateForm').addEventListener('submit', createRoom);
     $('refreshRooms').addEventListener('click', refresh);
     $('connectRoomAudio').addEventListener('click', connectAudio);
+    $('copyRoomInvite').addEventListener('click', async () => {
+      if (!data?.myRoom) return;
+      const link = new URL('./community-profile.html', location.href);
+      link.searchParams.set('room', data.myRoom.id);
+      try { await navigator.clipboard.writeText(link.href); note('Room invite link copied. Learners still need to sign in and join the open room.'); }
+      catch (_) { window.prompt('Copy this room invite link:', link.href); }
+    });
     $('muteRoomAudio').addEventListener('click', async () => {
       if (!microphone) return;
       muted = !muted;
