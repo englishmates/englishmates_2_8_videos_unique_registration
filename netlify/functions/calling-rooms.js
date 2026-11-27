@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const {
-  admin, COLLECTIONS, areBlocked, audit, authenticatedUser, blockId, clean, consumeLimit,
+  admin, COLLECTIONS, audit, authenticatedUser, blockId, clean, consumeLimit,
   containsContactDetails, httpError, requireAdmin, requireCommunityLearner,
   requireEligible, ownProfile, reply, store
 } = require('../lib/calling');
@@ -10,8 +10,8 @@ const TOPICS = ['Daily conversation', 'Travel stories', 'Job interviews', 'Publi
 const LEVELS = ['Beginner', 'Elementary', 'Intermediate', 'Upper Intermediate', 'Advanced', 'All levels'];
 const DURATIONS = [15, 30, 45];
 const CAPACITIES = [3, 4, 5, 6, 8];
-const STALE_MEMBER_MS = 45000;
-const STALE_HOST_MS = 90000;
+const STALE_MEMBER_MS = 180000;
+const STALE_HOST_MS = 300000;
 
 function now() { return Date.now(); }
 function stampMs(value) {
@@ -180,12 +180,6 @@ async function adminRooms(db) {
   return rooms.sort((a, b) => (stampMs(b.expiresAt) - stampMs(a.expiresAt)));
 }
 
-async function clearQueueCheck(db, user, tx) {
-  const queueRef = db.collection(COLLECTIONS.queues).doc(user.uid);
-  const queue = await tx.get(queueRef);
-  if (queue.exists && stampMs(queue.data().expiresAt) > now()) throw httpError(409, 'Leave partner matching before opening or joining a topic room.');
-  return queueRef;
-}
 
 exports.handler = async event => {
   try {
