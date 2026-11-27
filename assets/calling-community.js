@@ -33,6 +33,54 @@
   }
   function statusCopy(status) { return { pending: 'Your profile is activating automatically. Refresh in a moment.', approved: 'Your profile is active. You can safely enter the partner-matching queue.', rejected: 'Community access is blocked. Contact Englishmates if you need help.', suspended: 'Community access is suspended. Please contact Englishmates if you need help.' }[status] || 'Complete your profile to start matching.'; }
   let profileDirty = false, wasQueued = false, queueExpiresAt = 0, queueTicker = null;
+  let profileWizardStep = 0, profileWizardTouched = false;
+  const profileWizardSteps = [
+    ['First, what should we call you?', 'Your email and phone stay private. Learners see the speaking name you choose.'],
+    ['A quick age check', 'Calling Community is a safe practice space for adults in India.'],
+    ['Choose your comfort level', 'There is no test. Pick the level that feels right today; you can update it later.'],
+    ['Choose your interests', 'Pick the conversation topics you would enjoy practising with another learner.'],
+    ['Set a small speaking goal', 'A sentence is enough. This helps suggest more useful practice.'],
+    ['Where do you practise from?', 'Your city and state help match preferences and are not shown on your learner card.'],
+    ['Add a little personality', 'A photo and introduction are optional. You can finish without them.']
+  ];
+  function setProfileWizardStep(index, markTouched = true) {
+    const steps = [...document.querySelectorAll('#profileForm [data-profile-step]')];
+    profileWizardStep = Math.max(0, Math.min(steps.length - 1, index));
+    if (markTouched) profileWizardTouched = true;
+    steps.forEach((step, stepIndex) => step.classList.toggle('hidden', stepIndex !== profileWizardStep));
+    $('profileStepHeading').textContent = profileWizardSteps[profileWizardStep][0];
+    $('profileStepHelp').textContent = profileWizardSteps[profileWizardStep][1];
+    $('profileStepCount').textContent = 'Step ' + (profileWizardStep + 1) + ' of ' + steps.length;
+    const progress = Math.round(((profileWizardStep + 1) / steps.length) * 100);
+    $('profileStepProgress').style.width = progress + '%';
+    $('profileStepProgress').parentElement.setAttribute('aria-valuenow', String(profileWizardStep + 1));
+    $('profileBack').disabled = profileWizardStep === 0;
+    $('profileBack').classList.toggle('opacity-40', profileWizardStep === 0);
+    $('profileNext').classList.toggle('hidden', profileWizardStep === steps.length - 1);
+    $('saveProfile').classList.toggle('hidden', profileWizardStep !== steps.length - 1);
+    $('saveProfile').textContent = state?.profile ? 'Save profile changes' : 'Finish profile';
+    if (markTouched) $('profileStepHeading').focus();
+  }
+  function validateProfileStep(index, report = true) {
+    const steps = [...document.querySelectorAll('#profileForm [data-profile-step]')];
+    const panel = steps[index];
+    if (!panel) return false;
+    const controls = [...panel.querySelectorAll('input, select, textarea')].filter(control => !(control.type === 'checkbox' && control.id !== 'adultConfirm'));
+    const invalid = controls.find(control => !control.checkValidity());
+    if (invalid) {
+      if (report) { invalid.reportValidity(); invalid.focus(); }
+      return false;
+    }
+    if (index === 3 && checkedInterests().length === 0) {
+      if (report) {
+        message('profileMessage', 'Choose at least one topic you would like to practise.', true);
+        panel.querySelector('input[type="checkbox"]')?.focus();
+      }
+      return false;
+    }
+    if (report) message('profileMessage', '');
+    return true;
+  }
   function renderProfile(profile) {
     const status = profile?.status || 'new'; show('statusBox', true); $('statusBox').textContent = statusCopy(status); $('statusBox').className = `rounded-2xl p-4 mt-6 text-sm ${status === 'approved' ? 'bg-emerald-500/10 text-emerald-100' : status === 'suspended' || status === 'rejected' ? 'bg-rose-500/10 text-rose-100' : 'bg-amber-500/10 text-amber-100'}`;
     show('matchingPanel', status === 'approved'); if (!profile) return;
@@ -199,7 +247,52 @@
     document.querySelectorAll('.signOut').forEach(button => button.addEventListener('click', signOut));
     $('avatarInput').addEventListener('change', () => { const file = $('avatarInput').files[0]; if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); if (!file) return; avatarPreviewUrl = URL.createObjectURL(file); $('avatarPreview').src = avatarPreviewUrl; show('avatarPreviewWrap', true); });
     ['input', 'change'].forEach(type => $('profileForm').addEventListener(type, () => { profileDirty = true; }));
-    $('profileForm').addEventListener('submit', async event => { event.preventDefault(); if (!$('adultConfirm').checked) return message('profileMessage', 'You must confirm that you are 18 or older and in India.', true); try { const profile = { fullName: $('fullName').value, alias: $('alias').value, age: $('age').value, city: $('city').value, state: $('state').value, level: $('level').value, preferredLanguage: $('language').value, locationPreference: $('locationPreference').value, interests: checkedInterests(), goals: $('goals').value, intro: $('intro').value }; const avatarDataUrl = await compressAvatar(); if (avatarDataUrl) profile.avatarDataUrl = avatarDataUrl; const result = await api('POST', { action: state?.profile ? 'update-profile' : 'register-profile', profile }); message('profileMessage', result.message); profileDirty = false; if (window.EMUI) window.EMUI.toast('Profile saved ✓'); await refreshDashboard(); } catch (error) { message('profileMessage', error.message, true); } });
+    $('profileNext').addEventListener('click', () => {
+      if (validateProfileStep(profileWizardStep)) setProfileWizardStep(profileWizardStep + 1);
+    });
+    $('profileBack').addEventListener('click', () => {
+      message('profileMessage', '');
+      setProfileWizardStep(profileWizardStep - 1);
+    });
+    $('profileForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (profileWizardStep < profileWizardSteps.length - 1) {
+        if (validateProfileStep(profileWizardStep)) setProfileWizardStep(profileWizardStep + 1);
+        return;
+      }
+      for (let index = 0; index < profileWizardSteps.length; index++) {
+        if (!validateProfileStep(index, false)) {
+          setProfileWizardStep(index);
+          validateProfileStep(index, true);
+          return;
+        }
+      }
+      if (!$('adultConfirm').checked) { setProfileWizardStep(1); return message('profileMessage', 'Confirm that you are 18 or older and in India.', true); }
+      const saveButton = $('saveProfile');
+      saveButton.disabled = true;
+      saveButton.textContent = 'Saving…';
+      try {
+        const profile = {
+          fullName: $('fullName').value, alias: $('alias').value, age: $('age').value,
+          city: $('city').value, state: $('state').value, level: $('level').value,
+          preferredLanguage: $('language').value, locationPreference: $('locationPreference').value,
+          interests: checkedInterests(), goals: $('goals').value, intro: $('intro').value
+        };
+        const avatarDataUrl = await compressAvatar();
+        if (avatarDataUrl) profile.avatarDataUrl = avatarDataUrl;
+        const result = await api('POST', { action: state?.profile ? 'update-profile' : 'register-profile', profile });
+        message('profileMessage', result.message);
+        profileDirty = false;
+        profileWizardTouched = false;
+        setProfileWizardStep(0, false);
+        if (window.EMUI) window.EMUI.toast('Profile saved ✓');
+        await refreshDashboard();
+      } catch (error) { message('profileMessage', error.message, true); }
+      finally {
+        saveButton.disabled = false;
+        saveButton.textContent = state?.profile ? 'Save profile changes' : 'Finish profile';
+      }
+    });
     $('joinQueue').addEventListener('click', () => action('join-queue').catch(error => message('matchingMessage', error.message, true)));
     $('leaveQueue').addEventListener('click', () => action('leave-queue').catch(error => message('matchingMessage', error.message, true)));
     $('acceptCall').addEventListener('click', () => action('accept-call').catch(error => message('matchingMessage', error.message, true)));
@@ -212,7 +305,7 @@
     $('blockPartner').addEventListener('click', async () => { if (confirm('Block this learner and end the call?')) { await leaveAudio(); action('block-current-partner').catch(error => message('matchingMessage', error.message, true)); } });
     $('reportPartner').addEventListener('click', () => action('report-current-partner', { reason: $('reportReason').value, details: $('reportDetails').value }).catch(error => message('matchingMessage', error.message, true)));
     $('sendFeedback').addEventListener('click', () => action('submit-feedback', { rating: $('feedbackRating').value, note: $('feedbackNote').value }).catch(error => message('matchingMessage', error.message, true)));
-    auth.onAuthStateChanged(async user => { if (user) await user.reload(); if (user && !isCommunityUser(user)) { await auth.signOut(); setViews(null); message('authMessage', 'Use Google or email and password to sign in.', true); return; } setViews(user); if (!user) return; $('identity').textContent = user.emailVerified ? 'Verified Englishmates learner' : 'Email verification required'; if ((user.email || '').toLowerCase() === ADMIN_EMAIL) show('adminLink', true); if (user.emailVerified) { await refreshDashboard(); startPolling(); } });
+    auth.onAuthStateChanged(async user => { if (!user) { profileDirty = false; profileWizardTouched = false; setProfileWizardStep(0, false); } if (user) await user.reload(); if (user && !isCommunityUser(user)) { await auth.signOut(); setViews(null); message('authMessage', 'Use Google or email and password to sign in.', true); return; } setViews(user); if (!user) return; $('identity').textContent = user.emailVerified ? 'Verified Englishmates learner' : 'Email verification required'; if ((user.email || '').toLowerCase() === ADMIN_EMAIL) show('adminLink', true); if (user.emailVerified) { await refreshDashboard(); startPolling(); } });
   }
   initialise();
 })();
