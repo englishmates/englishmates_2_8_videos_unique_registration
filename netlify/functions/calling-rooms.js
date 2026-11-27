@@ -212,7 +212,7 @@ exports.handler = async event => {
     if (event.httpMethod === 'GET') {
       const rooms = await listRooms(db, user.uid);
       const current = await roomForMember(db, user, own);
-      return reply(200, { ok: true, rooms, myRoom: current ? publicRoom(current.id, current.data, user.uid) : null });
+      return reply(200, { ok: true, profileLevel: own.data.level || 'Beginner', rooms, myRoom: current ? publicRoom(current.id, current.data, user.uid) : null });
     }
     if (event.httpMethod !== 'POST') return reply(405, { ok: false, error: 'Method not allowed.' });
     const body = JSON.parse(event.body || '{}');
