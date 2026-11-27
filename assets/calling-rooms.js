@@ -26,8 +26,7 @@
     return node;
   }
   async function call(method, payload) {
-    const url = method === 'GET' ? apiUrl : apiUrl;
-    const response = await fetch(url, {
+    const response = await fetch(apiUrl, {
       method,
       headers: { Authorization: 'Bearer ' + await auth.currentUser.getIdToken(), 'Content-Type': 'application/json' },
       body: method === 'GET' ? undefined : JSON.stringify(payload || {}),
@@ -231,12 +230,15 @@
     }
   }
   async function joinRoom(roomId) {
+    if (working) return;
+    working = true;
     try {
       const result = await call('POST', { action: 'join-room', roomId });
       note(result.message);
       await refreshAfterAction();
       if (data?.myRoom?.id === roomId) await connectAudio();
     } catch (error) { note(error.message, true); }
+    finally { working = false; }
   }
   async function createRoom(event) {
     event.preventDefault();
@@ -306,7 +308,6 @@
       if (!user || !user.emailVerified) { data = null; render({ rooms: [], myRoom: null }); return; }
       await refresh();
       timer = setInterval(async () => {
-        if (document.hidden) return;
         if (data?.myRoom) {
           try { await call('POST', { action: 'heartbeat', roomId: data.myRoom.id }); } catch (_) {}
         }
