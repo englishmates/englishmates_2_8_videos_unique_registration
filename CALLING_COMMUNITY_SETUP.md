@@ -6,6 +6,7 @@
 - Searchable directory of active learners, proficiency and topic filters, online-only filtering, compatible random matching, and paginated results.
 - Speaking requests with duplicate protection, recipient accept/reject, sender cancellation, and 14-day expiration.
 - Live, topic-based audio rooms: authenticated learners can host rooms for 3–8 total people, choose a conversation prompt, level, and 15/30/45-minute duration, and let other eligible learners join while seats remain. The room list enforces level selection on the server. No camera or recording is used.
+- Mobile-first, seven-step learner profile setup with a progress indicator, one small group of questions per step, in-place validation, Back/Continue controls, and skippable photo/introduction fields. Existing profile fields and API payloads are preserved.
 - Room host controls: end the room, remove a learner, and report or block a participant. Learners can mute, leave, report, or block. The admin dashboard lists active rooms and can end one. No live audio monitoring is available; room audio is not recorded.
 - Presence heartbeats clean up abandoned rooms and seats; host loss or the time limit ends the room and releases participant availability. A learner can only be in one room or one-to-one call at a time.
 - Accepted connections with an audio-call invitation flow. Calls use the existing Agora RTC token service and never create or publish a camera track.
@@ -71,7 +72,7 @@ Pricing references: Agora RTC pricing https://www.agora.io/en/pricing/ and Fireb
 
 ## Manual verification checklist
 
-- Create two learner accounts in the same Deploy Preview, one with Google and one with email/password; verify the email link, then confirm each profile becomes active immediately after submission.
+- Create two learner accounts in the same Deploy Preview, one with Google and one with email/password; verify the email link, complete the profile wizard forward/back, skip the optional photo/introduction, and confirm the profile becomes active after submission.
 - Search each other by name/topic/level and verify email, phone, age, and location do not appear.
 - Send a request, receive it in the second session, accept it, reject another, cancel an outgoing request, and confirm duplicates are rejected.
 - Start an audio call from an accepted connection. Confirm the invitation requires acceptance and the microphone prompt appears only after a user clicks Join audio call.
