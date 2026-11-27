@@ -29,7 +29,7 @@ function uidFor(members) {
   return value;
 }
 function memberFor(profile, uid, role, rtcUid) {
-  return { uid, alias: clean(profile.alias, 32) || 'English learner', level: LEVELS.includes(profile.level) ? profile.level : 'Beginner', role, rtcUid, joinedAt: admin.firestore.Timestamp.now(), lastSeenAt: admin.firestore.Timestamp.now() };
+  return { memberId: crypto.randomBytes(12).toString('hex'), uid, alias: clean(profile.alias, 32) || 'English learner', level: LEVELS.includes(profile.level) ? profile.level : 'Beginner', role, rtcUid, joinedAt: admin.firestore.Timestamp.now(), lastSeenAt: admin.firestore.Timestamp.now() };
 }
 function publicRoom(id, room, viewerUid) {
   const members = Array.isArray(room.members) ? room.members : [];
@@ -39,7 +39,7 @@ function publicRoom(id, room, viewerUid) {
     level: room.level, durationMinutes: room.durationMinutes, expiresAt: stampMs(room.expiresAt) ? new Date(stampMs(room.expiresAt)).toISOString() : null,
     status: room.status, capacity: room.capacity, memberCount: members.length,
     hostAlias: host?.alias || room.hostAlias || 'Room host',
-    members: members.map(member => ({ alias: member.alias || 'English learner', level: member.level || 'Beginner', role: member.role === 'host' ? 'Host' : 'Learner', isYou: member.uid === viewerUid })),
+    members: members.map(member => ({ memberId: member.memberId, alias: member.alias || 'English learner', level: member.level || 'Beginner', role: member.role === 'host' ? 'Host' : 'Learner', isYou: member.uid === viewerUid })),
     isMember: members.some(member => member.uid === viewerUid),
     seatsLeft: Math.max(0, Number(room.capacity || 0) - members.length)
   };
@@ -273,6 +273,7 @@ exports.handler = async event => {
         if (profile.activeSessionId) throw httpError(409, 'Finish or decline your one-to-one call before joining a room.');
         if (queueSnap.exists && stampMs(queueSnap.data().expiresAt) > now()) throw httpError(409, 'Leave partner matching before joining a topic room.');
         const members = Array.isArray(room.members) ? room.members : [];
+        if (room.level !== 'All levels' && room.level !== profile.level) throw httpError(409, 'This room is for ' + room.level + ' speakers. Choose a room for your level.');
         if (members.length >= Number(room.capacity)) throw httpError(409, 'This room is full. Choose another open room.');
         const blockRefs = members.flatMap(member => [
           db.collection(COLLECTIONS.blocks).doc(blockId(user.uid, member.uid)),
@@ -352,10 +353,10 @@ exports.handler = async event => {
       }
       if (action === 'remove-member') {
         if (room.hostUid !== user.uid) throw httpError(403, 'Only the host can remove a learner.');
-        const targetUid = clean(body.memberUid, 160);
-        if (!targetUid || targetUid === user.uid) throw httpError(400, 'Choose another room member.');
-        const target = (room.members || []).find(item => item.uid === targetUid);
-        if (!target) throw httpError(404, 'That learner is not in this room.');
+        const targetMemberId = clean(body.memberId, 40);
+        const target = (room.members || []).find(item => item.memberId === targetMemberId);
+        if (!target || target.uid === user.uid) throw httpError(404, 'Choose another learner who is in this room.');
+        const targetUid = target.uid;
         const targetRef = db.collection(COLLECTIONS.profiles).doc(targetUid);
         await db.runTransaction(async tx => {
           const [roomSnap, profileSnap] = await Promise.all([tx.get(roomRef), tx.get(targetRef)]);
@@ -377,8 +378,10 @@ exports.handler = async event => {
         return reply(200, { ok: true, message: 'Learner removed from the room.' });
       }
       if (action === 'block-member') {
-        const targetUid = clean(body.memberUid, 160);
-        if (!targetUid || targetUid === user.uid || !(room.members || []).some(item => item.uid === targetUid)) throw httpError(404, 'Choose a learner who is in this room.');
+        const targetMemberId = clean(body.memberId, 40);
+        const targetMember = (room.members || []).find(item => item.memberId === targetMemberId);
+        if (!targetMember || targetMember.uid === user.uid) throw httpError(404, 'Choose a learner who is in this room.');
+        const targetUid = targetMember.uid;
         await db.collection(COLLECTIONS.blocks).doc(blockId(user.uid, targetUid)).set({ blockerUid: user.uid, blockedUid: targetUid, createdAt: admin.firestore.FieldValue.serverTimestamp(), source: 'topic-room' });
         if (room.hostUid === user.uid) {
           const targetRef = db.collection(COLLECTIONS.profiles).doc(targetUid);
@@ -414,14 +417,17 @@ exports.handler = async event => {
       if (action === 'report-room') {
         const reason = clean(body.reason, 120);
         const details = clean(body.details, 1000);
+        const reportedMemberId = clean(body.memberId, 40);
+        const reportedMember = reportedMemberId ? (room.members || []).find(item => item.memberId === reportedMemberId) : null;
+        if (reportedMemberId && !reportedMember) throw httpError(404, 'That learner is no longer in this room.');
         if (reason.length < 3) throw httpError(400, 'Choose or describe a report reason.');
         if (containsContactDetails(details)) throw httpError(400, 'Remove contact details from the report notes.');
         await consumeLimit(db, user.uid, 'topic_room_report', 5, 24 * 60 * 60 * 1000);
         await db.collection(COLLECTIONS.reports).add({
-          reporterUid: user.uid, reportedUid: room.hostUid, roomId,
+          reporterUid: user.uid, reportedUid: reportedMember?.uid || room.hostUid, roomId,
           reason, details, status: 'open', createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
-        await audit(db, user, 'topic_room_reported', room.hostUid, { roomId });
+        await audit(db, user, 'topic_room_reported', reportedMember?.uid || room.hostUid, { roomId });
         return reply(200, { ok: true, message: 'Room report sent to the community administrator.' });
       }
     }
