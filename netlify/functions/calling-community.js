@@ -125,7 +125,7 @@ function matchingScore(one, two) {
 
 function eligiblePeer(data) {
   return data && data.status === 'approved' && data.countryStatus === 'approved' && data.moderationStatus !== 'suspended'
-    && data.availableForRequests !== false && !data.activeSessionId;
+    && data.availableForRequests !== false && !data.activeSessionId && !data.activeRoomId;
 }
 
 // Finds a partner for a learner who pressed "Find a partner".
@@ -170,7 +170,7 @@ async function findMatch(db, user) {
       const [ownSnap, otherSnap, ownQueue, otherQueue, ownBlock, otherBlock, connection, request] = await Promise.all([tx.get(ownRef), tx.get(otherRef), tx.get(ownQueueRef), tx.get(otherQueueRef), tx.get(ownBlockRef), tx.get(otherBlockRef), tx.get(connectionRef), tx.get(requestRef)]);
       if (!ownSnap.exists || !otherSnap.exists || !ownQueue.exists || ownQueue.data().status !== 'waiting') return null;
       if (ownBlock.exists || otherBlock.exists || ownSnap.data().availableForRequests === false || !eligiblePeer(otherSnap.data())) return null;
-      if (ownSnap.data().activeSessionId) return null;
+      if (ownSnap.data().activeSessionId || ownSnap.data().activeRoomId) return null;
       if (candidate.viaQueue) {
         if (!otherQueue.exists || otherQueue.data().status !== 'waiting' || timestampMs(otherQueue.data().expiresAt) <= now()) return null;
       } else if (!isOnline(otherSnap.data())) return null;
@@ -257,6 +257,7 @@ exports.handler = async event => {
         if (!profileSnap.exists) throw httpError(404, 'Complete your speaking profile first.');
         const profileData = profileSnap.data();
         requireEligible(profileData);
+        if (profileData.activeRoomId) throw httpError(409, 'Leave your topic room before searching for a one-to-one partner.');
         if (profileData.activeSessionId) { alreadyInvited = true; return; } // someone just matched with you: show that invitation instead of an error
         if (profileData.availableForRequests === false) throw httpError(409, 'Go online before searching for a partner.');
         if (queueSnap.exists && timestampMs(queueSnap.data().expiresAt) > now()) return;
