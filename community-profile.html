@@ -95,7 +95,42 @@
             <section class="rounded-2xl border border-slate-700 p-4 md:p-5"><h3 class="text-lg font-bold">Call history</h3><div id="callHistory" class="space-y-3 mt-4"><p class="muted text-sm">Completed calls of at least one minute appear here.</p></div></section>
           </div>
         </section>
-        <p id="matchingMessage" class="text-sm mt-4" role="status"></p></section>
+        <p id="matchingMessage" class="text-sm mt-4" role="status"></p>
+        <section id="topicRooms" class="panel rounded-3xl p-5 md:p-7 mt-6">
+          <div class="flex flex-wrap justify-between items-start gap-4">
+            <div><p class="text-cyan-300 text-xs uppercase tracking-[.2em] font-black">Live speaking rooms</p><h2 class="text-2xl font-black mt-2">Practice together by topic</h2><p class="muted text-sm leading-6 mt-2 max-w-2xl">Create a small audio room or join a learner-hosted conversation. Choose a topic, meet in English, and leave whenever you like.</p></div>
+            <span class="tag text-cyan-100">Audio only · No recording</span>
+          </div>
+          <div class="grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)] gap-5 mt-6">
+            <form id="roomCreateForm" class="rounded-2xl border border-slate-700 bg-slate-950/30 p-4 md:p-5 space-y-3">
+              <h3 class="text-lg font-bold">Host a conversation</h3>
+              <label class="block text-sm font-semibold">Topic<select id="roomTopic" class="field mt-2" required><option value="">Choose a topic</option><option>Daily conversation</option><option>Travel stories</option><option>Job interviews</option><option>Public speaking</option><option>Debate club</option><option>Everyday English</option><option>Study and careers</option><option>Custom topic</option></select></label>
+              <label class="block text-sm font-semibold">Room title<input id="roomTitle" class="field mt-2" maxlength="80" minlength="3" required placeholder="Example: Tell us about your favourite place"></label>
+              <label class="block text-sm font-semibold">Opening prompt (optional)<textarea id="roomPrompt" class="field mt-2" rows="2" maxlength="280" placeholder="A question to help everyone start talking"></textarea></label>
+              <div class="grid sm:grid-cols-3 gap-3">
+                <label class="block text-sm font-semibold">For<select id="roomLevel" class="field mt-2"><option>All levels</option><option>Beginner</option><option>Elementary</option><option>Intermediate</option><option>Upper Intermediate</option><option>Advanced</option></select></label>
+                <label class="block text-sm font-semibold">Duration<select id="roomDuration" class="field mt-2"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="45">45 minutes</option></select></label>
+                <label class="block text-sm font-semibold">People total<select id="roomCapacity" class="field mt-2"><option value="3">3 people</option><option value="4">4 people</option><option value="5">5 people</option><option value="6">6 people</option><option value="8">8 people</option></select></label>
+              </div>
+              <p class="muted text-xs leading-5">People total includes you as the host. Avoid sharing contact details. Rooms are not recorded. Please keep the discussion respectful and on topic.</p>
+              <button id="createRoomButton" class="btn primary w-full" type="submit">Create room and open it</button>
+            </form>
+            <section class="rounded-2xl border border-slate-700 bg-slate-950/30 p-4 md:p-5">
+              <div class="flex flex-wrap justify-between gap-3 items-center"><div><h3 class="text-lg font-bold">Open rooms</h3><p class="muted text-xs mt-1">Join an active room with a free seat.</p></div><button id="refreshRooms" class="btn border border-slate-600" type="button">Refresh</button></div>
+              <div id="roomList" class="space-y-3 mt-4" aria-live="polite"><p class="muted text-sm">Loading open rooms…</p></div>
+            </section>
+          </div>
+          <section id="activeRoomCard" class="hidden rounded-2xl border border-cyan-300/30 bg-cyan-950/20 p-4 md:p-6 mt-5" aria-live="polite">
+            <div class="flex flex-wrap justify-between gap-3 items-start"><div><p class="text-cyan-200 text-xs uppercase tracking-[.16em] font-black">Your active room</p><h3 id="activeRoomTitle" class="text-xl font-black mt-2"></h3><p id="activeRoomMeta" class="muted text-sm mt-2"></p><p id="activeRoomPrompt" class="text-sm text-slate-100 mt-3"></p></div><p id="roomCountdown" class="tag text-amber-100"></p></div>
+            <div class="grid md:grid-cols-[minmax(0,1fr)_auto] gap-4 mt-5 items-end">
+              <div><h4 class="font-bold">In this room</h4><div id="roomMembers" class="flex flex-wrap gap-2 mt-2"></div></div>
+              <div class="flex flex-wrap gap-2"><button id="connectRoomAudio" class="btn green" type="button">Join room audio</button><button id="muteRoomAudio" class="hidden btn border border-slate-500" type="button">Mute microphone</button><button id="leaveRoomButton" class="btn border border-slate-500" type="button">Leave room</button><button id="endRoomButton" class="hidden btn red" type="button">End room</button></div>
+            </div>
+            <div class="flex flex-wrap justify-between gap-3 mt-4 text-xs muted"><p id="roomAudioStatus" role="status">Your microphone stays off until you choose “Join room audio”.</p><button id="reportRoomButton" class="text-amber-200 underline" type="button">Report this room</button></div>
+            <p class="muted text-xs leading-5 mt-3">Use English for practice. Do not share phone numbers or email addresses. You can mute or leave at any time. This app does not record room audio.</p>
+          </section>
+          <p id="roomMessage" class="text-sm mt-4" role="status"></p>
+        </section>
     </section>
   </main>
   <script src="./assets/calling-community.js"></script>
