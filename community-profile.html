@@ -34,8 +34,69 @@
     <section id="communityApp" class="hidden mt-8">
       <div class="panel rounded-3xl p-6 md:p-8"><div class="flex flex-wrap justify-between gap-4"><div><p class="text-violet-300 text-xs uppercase tracking-[.2em] font-black">Verified learner</p><h1 class="text-3xl font-black mt-2">Your speaking profile</h1><p id="identity" class="muted text-sm mt-2"></p></div><div class="flex gap-3"><a id="adminLink" href="./calling-admin.html" class="hidden btn border border-amber-400/40 text-amber-200" >Community admin</a><button class="signOut btn border border-slate-600" type="button">Sign out</button></div></div>
         <div id="statusBox" class="hidden rounded-2xl p-4 mt-6 text-sm"></div>
-        <form id="profileForm" class="grid md:grid-cols-2 gap-4 mt-6"><label class="text-sm font-semibold">Full name<input id="fullName" class="field mt-2" maxlength="80" autocomplete="name" required></label><label class="text-sm font-semibold">Speaking name (partners see this)<input id="alias" class="field mt-2" maxlength="32" required></label><label class="text-sm font-semibold">Age (18+)<input id="age" class="field mt-2" type="number" min="18" max="100" required></label><label class="text-sm font-semibold">English speaking level<select id="level" class="field mt-2" required><option value="">Choose level</option><option>Beginner</option><option>Elementary</option><option>Intermediate</option><option>Upper Intermediate</option><option>Advanced</option></select></label><label class="text-sm font-semibold">State<input id="state" class="field mt-2" maxlength="80" required></label><label class="text-sm font-semibold">City<input id="city" class="field mt-2" maxlength="80" required></label><label class="text-sm font-semibold">Preferred practice language<select id="language" class="field mt-2"><option>English</option><option>Hindi + English</option></select></label><label class="text-sm font-semibold">Matching preference<select id="locationPreference" class="field mt-2"><option>Anywhere in India</option><option>Same state preferred</option><option>Same city preferred</option></select></label>
-          <fieldset class="md:col-span-2"><legend class="text-sm font-semibold">Speaking interests — choose at least one</legend><div id="interests" class="flex flex-wrap gap-2 mt-3"><label class="tag"><input type="checkbox" value="Daily conversation"> Daily conversation</label><label class="tag"><input type="checkbox" value="Interview"> Interview</label><label class="tag"><input type="checkbox" value="Public speaking"> Public speaking</label><label class="tag"><input type="checkbox" value="Grammar"> Grammar</label><label class="tag"><input type="checkbox" value="Vocabulary"> Vocabulary</label><label class="tag"><input type="checkbox" value="Travel"> Travel</label><label class="tag"><input type="checkbox" value="Personality development"> Personality development</label></div></fieldset><label class="md:col-span-2 text-sm font-semibold">Learning goals<textarea id="goals" class="field mt-2" rows="3" maxlength="500" minlength="5" required placeholder="What would you like to improve?"></textarea></label><label class="md:col-span-2 text-sm font-semibold">Profile picture (optional, PNG/JPEG/WebP, up to 5 MB)<input id="avatarInput" class="field mt-2" type="file" accept="image/png,image/jpeg,image/webp"></label><div id="avatarPreviewWrap" class="hidden md:col-span-2 flex items-center gap-3"><img id="avatarPreview" alt="Profile picture preview" class="h-16 w-16 rounded-full object-cover"><span class="muted text-xs">This picture is shown in the partner directory and call screen.</span></div><label class="md:col-span-2 text-sm font-semibold">Short introduction partners can see<textarea id="intro" class="field mt-2" rows="2" maxlength="180" placeholder="A little about how you like to practise. Do not include contact details."></textarea></label><label class="md:col-span-2 text-sm flex items-start gap-3"><input id="adultConfirm" type="checkbox" class="mt-1" required><span>I confirm that I am 18 or older, currently in India, and will use this community respectfully. My profile activates automatically after I submit it. Administrators can block or suspend access when needed.</span></label><div class="md:col-span-2"><button id="saveProfile" class="btn primary" type="submit">Save profile</button><p id="profileMessage" class="text-sm mt-3" role="status"></p></div></form>
+        <form id="profileForm" class="mt-6" novalidate>
+          <div class="max-w-2xl mx-auto">
+            <div class="rounded-2xl border border-violet-300/15 bg-slate-950/35 p-4 md:p-6">
+              <p class="text-violet-200 text-xs uppercase tracking-[.18em] font-black">Your speaking profile · about 2 minutes</p>
+              <h2 id="profileStepHeading" class="text-xl md:text-2xl font-black mt-3" tabindex="-1" aria-live="polite">First, what should we call you?</h2>
+              <p id="profileStepHelp" class="muted text-sm leading-6 mt-2">Your email and phone stay private. Learners see the speaking name you choose.</p>
+              <div class="h-2 rounded-full bg-slate-800 mt-5 overflow-hidden" role="progressbar" aria-label="Profile setup progress" aria-valuemin="1" aria-valuemax="7" aria-valuenow="1"><div id="profileStepProgress" class="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-300" style="width:14.28%"></div></div>
+              <p id="profileStepCount" class="muted text-xs mt-2" aria-live="polite">Step 1 of 7</p>
+            </div>
+
+            <div class="mt-5 min-h-[210px]">
+              <section class="profile-step space-y-4" data-profile-step="0">
+                <label class="block text-sm font-semibold">Your full name<input id="fullName" class="field mt-2" maxlength="80" minlength="2" autocomplete="name" required></label>
+                <label class="block text-sm font-semibold">What should other learners call you?<input id="alias" class="field mt-2" maxlength="32" minlength="2" autocomplete="nickname" required placeholder="Your speaking name"></label>
+                <p class="muted text-xs">Your speaking name is shown to other learners instead of your email address.</p>
+              </section>
+
+              <section class="profile-step hidden space-y-4" data-profile-step="1">
+                <label class="block text-sm font-semibold">How old are you?<span class="block muted text-xs font-normal mt-1">Calling Community is for adults aged 18 and above.</span><input id="age" class="field mt-2" type="number" min="18" max="100" inputmode="numeric" required></label>
+                <label class="rounded-xl border border-slate-700 p-4 flex items-start gap-3 text-sm leading-6"><input id="adultConfirm" type="checkbox" class="mt-1 shrink-0" required><span>I confirm I am 18 or older, live in India, and will use the community respectfully.</span></label>
+                <p class="muted text-xs">Your profile activates after you finish. Admins can block or suspend accounts when needed.</p>
+              </section>
+
+              <section class="profile-step hidden space-y-4" data-profile-step="2">
+                <label class="block text-sm font-semibold">How would you describe your spoken English today?<select id="level" class="field mt-2" required><option value="">Choose the closest level</option><option>Beginner</option><option>Elementary</option><option>Intermediate</option><option>Upper Intermediate</option><option>Advanced</option></select></label>
+                <p class="muted text-xs">There is no test here. Choose the level that feels comfortable; you can change it later.</p>
+              </section>
+
+              <section class="profile-step hidden space-y-4" data-profile-step="3">
+                <fieldset><legend class="text-sm font-semibold">What would you like to practise? <span class="muted font-normal">Choose at least one.</span></legend><div id="interests" class="flex flex-wrap gap-2 mt-4"><label class="tag"><input type="checkbox" value="Daily conversation"> Daily conversation</label><label class="tag"><input type="checkbox" value="Interview"> Interview</label><label class="tag"><input type="checkbox" value="Public speaking"> Public speaking</label><label class="tag"><input type="checkbox" value="Grammar"> Grammar</label><label class="tag"><input type="checkbox" value="Vocabulary"> Vocabulary</label><label class="tag"><input type="checkbox" value="Travel"> Travel</label><label class="tag"><input type="checkbox" value="Personality development"> Personality development</label></div></fieldset>
+                <p class="muted text-xs">Pick the topics you enjoy. We use these to make partner suggestions more relevant.</p>
+              </section>
+
+              <section class="profile-step hidden space-y-4" data-profile-step="4">
+                <label class="block text-sm font-semibold">What would you like to get better at?<span class="block muted text-xs font-normal mt-1">A short answer is enough.</span><textarea id="goals" class="field mt-2" rows="4" maxlength="500" minlength="5" required placeholder="For example: I want to speak more confidently in interviews."></textarea></label>
+              </section>
+
+              <section class="profile-step hidden space-y-4" data-profile-step="5">
+                <p class="text-sm font-semibold">Where are you based?</p>
+                <div class="grid sm:grid-cols-2 gap-4"><label class="block text-sm font-semibold">State<input id="state" class="field mt-2" maxlength="80" minlength="2" autocomplete="address-level1" required></label><label class="block text-sm font-semibold">City<input id="city" class="field mt-2" maxlength="80" minlength="2" autocomplete="address-level2" required></label></div>
+                <label class="block text-sm font-semibold">Who would you like to be matched with?<select id="locationPreference" class="field mt-2"><option>Anywhere in India</option><option>Same state preferred</option><option>Same city preferred</option></select></label>
+                <label class="block text-sm font-semibold">Practice language<select id="language" class="field mt-2"><option>English</option><option>Hindi + English</option></select></label>
+                <p class="muted text-xs">Your city and state are used for matching preferences. They are not shown on your learner card.</p>
+              </section>
+
+              <section class="profile-step hidden space-y-4" data-profile-step="6">
+                <div><h3 class="text-lg font-bold">Add a little personality <span class="muted text-sm font-normal">(optional)</span></h3><p class="muted text-sm mt-1">You can skip both of these and finish your profile.</p></div>
+                <label class="block text-sm font-semibold">Profile picture<span class="block muted text-xs font-normal mt-1">Optional · PNG, JPEG, or WebP · up to 5 MB</span><input id="avatarInput" class="field mt-2" type="file" accept="image/png,image/jpeg,image/webp"></label>
+                <div id="avatarPreviewWrap" class="hidden flex items-center gap-3"><img id="avatarPreview" alt="Profile picture preview" class="h-16 w-16 rounded-full object-cover"><span class="muted text-xs">This picture appears on your learner card and in calls.</span></div>
+                <label class="block text-sm font-semibold">A short introduction<textarea id="intro" class="field mt-2" rows="3" maxlength="180" placeholder="For example: I enjoy practising everyday English and meeting new people. Do not include contact details."></textarea></label>
+              </section>
+            </div>
+
+            <div class="flex items-center justify-between gap-3 mt-6">
+              <button id="profileBack" class="btn border border-slate-600" type="button">Back</button>
+              <div class="flex items-center gap-2">
+                <button id="profileNext" class="btn primary" type="button">Continue</button>
+                <button id="saveProfile" class="hidden btn primary" type="submit">Finish profile</button>
+              </div>
+            </div>
+            <p id="profileMessage" class="text-sm mt-3" role="status" aria-live="polite"></p>
+          </div>
+        </form>
       </div>
 
       <section id="matchingPanel" class="hidden panel rounded-3xl p-6 md:p-8 mt-6"><div class="flex flex-wrap justify-between gap-4"><div><p class="text-emerald-300 text-xs uppercase tracking-[.2em] font-black">Active community member</p><h2 class="text-2xl font-black mt-2">Find a practice partner</h2><p class="muted text-sm mt-2">Join the live queue. When you match, both learners accept before audio starts.</p><p id="onlineCount" class="muted text-sm mt-2"></p></div><div class="flex gap-3"><button id="joinQueue" class="btn green" type="button">Find a partner</button><button id="leaveQueue" class="hidden btn red" type="button">Stop matching</button></div></div><div id="queueStatus" class="hidden rounded-2xl border border-violet-400/20 bg-violet-500/10 p-4 mt-5 text-sm"></div>
