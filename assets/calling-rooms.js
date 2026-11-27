@@ -33,7 +33,7 @@
       cache: 'no-store'
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.ok) throw new Error(result.error || 'The room request could not be completed.');
+    if (!response.ok || !result.ok) { const error = new Error(result.error || 'The room request could not be completed.'); error.status = response.status; throw error; }
     return result;
   }
   function renderRooms(rooms) {
@@ -309,7 +309,7 @@
       await refresh();
       timer = setInterval(async () => {
         if (data?.myRoom) {
-          try { await call('POST', { action: 'heartbeat', roomId: data.myRoom.id }); } catch (_) {}
+          try { await call('POST', { action: 'heartbeat', roomId: data.myRoom.id }); } catch (error) { if ([403, 410].includes(error.status)) { await disconnectAudio(); note(error.message, true); } }
         }
         await refresh();
       }, 12000);
