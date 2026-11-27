@@ -396,14 +396,11 @@ exports.handler = async event => {
           const currentRoom = await roomRef.get();
           const targetRoomMember = (currentRoom.data()?.members || []).find(item => item.uid === targetUid);
           if (targetRoomMember) {
-            const targetRef = db.collection(COLLECTIONS.profiles).doc(targetUid);
             await db.runTransaction(async tx => {
-              const [freshRoom, targetProfile] = await Promise.all([tx.get(roomRef), tx.get(targetRef)]);
+              const [freshRoom, ownProfileSnap] = await Promise.all([tx.get(roomRef), tx.get(own.ref)]);
               if (!freshRoom.exists || freshRoom.data().status !== 'live') return;
               const next = (freshRoom.data().members || []).filter(item => item.uid !== user.uid);
               tx.update(roomRef, { members: next, memberCount: next.length, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-              if (profileExists(targetProfile)) { /* Target profile is intentionally untouched. */ }
-              const ownProfileSnap = await tx.get(own.ref);
               if (ownProfileSnap.exists && ownProfileSnap.data().activeRoomId === roomId) {
                 const profile = ownProfileSnap.data(); const restore = profile.availableForRequestsBeforeRoom === true;
                 tx.update(own.ref, { activeRoomId: admin.firestore.FieldValue.delete(), availableForRequests: restore, availability: restore && profile.availabilityBeforeRoom === 'available' ? 'available' : 'offline', availableForRequestsBeforeRoom: admin.firestore.FieldValue.delete(), availabilityBeforeRoom: admin.firestore.FieldValue.delete(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
@@ -441,5 +438,3 @@ exports.handler = async event => {
   const response = await handler(event);
   return { ...response, headers: { ...(response.headers || {}), ...cors.headers(event) } };
 };
-
-function profileExists(snapshot) { return snapshot.exists; }
