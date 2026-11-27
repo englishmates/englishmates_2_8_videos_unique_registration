@@ -18,7 +18,7 @@ exports.handler = async event => {
     const certificate = process.env.AGORA_APP_CERTIFICATE;
     if (!appId || !certificate) throw httpError(503, 'Audio is not configured yet.');
     await consumeLimit(db, user.uid, 'audio_token', 30, 60 * 60 * 1000);
-    const expiresAt = Math.floor(Date.now() / 1000) + 300;
+    const expiresAt = Math.floor(Date.now() / 1000) + (roomId ? 120 : 300);
 
     if (roomId) {
       if (roomId.length > 160 || roomId.includes('/') || profile.data.activeRoomId !== roomId) throw httpError(403, 'This topic room is not active for your account.');
@@ -30,7 +30,7 @@ exports.handler = async event => {
       return reply(200, { ok: true, appId, channel: room.data().channelId, token, uid: Number(member.rtcUid), roomId, expiresAt });
     }
 
-    if (sessionId.length > 160 || profile.data.activeSessionId !== sessionId) throw httpError(403, 'This call is not active for your account.');
+    if (profile.data.activeRoomId || sessionId.length > 160 || profile.data.activeSessionId !== sessionId) throw httpError(403, 'This call is not active for your account.');
     const session = await db.collection(COLLECTIONS.sessions).doc(sessionId).get();
     if (!session.exists || session.data().status !== 'active' || !session.data().participants.includes(user.uid)) throw httpError(403, 'Both learners must accept before audio can start.');
     const token = RtcTokenBuilder.buildTokenWithUid(appId, certificate, session.data().channelId, 0, RtcRole.PUBLISHER, expiresAt);
