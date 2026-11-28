@@ -758,21 +758,36 @@ async function handle(event) {
 
     if (action === 'import-legacy-courses') {
       const actor = await requireAdmin(event);
-      const existing = await col('lmsCourses').limit(1).get();
-      if (!existing.empty) throw fail(409, 'The LMS catalog already has courses. Import was stopped to avoid duplicates.');
       const legacy = await db().collection('courses').get();
-      const batch = db().batch();
-      legacy.docs.forEach(d => {
-        const data = d.data();
-        const amount = parseMoneyPaise(data);
-        batch.set(col('lmsCourses').doc(d.id), Object.assign({}, data, {
-          title: clean(data.title || data.name, 140), pricePaise: amount,
-          originalPricePaise: amount, status: 'draft', importedFrom: 'courses', updatedAt: now(), createdAt: now()
-        }));
+      let imported = 0;
+      let skipped = 0;
+      for (const document of legacy.docs) {
+        const ref = col('lmsCourses').doc(document.id);
+        const oldCourse = document.data();
+        const amount = parseMoneyPaise(oldCourse);
+        const created = await db().runTransaction(async tx => {
+          const existing = await tx.get(ref);
+          if (existing.exists) return false;
+          tx.create(ref, Object.assign({}, oldCourse, {
+            title: clean(oldCourse.title || oldCourse.name, 140),
+            pricePaise: amount,
+            originalPricePaise: amount,
+            status: oldCourse.archived === true ? 'archived' : 'draft',
+            importedFrom: 'courses',
+            legacyCourseId: document.id,
+            updatedAt: now(),
+            createdAt: oldCourse.createdAt || now()
+          }));
+          return true;
+        });
+        if (created) imported += 1;
+        else skipped += 1;
+      }
+      await col('adminLogs').add({
+        actorUid: actor.uid, actorEmail: actor.email, action: 'import-legacy-courses',
+        imported, skipped, total: legacy.size, createdAt: now()
       });
-      if (legacy.docs.length) await batch.commit();
-      await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'import-legacy-courses', imported: legacy.docs.length, createdAt: now() });
-      return response(event, 200, { ok: true, imported: legacy.docs.length });
+      return response(event, 200, { ok: true, imported, skipped, total: legacy.size });
     }
 
     if (action === 'save-course') {
@@ -784,8 +799,35 @@ async function handle(event) {
       if (title.length < 3 || description.length < 10 || !Number.isFinite(pricePaise) || pricePaise < 0 || !Number.isFinite(originalPricePaise) || originalPricePaise < pricePaise) {
         throw fail(400, 'Enter a course title, description and valid prices.');
       }
-      const courseId = slug(body.courseId || title) || slug(title);
-      if (!courseId) throw fail(400, 'Course ID could not be created.');
+      const explicitCourseId = slug(body.courseId);
+      const baseCourseId = explicitCourseId || slug(title);
+      if (!baseCourseId) throw fail(400, 'Course ID could not be created.');
+      let courseId = baseCourseId;
+      let old;
+      if (explicitCourseId) {
+        const ref = col('lmsCourses').doc(courseId);
+        const [existingLms, existingLegacy] = await Promise.all([
+          ref.get(), db().collection('courses').doc(courseId).get()
+        ]);
+        if (!existingLms.exists && existingLegacy.exists) {
+          throw fail(409, 'Import this older course into LMS drafts before editing it.');
+        }
+        old = existingLms;
+      } else {
+        for (let suffixNumber = 2; suffixNumber < 1000; suffixNumber += 1) {
+          const [existingLms, existingLegacy] = await Promise.all([
+            col('lmsCourses').doc(courseId).get(),
+            db().collection('courses').doc(courseId).get()
+          ]);
+          if (!existingLms.exists && !existingLegacy.exists) {
+            old = existingLms;
+            break;
+          }
+          const suffix = '-' + suffixNumber;
+          courseId = baseCourseId.slice(0, 72 - suffix.length) + suffix;
+        }
+        if (!old) throw fail(409, 'Could not find an unused course ID. Enter a unique ID and try again.');
+      }
       const ref = col('lmsCourses').doc(courseId);
       const data = {
         title, name: title, description,
@@ -813,7 +855,6 @@ async function handle(event) {
         order: Math.max(1, Number(body.order || 999)),
         updatedAt: now()
       };
-      const old = await ref.get();
       if (!old.exists) data.createdAt = now();
       await ref.set(data, { merge: true });
       await col('adminLogs').add({ actorUid: actor.uid, actorEmail: actor.email, action: 'save-course', courseId, status: data.status, createdAt: now() });

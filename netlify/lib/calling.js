@@ -14,7 +14,8 @@ const COLLECTIONS = Object.freeze({
   limits: `callingRateLimits${suffix}`,
   partnerRequests: `callingPartnerRequests${suffix}`,
   connections: `callingPartnerConnections${suffix}`,
-  failures: `callingFailures${suffix}`
+  failures: `callingFailures${suffix}`,
+  rooms: `callingRooms${suffix}`
 });
 
 function store() {

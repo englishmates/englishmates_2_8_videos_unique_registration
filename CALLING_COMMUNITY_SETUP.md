@@ -2,9 +2,16 @@
 
 ## Included in this preview branch
 
+- One-to-one calls and topic rooms display English conversation questions while audio is connected, rotating about every two minutes with a manual “Next question” control. Prompts are shown in the page and are not sent as chat messages.
+- Clear English-practice and respectful-conduct reminders appear in calls and rooms. Call audio remains unrecorded and is not transcribed; the app does not automatically detect a learner’s spoken language or issue language-based blocks.
+
 - Verified Google or email/password sign-in (email accounts verify by link, with no SMS OTP) and automatic learner profile activation; admins can block or suspend access when needed.
 - Searchable directory of active learners, proficiency and topic filters, online-only filtering, compatible random matching, and paginated results.
 - Speaking requests with duplicate protection, recipient accept/reject, sender cancellation, and 14-day expiration.
+- Live, topic-based audio rooms: authenticated learners can host rooms for 3–8 total people, choose a conversation prompt, level, and 15/30/45-minute duration, and let other eligible learners join while seats remain. The room list enforces level selection on the server. No camera or recording is used.
+- Mobile-first, seven-step learner profile setup with a progress indicator, one small group of questions per step, in-place validation, Back/Continue controls, and skippable photo/introduction fields. Existing profile fields and API payloads are preserved.
+- Room host controls: end the room, remove a learner, and report or block a participant. Learners can mute, leave, report, or block. The admin dashboard lists active rooms and can end one. No live audio monitoring is available; room audio is not recorded.
+- Presence heartbeats clean up abandoned rooms and seats; host loss or the time limit ends the room and releases participant availability. A learner can only be in one room or one-to-one call at a time.
 - Accepted connections with an audio-call invitation flow. Calls use the existing Agora RTC token service and never create or publish a camera track.
 - Audio mute, pause, end, private text, block, report, short-lived Agora tokens, and server-side state checks.
 - Server-recorded completed-call duration and learner call history/statistics. A session counts after both learners accept, it runs at least 60 seconds, and a participant ends it or the server expires it.
@@ -28,6 +35,7 @@ Calling Community data uses the shared Firebase project but separates Netlify Pr
 | Blocks and reports | callingBlocks, callingReports | callingBlocksPreview, callingReportsPreview |
 | Rate limits and moderation audit | callingRateLimits, callingModerationAudit | callingRateLimitsPreview, callingModerationAuditPreview |
 | Audio setup failures | callingFailures | callingFailuresPreview |
+| Live topic rooms | callingRooms | callingRoomsPreview |
 
 All these collections are explicitly denied to browser clients in firestore.rules; requests, profiles, calls and moderation actions go through authenticated Netlify functions. Profile-picture bytes are stored only in the matching preview/live profile collection and are included only in authenticated partner responses. Current queries use Firestore single-field indexes only, so no composite index file is required. No production Firestore rule deployment or production database write was performed.
 
@@ -40,13 +48,13 @@ The existing service variables are required in the Deploy Preview context:
 - AGORA_APP_ID
 - AGORA_APP_CERTIFICATE
 
-The Agora certificate stays in Netlify and is used only to mint a five-minute, session-scoped audio token. If a required variable is absent, the preview shows a configuration error. A learner profile activates automatically after Google sign-in and submission of the required profile fields. Existing pending profiles are automatically activated when the learner loads their profile or an administrator opens the dashboard. Preview API calls use preview-suffixed collections. The code has not been published to the production website.
+The Agora certificate stays in Netlify and is used only to mint five-minute, membership-scoped tokens for one-to-one calls and topic rooms. Group-room participant UIDs are unique per room membership; no extra environment variable is required. If a required variable is absent, the preview shows a configuration error. A learner profile activates automatically after Google sign-in and submission of the required profile fields. Existing pending profiles are automatically activated when the learner loads their profile or an administrator opens the dashboard. Preview API calls use preview-suffixed collections. The code has not been published to the production website.
 
-Agora RTC provides the existing managed real-time audio transport. This branch does not add a separate TURN vendor, SFU, or group rooms. Agora's browser SDK uses WebRTC; its relay/network path is provider-managed rather than Firebase ICE signaling. No camera or video track is initialized. Reusing the existing audio token endpoint avoids adding another paid media service.
+Agora RTC provides the existing managed real-time audio transport for one-to-one calls and group rooms of up to eight participants. The existing browser SDK subscribes to each remote learner's audio stream; this branch does not add a separate media vendor. No camera or recording track is initialized. Group usage consumes audio participant-minutes for each person in a room, so actual billing depends on room size and duration.
 
-## Automated checks
+## Verification before rollout
 
-Run npm test and node --check on the changed JavaScript files. Unit coverage includes deterministic pair ids, privacy projection, email/phone filtering, safe avatar hosts, online expiry, level compatibility, and timestamp conversion. API integration and Firebase authorization should be tested in a Firebase Emulator or isolated test project.
+The room flow should be verified on the Deploy Preview with three signed-in learner accounts in separate browser sessions: create a room, fill its seats, confirm level restrictions, join audio, test each learner's mute/leave controls, have the host remove a learner and end the room, and test an admin end-room action. Also verify host disconnect and duration expiry release all account locks. API authorization and concurrent seat limits should be checked in a Firebase Emulator or isolated test project before production.
 
 The call must also be checked manually with two active Google or email/password learner accounts and two browser sessions to confirm both users can hear each other, mute, pause, end, and recover after a refresh or network interruption. A successful build alone is not evidence that the audio call works.
 
@@ -67,11 +75,13 @@ Pricing references: Agora RTC pricing https://www.agora.io/en/pricing/ and Fireb
 
 ## Manual verification checklist
 
-- Create two learner accounts in the same Deploy Preview, one with Google and one with email/password; verify the email link, then confirm each profile becomes active immediately after submission.
+- Create two learner accounts in the same Deploy Preview, one with Google and one with email/password; verify the email link, complete the profile wizard forward/back, skip the optional photo/introduction, and confirm the profile becomes active after submission.
 - Search each other by name/topic/level and verify email, phone, age, and location do not appear.
 - Send a request, receive it in the second session, accept it, reject another, cancel an outgoing request, and confirm duplicates are rejected.
 - Start an audio call from an accepted connection. Confirm the invitation requires acceptance and the microphone prompt appears only after a user clicks Join audio call.
 - Confirm only audio connects, test mute/pause/end, and verify neither screen offers video or a camera permission.
+- Open a topic room with three learners in separate browsers; test the capacity limit, level filter, join/leave, mute, report/block, host removal/end, and admin end-room. Confirm room audio is not recorded and that users cannot start a one-to-one call while in a room.
+- Verify a stale host and a room time limit close the room, restore participant availability, and make the room disappear from the open-room list.
 - Refresh one browser during a call and verify the server session expires/cleans up safely.
 - Verify calls under one minute or calls ended through block are not counted; completed sessions record duration for both participants.
 - Try a blocked pair and a call invitation to an offline connection.

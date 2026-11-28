@@ -116,7 +116,7 @@ async function loadDirectory(db, user, profile, params) {
   for (const doc of snapshot.docs) {
     if (doc.id === user.uid || excluded.has(doc.id)) continue;
     const value = doc.data();
-    if (value.countryCode !== 'IN' || value.countryStatus !== 'approved' || value.adultConfirmed !== true || value.moderationStatus !== 'active' || value.activeSessionId) continue;
+    if (value.countryCode !== 'IN' || value.countryStatus !== 'approved' || value.adultConfirmed !== true || value.moderationStatus !== 'active' || value.activeSessionId || value.activeRoomId) continue;
     const partner = publicPartner(value);
     if (level && partner.level !== level) continue;
     if (topic && !partner.interests.includes(topic)) continue;
@@ -141,13 +141,14 @@ async function handlePost(db, user, body) {
   if (action === 'heartbeat') {
     await consumeLimit(db, user.uid, 'partner_presence', 4, 60 * 1000);
     const patch = { lastSeenAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() };
-    if (!own.data.activeSessionId && !['waiting', 'invited', 'in_call'].includes(own.data.availability) && own.data.availableForRequests !== false) patch.availability = 'available';
+    if (!own.data.activeSessionId && !own.data.activeRoomId && !['waiting', 'invited', 'in_call', 'in_room'].includes(own.data.availability) && own.data.availableForRequests !== false) patch.availability = 'available';
     await own.ref.update(patch);
     return { ok: true };
   }
   if (action === 'set-availability') {
     const available = body.available === true;
     if (own.data.activeSessionId && available) throw httpError(409, 'Availability cannot change during a call.');
+    if (own.data.activeRoomId) throw httpError(409, 'Leave your topic room before changing availability.');
     const queueRef = db.collection(COLLECTIONS.queues).doc(user.uid);
     if (!available) await queueRef.delete().catch(() => {});
     await own.ref.update({ availableForRequests: available, availability: available && !own.data.activeSessionId ? 'available' : 'offline', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
@@ -172,6 +173,7 @@ async function handlePost(db, user, body) {
       if (!peer.exists) throw httpError(404, 'Learner profile not found.');
       assertApproved(peer.data());
       if (ownSnap.data().activeSessionId || peer.data().activeSessionId) throw httpError(409, 'You cannot send a request during an active call.');
+      if (ownSnap.data().activeRoomId || peer.data().activeRoomId) throw httpError(409, 'Both learners must leave their topic rooms before making a connection.');
       if (outgoingBlock.exists || incomingBlock.exists) throw httpError(403, 'This learner is unavailable for connection requests.');
       if (connection.exists && connection.data().status === 'active') throw httpError(409, 'You are already connected.');
       if (request.exists && request.data().status === 'pending' && timestampMs(request.data().expiresAt) > Date.now()) throw httpError(409, 'A request is already waiting between you.');
@@ -233,6 +235,7 @@ async function handlePost(db, user, body) {
       if (!peer.exists || !ownSnap.exists || outBlock.exists || inBlock.exists) throw httpError(403, 'This learner is unavailable.');
       assertApproved(ownSnap.data()); assertApproved(peer.data());
       if (ownSnap.data().activeSessionId || peer.data().activeSessionId) throw httpError(409, 'One of you is already in a call. Please try again after it ends.');
+      if (ownSnap.data().activeRoomId || peer.data().activeRoomId) throw httpError(409, 'Both learners must leave their topic rooms before starting a one-to-one call.');
       if (!isOnline(peer.data()) || !isOnline(ownSnap.data())) throw httpError(409, 'Both learners must be online and available before calling.');
       // Inviting a connection ends any random search for either learner instead of blocking the invitation.
       if (ownQueue.exists) tx.delete(queueRef);

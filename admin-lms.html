@@ -23,7 +23,7 @@
 <div class="grid xl:grid-cols-2 gap-5 mt-5">
 <section class="panel rounded-2xl p-5 md:p-6">
 <div class="flex flex-wrap justify-between gap-3"><div><h2 class="text-xl font-black">Course catalog</h2><p class="muted text-sm mt-1">Create, edit and publish courses. Changes in this preview stay in preview data.</p></div><button id="newCourse" class="btn rounded-xl px-4 py-2 font-bold">+ New course</button></div>
-<div class="flex flex-wrap gap-2 mt-4"><button id="importLegacy" class="rounded-xl border border-white/10 px-4 py-2 text-sm">Copy existing catalog to LMS drafts</button><button id="exportCsv" class="rounded-xl border border-white/10 px-4 py-2 text-sm">Export enrollments CSV</button></div>
+<p class="muted text-sm mt-3">Legacy records stay unchanged during migration. Import creates only missing course IDs as LMS drafts; review each draft before publishing.</p><div class="flex flex-wrap gap-2 mt-4"><button id="importLegacy" class="rounded-xl border border-white/10 px-4 py-2 text-sm">Import missing legacy courses as drafts</button><button id="exportCsv" class="rounded-xl border border-white/10 px-4 py-2 text-sm">Export enrollments CSV</button></div>
 <div id="coursesList" class="grid gap-3 mt-4"></div>
 </section>
 <section class="panel rounded-2xl p-5 md:p-6">
@@ -163,9 +163,12 @@ document.addEventListener('DOMContentLoaded', function () {
   $('newCourse').addEventListener('click', () => { form.reset(); resetFiles(); form.elements.courseId.value = ''; form.elements.language.value = 'English'; form.elements.order.value = '1'; form.scrollIntoView({ behavior: 'smooth' }); });
   $('clearCourse').addEventListener('click', () => { form.reset(); resetFiles(); });
   $('importLegacy').addEventListener('click', async () => {
-    if (!confirm('Copy the existing public course catalog into this deployment’s LMS drafts? No existing course records will be changed.')) return;
-    try { const result = await LMS.api('import-legacy-courses'); setMessage('Copied ' + result.imported + ' course(s) as drafts.', false); await load(); }
-    catch (e) { setMessage(e.message, true); }
+    if (!confirm('Import only legacy course IDs that are missing from this LMS catalog as drafts? Existing LMS courses and all old catalog/student records will be left unchanged.')) return;
+    try {
+      const result = await LMS.api('import-legacy-courses');
+      setMessage('Imported ' + result.imported + ' course(s) as drafts; skipped ' + result.skipped + ' already-present course(s). Review drafts before publishing.', false);
+      await load();
+    } catch (e) { setMessage(e.message, true); }
   });
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -173,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const f = form.elements;
     const pricePaise = Math.round(Number(f.price.value) * 100);
     const body = {
-      courseId: f.courseId.value.trim() || slug(f.title.value),
+      courseId: f.courseId.value.trim(),
       title: f.title.value.trim(), category: f.category.value.trim(), level: f.level.value,
       language: f.language.value.trim(), duration: f.duration.value.trim(),
       startDate: f.startDate.value, endDate: f.endDate.value, enrollmentDeadline: f.enrollmentDeadline.value,

@@ -7,10 +7,11 @@ service cloud.firestore {
         && request.auth.token.email == 'bddayma12@gmail.com';
     }
 
-    // Courses: public catalogue, owner-managed.
+    // Legacy courses remain publicly readable for compatibility.
+    // All new course writes go through the authenticated LMS API.
     match /courses/{courseId} {
       allow read: if true;
-      allow create, update, delete: if isOwner();
+      allow create, update, delete: if false;
     }
 
     // Existing private operational data.
@@ -50,6 +51,8 @@ service cloud.firestore {
     match /callingPartnerRequests/{requestId} { allow read, write: if false; }
     match /callingPartnerConnections/{connectionId} { allow read, write: if false; }
     match /callingFailures/{failureId} { allow read, write: if false; }
+    match /callingRooms/{roomId} { allow read, write: if false; }
+    match /callingRoomsPreview/{roomId} { allow read, write: if false; }
     match /callingPartnerRequestsPreview/{requestId} { allow read, write: if false; }
     match /callingPartnerConnectionsPreview/{connectionId} { allow read, write: if false; }
     match /callingFailuresPreview/{failureId} { allow read, write: if false; }
