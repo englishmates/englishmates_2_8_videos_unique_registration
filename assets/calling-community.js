@@ -3,7 +3,7 @@
   const config = { apiKey: 'AIzaSyCFuF2PBq09cKOHBuoLDoypEgrI1gSmm4c', authDomain: 'englishmates-ratangarh-933f1.firebaseapp.com', projectId: 'englishmates-ratangarh-933f1', storageBucket: 'englishmates-ratangarh-933f1.firebasestorage.app', messagingSenderId: '501474121790', appId: '1:501474121790:web:5097a43a6be4e7bc07996f6' };
   const ADMIN_EMAIL = 'bddayma12@gmail.com';
   const $ = id => document.getElementById(id);
-  let auth, state = null, poll = null, agoraClient = null, microphone = null, remoteAudioTrack = null, muted = false, callPaused = false, joinedSessionId = null, lastChatKey = '', avatarPreviewUrl = null;
+  let auth, state = null, poll = null, agoraClient = null, microphone = null, remoteAudioTrack = null, muted = false, callPaused = false, joinedSessionId = null, lastChatKey = '', avatarPreviewUrl = null, callTopicTimer = null, callTopicSessionId = '', callTopicIndex = 0;
 
   function message(id, text, error = false) { const node = $(id); node.textContent = text || ''; node.className = `text-sm mt-3 ${error ? 'text-rose-300' : 'text-emerald-300'}`; if (text && window.EMUI && ['matchingMessage', 'profileMessage'].includes(id)) window.EMUI.toast(text, error ? 'error' : 'ok'); }
   function friendly(error) { const code = error?.code || ''; const map = { 'auth/email-already-in-use': 'This email already has an account. Please sign in.', 'auth/invalid-email': 'Enter a valid email address.', 'auth/weak-password': 'Choose a password with at least 6 characters.', 'auth/invalid-credential': 'The email or password is incorrect.', 'auth/unauthorized-domain': 'This website domain is not authorized in Firebase Authentication.', 'auth/popup-closed-by-user': 'Google sign-in was cancelled.' }; return map[code] || error?.message || 'Something went wrong. Please try again.'; }
@@ -113,6 +113,60 @@
     }
     target.scrollTop = target.scrollHeight;
   }
+  const CALL_TOPIC_QUESTIONS = [
+    "What small habit makes your day better?",
+    "If you could visit any place in India, where would you go and why?",
+    "What skill would you like to learn this year?",
+    "Which book, film, or song has stayed with you, and why?",
+    "What does a perfect weekend look like for you?",
+    "What is one thing you are proud of learning?",
+    "Would you rather live near the mountains or the sea? Why?",
+    "What makes someone a good friend?",
+    "What is one change that could make your neighbourhood better?",
+    "Which job or career would you like to understand better?",
+    "What is the kindest thing someone has done for you?",
+    "If you could have dinner with any person from history, whom would you choose?",
+    "Which technology has made your everyday life easier?",
+    "What celebration or tradition do you enjoy most, and why?",
+    "Do you prefer planning ahead or being spontaneous?",
+    "What advice would you give someone who is learning English?",
+    "What is one goal you hope to reach in the next year?",
+    "What new experience would you like to try?"
+  ];
+  function questionSeed(value, length) {
+    let hash = 0;
+    for (const character of String(value || '')) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    return hash % length;
+  }
+  function paintCallTopic() {
+    $('callTopicQuestion').textContent = CALL_TOPIC_QUESTIONS[callTopicIndex];
+    $('callTopicCounter').textContent = 'Question ' + (callTopicIndex + 1) + ' of ' + CALL_TOPIC_QUESTIONS.length + ' · New question about every 2 minutes';
+  }
+  function nextCallTopic() {
+    if (!callTopicSessionId) return;
+    callTopicIndex = (callTopicIndex + 1) % CALL_TOPIC_QUESTIONS.length;
+    paintCallTopic();
+  }
+  function stopCallTopicRotation() {
+    clearInterval(callTopicTimer);
+    callTopicTimer = null;
+    callTopicSessionId = '';
+    show('callTopicCard', false);
+  }
+  function startCallTopicRotation(session) {
+    const connected = !!session && session.status === 'active' && joinedSessionId === session.id && !!agoraClient;
+    if (!connected) { show('callTopicCard', false); return; }
+    if (callTopicSessionId !== session.id) {
+      clearInterval(callTopicTimer);
+      callTopicSessionId = session.id;
+      callTopicIndex = questionSeed(session.id, CALL_TOPIC_QUESTIONS.length);
+      paintCallTopic();
+      callTopicTimer = setInterval(() => {
+        if (joinedSessionId === session.id && agoraClient && !callPaused && !document.hidden) nextCallTopic();
+      }, 120000);
+    }
+    show('callTopicCard', true);
+  }
   function syncCallControls(session) {
     const joined = joinedSessionId === session.id && !!agoraClient;
     const ownPaused = !!session.pausedByMe, partnerPaused = !!session.pausedByPartner;
@@ -128,6 +182,7 @@
     $('pauseCall').disabled = partnerPaused && !ownPaused;
     $('callAudioStatus').textContent = ownPaused ? 'Call paused by you' : partnerPaused ? 'Your partner paused the call' : joined ? 'Connected · audio only' : 'Both accepted · audio only';
     $('voiceRing').classList.toggle('paused', callPaused);
+    startCallTopicRotation(session);
   }
   function renderMatching(data) {
     $('onlineCount').textContent = `${data.onlineLearners || 0} learner${data.onlineLearners === 1 ? '' : 's'} currently waiting for a partner.`;
@@ -186,7 +241,7 @@
   async function signOut() { try { if (state?.session) await api('POST', { action: 'end-call' }); else if (state?.queue) await api('POST', { action: 'leave-queue' }); } catch (_) {} await leaveAudio(); clearTimeout(poll); await auth.signOut(); }
   async function action(actionName, extra = {}) { const result = await api('POST', { action: actionName, ...extra }); if (actionName !== 'pause-call') message('matchingMessage', result.message); await refreshDashboard(); return result; }
   async function loadAgora() { if (window.AgoraRTC) return window.AgoraRTC; await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = 'https://download.agora.io/sdk/release/AgoraRTC_N-4.23.2.js'; script.onload = resolve; script.onerror = () => reject(new Error('The audio service could not load.')); document.head.appendChild(script); }); return window.AgoraRTC; }
-  async function leaveAudio() { if (microphone) { microphone.stop(); microphone.close(); microphone = null; } if (agoraClient) { await agoraClient.leave().catch(() => {}); agoraClient = null; } remoteAudioTrack = null; joinedSessionId = null; muted = false; callPaused = false; show('startAudio', true); show('muteCall', false); show('pauseCall', false); $('startAudio').disabled = false; $('startAudio').textContent = 'Join audio call'; $('muteCall').textContent = 'Mute microphone'; $('pauseCall').textContent = 'Pause call'; }
+  async function leaveAudio() { stopCallTopicRotation(); if (microphone) { microphone.stop(); microphone.close(); microphone = null; } if (agoraClient) { await agoraClient.leave().catch(() => {}); agoraClient = null; } remoteAudioTrack = null; joinedSessionId = null; muted = false; callPaused = false; show('startAudio', true); show('muteCall', false); show('pauseCall', false); $('startAudio').disabled = false; $('startAudio').textContent = 'Join audio call'; $('muteCall').textContent = 'Mute microphone'; $('pauseCall').textContent = 'Pause call'; }
   async function audioCredentials(sessionId) { const response = await fetch(Englishmates.api('calling-token'), { method: 'POST', headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }) }); const data = await response.json(); if (!response.ok || !data.ok) throw new Error(data.error || 'Audio could not start.'); return data; }
   async function joinAudio() {
     try {
@@ -299,6 +354,7 @@
     $('declineCall').addEventListener('click', () => action('decline-call').catch(error => message('matchingMessage', error.message, true)));
     $('endCall').addEventListener('click', async () => { $('endCall').disabled = true; await leaveAudio(); try { await action('end-call'); } catch (error) { message('matchingMessage', error.message, true); } finally { $('endCall').disabled = false; } });
     $('startAudio').addEventListener('click', joinAudio);
+    $('nextCallTopic').addEventListener('click', nextCallTopic);
     $('muteCall').addEventListener('click', async () => { muted = !muted; try { if (microphone) await microphone.setEnabled(!muted && !callPaused); $('muteCall').textContent = muted ? 'Unmute microphone' : 'Mute microphone'; $('muteCall').setAttribute('aria-pressed', String(muted)); message('matchingMessage', muted ? 'Microphone muted.' : 'Microphone on.'); } catch (error) { message('matchingMessage', error.message, true); } });
     $('pauseCall').addEventListener('click', () => { const session = state?.session; if (!session) return; action('pause-call', { paused: !session.pausedByMe }).catch(error => message('matchingMessage', error.message, true)); });
     $('chatForm').addEventListener('submit', async event => { event.preventDefault(); const input = $('chatInput'), text = input.value.trim(), button = $('sendChat'); if (!text) return; button.disabled = true; try { await api('POST', { action: 'send-message', message: text }); input.value = ''; message('chatStatus', 'Message sent.'); await refreshDashboard(); } catch (error) { message('chatStatus', error.message, true); } finally { button.disabled = false; input.focus(); } });

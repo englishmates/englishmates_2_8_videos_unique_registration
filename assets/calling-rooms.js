@@ -3,9 +3,55 @@
   const cfg = { apiKey: 'AIzaSyCFuF2PBq09cKOHBuoLDoypEgrI1gSmm4c', authDomain: 'englishmates-ratangarh-933f1.firebaseapp.com', projectId: 'englishmates-ratangarh-933f1', storageBucket: 'englishmates-ratangarh-933f1.firebasestorage.app', messagingSenderId: '501474121790', appId: '1:501474121790:web:5097a43a6be4e7bc07996f6' };
   const $ = id => document.getElementById(id);
   let auth, data = null, timer = null, countdownTimer = null, working = false;
-  let rtcClient = null, microphone = null, remoteTracks = new Map(), muted = false, joinedRoomId = null;
+  let rtcClient = null, microphone = null, remoteTracks = new Map(), muted = false, joinedRoomId = null, roomQuestionTimer = null, promptRoomId = '', promptIndex = 0;
   const apiUrl = Englishmates.api('calling-rooms');
   const inviteRoomId = new URLSearchParams(window.location.search).get('room') || '';
+
+  const ROOM_TOPIC_QUESTIONS = {
+    "Daily conversation": ["What is one thing that made you smile this week?", "How do you usually spend a relaxing evening?", "What is a food you enjoy sharing with others?", "What small daily habit would you like to improve?"],
+    "Travel stories": ["Which place would you love to visit next, and why?", "What is the most memorable journey you have taken?", "Would you rather explore a busy city or a quiet village?", "What three things would you pack for a weekend trip?"],
+    "Job interviews": ["What strength would you bring to a new team?", "How would you describe a challenge you solved?", "What kind of work helps you do your best?", "What is a skill you would like to develop for your career?"],
+    "Public speaking": ["What helps you feel confident when speaking to a group?", "Which speaker do you admire, and what do you learn from them?", "What topic could you speak about for five minutes?", "How can a speaker keep an audience interested?"],
+    "Debate club": ["Is it better to specialise early or explore many subjects first?", "Should cities prioritise public transport over private cars?", "Can technology make people feel more connected? Why?", "Is teamwork more important than individual talent?"],
+    "Everyday English": ["What phrase do you use often in daily life?", "How would you politely ask for help in a new place?", "What is a useful way to start a friendly conversation?", "How would you explain your favourite hobby to a new friend?"],
+    "Study and careers": ["What subject or skill are you curious about right now?", "What makes a teacher or mentor helpful?", "Would you rather study alone or with a group? Why?", "What career would you like to learn more about?"]
+  };
+  const GENERAL_ROOM_QUESTIONS = ["What is one thing you are proud of learning?", "What makes someone a good friend?", "What change could make your neighbourhood better?", "If you could visit any place in India, where would you go and why?", "What new experience would you like to try?", "What advice would you give someone learning English?"];
+  function roomQuestionSeed(value, length) {
+    let hash = 0;
+    for (const character of String(value || '')) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    return hash % length;
+  }
+  function currentRoomQuestions(room) { return ROOM_TOPIC_QUESTIONS[room?.topic] || GENERAL_ROOM_QUESTIONS; }
+  function paintRoomQuestion(room) { $('roomQuestion').textContent = currentRoomQuestions(room)[promptIndex]; }
+  function nextRoomQuestion() {
+    const room = data?.myRoom;
+    if (!room || promptRoomId !== room.id) return;
+    const questions = currentRoomQuestions(room);
+    promptIndex = (promptIndex + 1) % questions.length;
+    paintRoomQuestion(room);
+  }
+  function stopRoomQuestionRotation() {
+    clearInterval(roomQuestionTimer);
+    roomQuestionTimer = null;
+    promptRoomId = '';
+    $('roomQuestionCard').classList.add('hidden');
+  }
+  function startRoomQuestionRotation(room) {
+    const connected = !!room && joinedRoomId === room.id && !!rtcClient;
+    if (!connected) { $('roomQuestionCard').classList.add('hidden'); return; }
+    if (promptRoomId !== room.id) {
+      clearInterval(roomQuestionTimer);
+      promptRoomId = room.id;
+      const questions = currentRoomQuestions(room);
+      promptIndex = roomQuestionSeed(room.id, questions.length);
+      paintRoomQuestion(room);
+      roomQuestionTimer = setInterval(() => {
+        if (joinedRoomId === room.id && rtcClient && !document.hidden) nextRoomQuestion();
+      }, 120000);
+    }
+    $('roomQuestionCard').classList.remove('hidden');
+  }
 
   function note(text, error) {
     const node = $('roomMessage');
@@ -105,6 +151,7 @@
       $('activeRoomPrompt').textContent = room.prompt ? 'Opening prompt: ' + room.prompt : 'Choose a simple question and give everyone a chance to speak.';
       renderMembers(room);
       setRoomControls(room);
+      startRoomQuestionRotation(room);
       updateCountdown(room);
     } else {
       $('activeRoomPrompt').textContent = '';
@@ -171,6 +218,7 @@
     return result;
   }
   async function disconnectAudio() {
+    stopRoomQuestionRotation();
     if (microphone) { microphone.stop(); microphone.close(); microphone = null; }
     if (rtcClient) { await rtcClient.leave().catch(() => {}); rtcClient = null; }
     remoteTracks.clear();
@@ -217,6 +265,7 @@
       microphone = await AgoraRTC.createMicrophoneAudioTrack();
       await client.publish([microphone]);
       joinedRoomId = room.id;
+      startRoomQuestionRotation(room);
       $('roomAudioStatus').textContent = 'Connected to the topic room · audio only.';
       buttonNode.textContent = 'Audio connected';
       buttonNode.disabled = false;
@@ -275,6 +324,7 @@
     $('roomCreateForm').addEventListener('submit', createRoom);
     $('refreshRooms').addEventListener('click', refresh);
     $('connectRoomAudio').addEventListener('click', connectAudio);
+    $('nextRoomQuestion').addEventListener('click', nextRoomQuestion);
     $('copyRoomInvite').addEventListener('click', async () => {
       if (!data?.myRoom) return;
       const link = new URL('./community-profile.html', location.href);

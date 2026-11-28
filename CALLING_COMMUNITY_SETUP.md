@@ -2,6 +2,9 @@
 
 ## Included in this preview branch
 
+- One-to-one calls and topic rooms display English conversation questions while audio is connected, rotating about every two minutes with a manual “Next question” control. Prompts are shown in the page and are not sent as chat messages.
+- Clear English-practice and respectful-conduct reminders appear in calls and rooms. Call audio remains unrecorded and is not transcribed; the app does not automatically detect a learner’s spoken language or issue language-based blocks.
+
 - Verified Google or email/password sign-in (email accounts verify by link, with no SMS OTP) and automatic learner profile activation; admins can block or suspend access when needed.
 - Searchable directory of active learners, proficiency and topic filters, online-only filtering, compatible random matching, and paginated results.
 - Speaking requests with duplicate protection, recipient accept/reject, sender cancellation, and 14-day expiration.

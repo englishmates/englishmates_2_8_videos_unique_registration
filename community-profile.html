@@ -106,6 +106,16 @@
           <div id="inviteActions" class="flex flex-wrap gap-3 mt-5"><button id="acceptCall" class="btn green" type="button">Accept call</button><button id="declineCall" class="btn red" type="button">Decline</button></div>
           <div id="activeCallActions" class="hidden mt-5">
             <p class="text-sm text-slate-300">Audio only. No camera or video is used. Join audio call asks for your microphone. Your partner sees your profile name only; email and phone stay hidden.</p>
+            <aside class="rounded-2xl border border-amber-300/25 bg-amber-300/[.06] p-4 mt-4" aria-label="English practice and conduct rules">
+              <p class="font-bold text-amber-100">English practice and respectful conduct</p>
+              <p class="text-sm text-amber-100/80 leading-6 mt-2">Please keep speaking in English throughout the call. Abusive or insulting language is strictly prohibited. You can report or block a learner; reports may lead to a block or account suspension. Calls are not recorded or transcribed, so these reminders do not automatically detect spoken language.</p>
+            </aside>
+            <section id="callTopicCard" class="hidden rounded-2xl border border-violet-300/25 bg-violet-500/[.08] p-4 mt-4" aria-live="polite" aria-atomic="true">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0 flex-1"><p class="text-xs uppercase tracking-[.16em] font-black text-violet-200">Conversation question</p><p id="callTopicQuestion" class="text-lg font-bold leading-7 text-white mt-2"></p><p id="callTopicCounter" class="text-xs text-slate-400 mt-2">A new question appears about every 2 minutes.</p></div>
+                <button id="nextCallTopic" class="btn border border-violet-300/30 text-violet-100 text-sm" type="button" aria-label="Show another conversation question">Next question</button>
+              </div>
+            </section>
             <div class="mt-5 rounded-3xl border border-white/10 bg-slate-950/40 p-7 text-center">
               <div id="voiceRing" class="voice-ring mx-auto"><div id="callAvatar" class="grid h-20 w-20 place-items-center rounded-full border border-violet-200/30 bg-slate-900 text-3xl font-black text-violet-100"></div></div>
               <p id="callPartnerName" class="text-xl font-bold text-white mt-4"></p><p id="callAudioStatus" class="text-sm text-violet-200 mt-2">Audio call</p>
@@ -117,7 +127,7 @@
               <button id="endCall" class="btn red" type="button">End call</button>
               <button id="blockPartner" class="btn border border-rose-400/40 text-rose-200" type="button">Block</button>
             </div>
-            <div class="grid md:grid-cols-2 gap-3 mt-5"><select id="reportReason" class="field"><option value="">Report a problem (optional)</option><option>Harassment or abusive language</option><option>Inappropriate content</option><option>Spam or fraud</option><option>Other safety concern</option></select><input id="reportDetails" class="field" maxlength="1000" placeholder="Optional details"><button id="reportPartner" class="btn border border-amber-400/40 text-amber-200 md:col-span-2" type="button">Send report</button></div>
+            <div class="grid md:grid-cols-2 gap-3 mt-5"><select id="reportReason" class="field"><option value="">Report a problem (optional)</option><option>Harassment or abusive language</option><option>Repeatedly ignoring English-practice reminders</option><option>Inappropriate content</option><option>Spam or fraud</option><option>Other safety concern</option></select><input id="reportDetails" class="field" maxlength="1000" placeholder="Optional details"><button id="reportPartner" class="btn border border-amber-400/40 text-amber-200 md:col-span-2" type="button">Send report</button></div>
             <section id="callChat" class="rounded-2xl border border-white/10 bg-slate-950/40 p-4 mt-5"><div><h3 class="font-bold text-white">Private messages</h3><p class="text-xs text-slate-400 mt-1">Emails and phone numbers are blocked to keep contact details private.</p></div><div id="chatMessages" role="log" aria-live="polite" class="mt-4 h-48 overflow-y-auto space-y-2 rounded-xl bg-black/20 p-3 text-sm"></div><form id="chatForm" class="flex gap-2 mt-3"><input id="chatInput" class="field min-w-0 flex-1" maxlength="1000" autocomplete="off" placeholder="Write a message" required><button id="sendChat" class="btn primary shrink-0" type="submit">Send</button></form><p id="chatStatus" role="status" class="text-xs mt-2"></p></section>
           </div>
         </div>
@@ -188,7 +198,13 @@
               <div class="flex flex-wrap gap-2"><button id="connectRoomAudio" class="btn green" type="button">Join room audio</button><button id="copyRoomInvite" class="btn border border-cyan-300/40 text-cyan-100" type="button">Copy room invite link</button><button id="muteRoomAudio" class="hidden btn border border-slate-500" type="button">Mute microphone</button><button id="leaveRoomButton" class="btn border border-slate-500" type="button">Leave room</button><button id="endRoomButton" class="hidden btn red" type="button">End room</button></div>
             </div>
             <div class="flex flex-wrap justify-between gap-3 mt-4 text-xs muted"><p id="roomAudioStatus" role="status">Your microphone stays off until you choose “Join room audio”.</p><button id="reportRoomButton" class="text-amber-200 underline" type="button">Report this room</button></div>
-            <p class="muted text-xs leading-5 mt-3">Use English for practice. Do not share phone numbers or email addresses. You can mute or leave at any time. This app does not record room audio.</p>
+            <section id="roomQuestionCard" class="hidden rounded-2xl border border-violet-300/25 bg-violet-500/[.08] p-4 mt-4" aria-live="polite" aria-atomic="true">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0 flex-1"><p class="text-xs uppercase tracking-[.16em] font-black text-violet-200">Room conversation question</p><p id="roomQuestion" class="text-lg font-bold leading-7 text-white mt-2"></p><p class="text-xs text-slate-400 mt-2">A new question appears about every 2 minutes while audio is connected.</p></div>
+                <button id="nextRoomQuestion" class="btn border border-violet-300/30 text-violet-100 text-sm" type="button" aria-label="Show another room conversation question">Next question</button>
+              </div>
+            </section>
+            <p class="muted text-xs leading-5 mt-3">English practice only: please keep speaking in English. Abusive or insulting language is strictly prohibited; reports may lead to a block or suspension. Do not share phone numbers or email addresses. You can mute or leave at any time. Room audio is not recorded or transcribed.</p>
           </section>
           <p id="roomMessage" class="text-sm mt-4" role="status"></p>
         </section>
