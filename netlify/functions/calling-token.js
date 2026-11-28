@@ -1,6 +1,11 @@
 const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
-const { authenticatedUser, requireCommunityLearner, consumeLimit, httpError, ownProfile, reply, requireEligible, store, COLLECTIONS } = require('../lib/calling');
+const { authenticatedUser, requireCommunityLearner, consumeLimit, httpError, ownProfile, reply, requireEligible, requireSpeechConsent, store, COLLECTIONS } = require('../lib/calling');
 const cors = require('../lib/cors');
+function istDay() {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const data = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return data.year + '-' + data.month + '-' + data.day;
+}
 
 exports.handler = async event => {
   try {
@@ -14,6 +19,11 @@ exports.handler = async event => {
     if (!!roomId === !!sessionId) throw httpError(400, 'Choose one active audio room or call.');
     const profile = await ownProfile(db, user);
     requireEligible(profile.data);
+    requireSpeechConsent(profile.data);
+    const passEndsAt = profile.data.subscriptionEndsAt?.toMillis?.() || Number(profile.data.subscriptionEndsAt || 0);
+    const usage = await db.collection(COLLECTIONS.dailyUsage).doc(user.uid + '_' + istDay()).get();
+    const remaining = Math.max(0, 600 - Number(usage.data()?.seconds || 0));
+    if (passEndsAt <= Date.now() && remaining <= 0) throw httpError(402, 'Your 10 free audio minutes for today are used. Activate a pass to continue.');
     const appId = process.env.AGORA_APP_ID;
     const certificate = process.env.AGORA_APP_CERTIFICATE;
     if (!appId || !certificate) throw httpError(503, 'Audio is not configured yet.');

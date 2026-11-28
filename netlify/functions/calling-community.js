@@ -34,6 +34,7 @@ function profileInput(body) {
   const intro = clean(body.intro, 180);
   const avatarURL = body.avatarDataUrl ? safeAvatar(body.avatarDataUrl) : null;
   if (body.avatarDataUrl && (!avatarURL || !avatarURL.startsWith('data:image/'))) throw httpError(400, 'Use a small PNG, JPEG, or WebP profile picture.');
+  if (body.speechConsent !== true) throw httpError(400, 'Accept the live speech transcription consent before saving your community profile.');
   if (containsContactDetails(alias)) throw httpError(400, 'Use a speaking name without an email address or phone number.');
   if (intro && containsContactDetails(intro)) throw httpError(400, 'Do not add an email address or phone number to your public introduction.');
   if (fullName.length < 2 || alias.length < 2 || !Number.isInteger(age) || age < 18 || age > 100 || city.length < 2 || state.length < 2 || interests.length === 0 || goals.length < 5) {
@@ -43,7 +44,8 @@ function profileInput(body) {
     fullName, alias, age, city, state, interests, goals, intro, ...(avatarURL ? { avatarURL } : {}),
     level: allowed(body.level, LEVELS, 'English level'),
     preferredLanguage: allowed(body.preferredLanguage, LANGUAGES, 'practice language'),
-    locationPreference: allowed(body.locationPreference || 'Anywhere in India', LOCATION_PREFERENCES, 'location preference')
+    locationPreference: allowed(body.locationPreference || 'Anywhere in India', LOCATION_PREFERENCES, 'location preference'),
+    speechConsent: true
   };
 }
 
@@ -223,7 +225,7 @@ async function dashboard(db, user) {
   }
   let onlineLearners = 0;
   try { onlineLearners = (await db.collection(COLLECTIONS.queues).where('status', '==', 'waiting').count().get()).data().count; } catch (_) { /* Aggregate is optional in local emulators. */ }
-  return { ok: true, profile: profile.data ? { fullName: profile.data.fullName, alias: profile.data.alias, email: profile.data.email, emailVerified: true, age: profile.data.age, city: profile.data.city, state: profile.data.state, level: profile.data.level, interests: profile.data.interests, goals: profile.data.goals, intro: profile.data.intro || '', avatarURL: require('../lib/calling').safeAvatar(profile.data.avatarURL), preferredLanguage: profile.data.preferredLanguage, locationPreference: profile.data.locationPreference, status: profile.data.status || 'pending', availableForRequests: profile.data.availableForRequests !== false, completedCallCount: Number(profile.data.completedCallCount || 0), speakingSeconds: Number(profile.data.speakingSeconds || 0), createdAt: iso(profile.data.createdAt), reviewedAt: iso(profile.data.reviewedAt) } : null, queue: waiting ? { expiresAt: iso(waiting.expiresAt) } : null, session: session ? { id: ref.id, status: session.status, acceptedByMe: (session.acceptedBy || []).includes(user.uid), inviteExpiresAt: iso(session.inviteExpiresAt), expiresAt: iso(session.expiresAt), pausedByMe: (session.pausedBy || []).includes(user.uid), pausedByPartner: (session.pausedBy || []).includes(partnerId(user.uid, session)), partner, messages } : null, recentSession, onlineLearners };
+  return { ok: true, profile: profile.data ? { fullName: profile.data.fullName, alias: profile.data.alias, email: profile.data.email, emailVerified: true, age: profile.data.age, city: profile.data.city, state: profile.data.state, level: profile.data.level, interests: profile.data.interests, goals: profile.data.goals, intro: profile.data.intro || '', avatarURL: require('../lib/calling').safeAvatar(profile.data.avatarURL), preferredLanguage: profile.data.preferredLanguage, locationPreference: profile.data.locationPreference, status: profile.data.status || 'pending', speechConsent: profile.data.speechConsent === true, availableForRequests: profile.data.availableForRequests !== false, completedCallCount: Number(profile.data.completedCallCount || 0), speakingSeconds: Number(profile.data.speakingSeconds || 0), createdAt: iso(profile.data.createdAt), reviewedAt: iso(profile.data.reviewedAt) } : null, queue: waiting ? { expiresAt: iso(waiting.expiresAt) } : null, session: session ? { id: ref.id, status: session.status, acceptedByMe: (session.acceptedBy || []).includes(user.uid), inviteExpiresAt: iso(session.inviteExpiresAt), expiresAt: iso(session.expiresAt), pausedByMe: (session.pausedBy || []).includes(user.uid), pausedByPartner: (session.pausedBy || []).includes(partnerId(user.uid, session)), partner, messages } : null, recentSession, onlineLearners };
 }
 
 exports.handler = async event => {
@@ -243,7 +245,7 @@ exports.handler = async event => {
       const status = existingStatus === 'suspended' || existingStatus === 'rejected' ? existingStatus : 'approved';
       const verifiedAvatarURL = safeAvatar(user.claims.picture);
       const avatarURL = input.avatarURL || (!own.data?.avatarURL ? verifiedAvatarURL : null);
-      await own.ref.set({ ...input, uid: user.uid, email: user.email, emailVerified: true, countryCode: 'IN', countryStatus: status === 'approved' ? 'approved' : 'pending', adultConfirmed: true, status, moderationStatus: status === 'suspended' ? 'suspended' : 'active', availability: own.data?.availability || 'offline', availableForRequests: own.data?.availableForRequests !== false, ...(avatarURL ? { avatarURL } : {}), ...(status === 'approved' ? { approvalMethod: 'automatic', approvedAt: own.data?.approvedAt || admin.firestore.FieldValue.serverTimestamp() } : {}), updatedAt: admin.firestore.FieldValue.serverTimestamp(), ...(isNew ? { createdAt: admin.firestore.FieldValue.serverTimestamp() } : {}) }, { merge: true });
+      await own.ref.set({ ...input, speechConsentAt: own.data?.speechConsentAt || admin.firestore.FieldValue.serverTimestamp(), uid: user.uid, email: user.email, emailVerified: true, countryCode: 'IN', countryStatus: status === 'approved' ? 'approved' : 'pending', adultConfirmed: true, status, moderationStatus: status === 'suspended' ? 'suspended' : 'active', availability: own.data?.availability || 'offline', availableForRequests: own.data?.availableForRequests !== false, ...(avatarURL ? { avatarURL } : {}), ...(status === 'approved' ? { approvalMethod: 'automatic', approvedAt: own.data?.approvedAt || admin.firestore.FieldValue.serverTimestamp() } : {}), updatedAt: admin.firestore.FieldValue.serverTimestamp(), ...(isNew ? { createdAt: admin.firestore.FieldValue.serverTimestamp() } : {}) }, { merge: true });
       await audit(db, user, isNew ? 'profile_created' : 'profile_updated', user.uid);
       return reply(200, { ok: true, message: status === 'approved' ? 'Profile saved. Your community access is active.' : status === 'suspended' ? 'Profile saved, but community access is suspended. Contact Englishmates for help.' : 'Profile saved, but community access remains blocked. Contact Englishmates for help.' });
     }

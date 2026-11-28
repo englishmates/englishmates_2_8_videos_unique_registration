@@ -95,3 +95,29 @@ This manual two-session check requires the Netlify Deploy Preview environment va
 To roll this feature back, revert its commit on the preview branch or close the preview PR. Preview collections are isolated by suffix and can be left intact; no collection is deleted. The rules file in this PR has not been deployed.
 
 Before any production release: review the complete PR diff (which also contains the earlier tutor and calendar work), configure Production secrets, complete the Deploy Preview checks with two real accounts, review Firebase billing and Agora RTC terms, deploy reviewed Firestore rules only after approval, and deploy the website only after explicit production approval. Never copy preview learner records into Production without verifying consent and ownership.
+
+## Live language moderation and Calling Community billing
+
+The Deploy Preview implementation adds short, user-microphone-only speech segments for live language identification in 1:1 calls and topic rooms. A learner must accept the speech moderation consent before their profile can be saved; existing learners must opt in before they can join audio. The browser records independent WebM/Opus segments for up to eight seconds and sends them to the Netlify function, which calls Google Cloud Speech-to-Text V2 in `asia-southeast1` with the `chirp_2` model and Hindi/India English language codes. No raw audio is written to Firebase or the repository. English transcripts are discarded in memory. Hindi-flagged transcript excerpts and strike metadata are written to Firestore with a 30-day `deleteAt` value; the admin Calling dashboard shows only those flagged excerpts. Configure Firestore TTL for field `deleteAt` on these collection groups in the project's **preview and production** databases: `callingLanguageEvents`, `callingLanguageEventsPreview`, `callingLanguageModeration`, `callingLanguageModerationPreview`, `callingAudioChunkClaims`, `callingAudioChunkClaimsPreview`, `callingAudioUsage`, and `callingAudioUsagePreview`. TTL deletion runs asynchronously after the expiry time.
+
+### Google Cloud
+
+1. Enable **Cloud Speech-to-Text API** in the Firebase project's Google Cloud project.
+2. In Google Cloud IAM, grant the service account stored in Netlify's existing `FIREBASE_SERVICE_ACCOUNT_JSON` the **Cloud Speech Client** role (`roles/speech.client`). Its private key stays in Netlify; never add it to source or paste it in chat.
+3. Confirm the same Netlify function environment includes `FIREBASE_PROJECT_ID=englishmates-ratangarh-933f1`. The function uses the service account key to obtain a short-lived Google access token.
+4. Keep Google Cloud Speech data logging disabled. Confirm billing alerts/quotas and test the preview with consenting accounts; automated language detection can misclassify accents, mixed-language phrases, or very short segments.
+5. Firestore preview data is already suffix-isolated. Deploy the updated Firestore rules only after production rollout is approved.
+
+### 10-minute daily allowance and ₹299 pass
+
+Each learner receives 600 seconds of audio processing per India/IST calendar day, shared across 1:1 calls and rooms. The client stops audio when the allowance is used; the server also rejects new/renewed Agora tokens without an active pass or remaining free time. A verified pass adds 30 days from payment (or from the end of the current pass). It is a one-time payment and does not auto-renew. UPI uses the existing institute UPI address and admin review; the admin must manually check the UTR before approval.
+
+For Razorpay, add these **Netlify environment variables** to the Deploy Preview context and redeploy the preview:
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
+
+Keep the secret server-side only. The function creates ₹299 Razorpay orders, checks the payment signature, and verifies the payment/order/amount/status through Razorpay's server API before enabling access. If these variables are absent, UPI review remains available but the Razorpay button shows a setup error. No auto-renewal or recurring mandate is configured.
+
+### Rollout note
+
+The branch changes do not update live Netlify, Google Cloud IAM/API settings, TTL policies, Razorpay settings, or live Firestore rules. Apply the external setup to the preview first, review all payment and consent flows, and deploy rules/variables separately only when production is approved.

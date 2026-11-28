@@ -15,7 +15,12 @@ const COLLECTIONS = Object.freeze({
   partnerRequests: `callingPartnerRequests${suffix}`,
   connections: `callingPartnerConnections${suffix}`,
   failures: `callingFailures${suffix}`,
-  rooms: `callingRooms${suffix}`
+  rooms: `callingRooms${suffix}`,
+  dailyUsage: `callingAudioUsage${suffix}`,
+  subscriptionPayments: `callingSubscriptionPayments${suffix}`,
+  languageEvents: `callingLanguageEvents${suffix}`,
+  languageModeration: `callingLanguageModeration${suffix}`,
+  audioChunkClaims: `callingAudioChunkClaims${suffix}`
 });
 
 function store() {
@@ -104,6 +109,10 @@ function requireEligible(profile) {
   }
 }
 
+function requireSpeechConsent(profile) {
+  if (profile.speechConsent !== true) throw httpError(403, 'Accept the live speech moderation consent in your profile before joining audio.');
+}
+
 function adminAllowed(user) {
   // This is deliberately enforced in the Netlify function, not trusted to the UI.
   return user.email === PRIMARY_ADMIN_EMAIL && user.signInProvider === 'password';
@@ -185,5 +194,6 @@ module.exports = {
   requireAdmin,
   requireCommunityLearner,
   requireEligible,
+  requireSpeechConsent,
   store
 };

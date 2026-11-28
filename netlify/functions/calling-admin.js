@@ -5,13 +5,14 @@ const {
 const cors = require('../lib/cors');
 
 const STATUSES = ['approved', 'rejected', 'suspended'];
+function millis(value) { return value && typeof value.toMillis === 'function' ? value.toMillis() : Number(value || 0); }
 
 function profileForAdmin(snapshot) {
   const value = snapshot.data();
   return {
     uid: snapshot.id, fullName: value.fullName, alias: value.alias, email: value.email,
     age: value.age, city: value.city, state: value.state, level: value.level,
-    interests: value.interests || [], goals: value.goals, preferredLanguage: value.preferredLanguage,
+    interests: value.interests || [], goals: value.goals, preferredLanguage: value.preferredLanguage, speechConsent: value.speechConsent === true, subscriptionEndsAt: iso(value.subscriptionEndsAt),
     locationPreference: value.locationPreference, status: value.status || 'approved', approvalMethod: value.approvalMethod || null,
     countryStatus: value.countryStatus || 'approved', createdAt: iso(value.createdAt),
     updatedAt: iso(value.updatedAt), reviewedAt: iso(value.reviewedAt), reviewedBy: value.reviewedBy || null
@@ -47,7 +48,7 @@ exports.handler = async event => {
       const status = STATUSES.includes(requested) ? requested : null;
       let query = db.collection(COLLECTIONS.profiles).orderBy('createdAt', 'desc').limit(100);
       if (status) query = db.collection(COLLECTIONS.profiles).where('status', '==', status).limit(100);
-      const [profiles, reports, sessions, auditSnap, approvedCount, completedCount, activeCount, failureCount] = await Promise.all([
+      const [profiles, reports, sessions, auditSnap, approvedCount, completedCount, activeCount, failureCount, payments, languageEvents] = await Promise.all([
         query.get(),
         db.collection(COLLECTIONS.reports).where('status', '==', 'open').limit(100).get(),
         db.collection(COLLECTIONS.sessions).where('status', 'in', ['invited', 'accepted', 'active']).limit(50).get(),
@@ -55,13 +56,17 @@ exports.handler = async event => {
         db.collection(COLLECTIONS.profiles).where('status', '==', 'approved').count().get(),
         db.collection(COLLECTIONS.sessions).where('callCompleted', '==', true).count().get(),
         db.collection(COLLECTIONS.sessions).where('status', 'in', ['invited', 'accepted', 'active']).count().get(),
-        db.collection(COLLECTIONS.failures).where('createdAt', '>=', admin.firestore.Timestamp.fromMillis(Date.now() - 24 * 60 * 60 * 1000)).count().get()
+        db.collection(COLLECTIONS.failures).where('createdAt', '>=', admin.firestore.Timestamp.fromMillis(Date.now() - 24 * 60 * 60 * 1000)).count().get(),
+        db.collection(COLLECTIONS.subscriptionPayments).where('status', '==', 'under_review').limit(100).get(),
+        db.collection(COLLECTIONS.languageEvents).orderBy('createdAt', 'desc').limit(100).get()
       ]);
       return reply(200, { ok: true,
         profiles: profiles.docs.map(profileForAdmin),
         reports: reports.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: iso(doc.data().createdAt), resolvedAt: iso(doc.data().resolvedAt) })),
         sessions: sessions.docs.map(doc => ({ id: doc.id, status: doc.data().status, participants: doc.data().participants || [], createdAt: iso(doc.data().createdAt), expiresAt: iso(doc.data().expiresAt) })),
         audit: auditSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: iso(doc.data().createdAt) })),
+        subscriptionPayments: payments.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: iso(doc.data().createdAt) })),
+        languageEvents: languageEvents.docs.filter(doc => millis(doc.data().deleteAt) > Date.now()).map(doc => ({ id: doc.id, uid: doc.data().uid, contextType: doc.data().contextType, detectedLanguage: doc.data().detectedLanguage, excerpt: doc.data().excerpt, strike: doc.data().strike, createdAt: iso(doc.data().createdAt), deleteAt: iso(doc.data().deleteAt) })),
         metrics: { approvedLearners: approvedCount.data().count, completedCalls: completedCount.data().count, activeCalls: activeCount.data().count, callFailures24h: failureCount.data().count }
       });
     }
@@ -76,6 +81,31 @@ exports.handler = async event => {
       await ref.update({ status, countryStatus: status === 'approved' ? 'approved' : 'pending', moderationStatus: status === 'suspended' ? 'suspended' : 'active', reviewedAt: admin.firestore.FieldValue.serverTimestamp(), reviewedBy: user.email, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
       await audit(db, user, `profile_${status}`, uid);
       return reply(200, { ok: true, message: status === 'approved' ? 'Learner access restored.' : status === 'rejected' ? 'Learner access blocked.' : 'Learner access suspended.' });
+    }
+    if (action === 'review-subscription-payment') {
+      const id = clean(body.id, 160);
+      const decision = clean(body.decision, 20);
+      if (!id || !['approve', 'reject'].includes(decision)) throw httpError(400, 'Choose a UPI payment and an approval decision.');
+      const paymentRef = db.collection(COLLECTIONS.subscriptionPayments).doc(id);
+      const payment = await paymentRef.get();
+      if (!payment.exists || payment.data().provider !== 'upi' || payment.data().status !== 'under_review') throw httpError(404, 'Pending UPI payment review not found.');
+      let passEnd = null;
+      if (decision === 'approve') {
+        const profileRef = db.collection(COLLECTIONS.profiles).doc(payment.data().uid);
+        passEnd = await db.runTransaction(async tx => {
+          const [paymentSnap, profileSnap] = await Promise.all([tx.get(paymentRef), tx.get(profileRef)]);
+          if (!paymentSnap.exists || paymentSnap.data().status !== 'under_review' || !profileSnap.exists) throw httpError(409, 'This payment review is no longer pending.');
+          const start = Math.max(Date.now(), millis(profileSnap.data().subscriptionEndsAt));
+          const end = start + 30 * 24 * 60 * 60 * 1000;
+          tx.update(paymentRef, { status: 'approved', reviewedBy: user.email, reviewedAt: admin.firestore.FieldValue.serverTimestamp() });
+          tx.update(profileRef, { subscriptionEndsAt: admin.firestore.Timestamp.fromMillis(end), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+          return end;
+        });
+      } else {
+        await paymentRef.update({ status: 'rejected', reviewedBy: user.email, reviewedAt: admin.firestore.FieldValue.serverTimestamp() });
+      }
+      await audit(db, user, 'calling_subscription_' + decision, payment.data().uid, { paymentId: id, provider: 'upi', passEnd: passEnd || null });
+      return reply(200, { ok: true, message: decision === 'approve' ? 'UPI verified. A 30-day pass is active.' : 'UPI payment was rejected.' });
     }
     if (action === 'resolve-report') {
       const id = clean(body.id, 160); const outcome = clean(body.outcome, 120);

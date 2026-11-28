@@ -218,6 +218,7 @@
     return result;
   }
   async function disconnectAudio() {
+    if (window.CallingSpeech) window.CallingSpeech.stop('room');
     stopRoomQuestionRotation();
     if (microphone) { microphone.stop(); microphone.close(); microphone = null; }
     if (rtcClient) { await rtcClient.leave().catch(() => {}); rtcClient = null; }
@@ -265,6 +266,7 @@
       microphone = await AgoraRTC.createMicrophoneAudioTrack();
       await client.publish([microphone]);
       joinedRoomId = room.id;
+      if (window.CallingSpeech) window.CallingSpeech.start(microphone.getMediaStreamTrack(), { roomId: room.id }, text => note(text, /blocked|unavailable|limit/i.test(text)));
       startRoomQuestionRotation(room);
       $('roomAudioStatus').textContent = 'Connected to the topic room · audio only.';
       buttonNode.textContent = 'Audio connected';
@@ -366,6 +368,9 @@
       countdownTimer = setInterval(() => { if (data?.myRoom) updateCountdown(data.myRoom); }, 1000);
     });
   }
+  window.addEventListener('calling-speech-blocked', async event => { if (event.detail?.contextType !== 'room' || event.detail?.contextId !== joinedRoomId) return; await disconnectAudio(); note(event.detail?.message || 'Audio access was suspended after repeated Hindi speech detection.', true); });
+  window.addEventListener('calling-quota-exhausted', async event => { if (event.detail?.contextType !== 'room' || event.detail?.contextId !== joinedRoomId) return; await disconnectAudio(); note(event.detail?.message || 'Today’s 10 free audio minutes are used. Activate a pass to continue.', true); });
+  window.addEventListener('calling-speech-error', async event => { if (event.detail?.contextType !== 'room' || event.detail?.contextId !== joinedRoomId) return; await disconnectAudio(); note(event.detail?.message || 'Live language moderation is unavailable, so audio was stopped.', true); });
   try {
     if (!firebase.apps.length) firebase.initializeApp(cfg);
     auth = firebase.auth();
